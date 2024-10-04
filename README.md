@@ -1,4 +1,4 @@
-# Fractal Wync
+# Fractal Sync
 Fractal Synchroniser: HW synchronisation module design to scale better than mesh-based or monolithic approaches
 
 # Warrning
