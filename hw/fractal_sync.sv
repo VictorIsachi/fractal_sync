@@ -34,9 +34,9 @@ module fractal_sync #(
   localparam int unsigned SLV_PORTS = 2,
   localparam int unsigned MST_PORTS = 1,
   localparam bit          SPD_COMB  = 0,
-  localparam bit          APD_COMB  = 1,
+  localparam bit          APD_COMB  = 0,
   localparam bit          WAKE_COMB = 0,
-  localparam bit          ACK_COMB  = 0
+  localparam bit          ACK_COMB  = 1
 )(
   input  logic        clk_i,
   input  logic        rstn_i,
