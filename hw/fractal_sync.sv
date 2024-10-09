@@ -30,13 +30,13 @@
  */
 
 module fractal_sync #(
-  parameter int unsigned SLV_WIDTH  = 0,
-  localparam int unsigned SLV_PORTS = 2,
-  localparam int unsigned MST_PORTS = 1,
-  localparam bit          SPD_COMB  = 0,
-  localparam bit          APD_COMB  = 0,
-  localparam bit          WAKE_COMB = 0,
-  localparam bit          ACK_COMB  = 1
+  parameter int unsigned SLV_WIDTH    = 0,
+  localparam int unsigned SLV_PORTS   = 2,
+  localparam int unsigned MST_PORTS   = 1,
+  localparam bit          SPD_COMB    = 0,
+  localparam bit          APD_COMB    = 0,
+  localparam bit          MST_IN_COMB = 0,
+  localparam bit          ACK_COMB    = 1
 )(
   input  logic        clk_i,
   input  logic        rstn_i,
@@ -92,6 +92,7 @@ module fractal_sync #(
   logic                mst_wake_d, mst_wake_q;
   logic[MST_PORTS-1:0] mst_errors;
   logic                mst_error;
+  logic                mst_error_d, mst_error_q;
 
   state_e c_state, n_state;
 
@@ -175,23 +176,30 @@ module fractal_sync #(
         mst_wake_d = 1'b0;
   end
 
-  generate if (WAKE_COMB) begin: gen_comb_mst_wake
-    assign mst_wake = mst_wake_d;
-  end else begin: gen_seq_mst_wake
-    always_ff @(posedge clk_i, negedge rstn_i) begin: mst_wake_reg
-      if (!rstn_i) mst_wake_q <= '0;
-      else         mst_wake_q <= mst_wake_d;
-    end
-
-    assign mst_wake = mst_wake_q;
-  end endgenerate
-
   always_comb begin: mst_error_generator
-    mst_error = 1'b0;
+    mst_error_d = 1'b0;
     for (int i = 0; i < MST_PORTS; i++)
       if (mst_errors[i] == 1'b1)
-        mst_error = 1'b1;
+        mst_error_d = 1'b1;
   end
+
+  generate if (MST_IN_COMB) begin: gen_comb_mst_wake_error
+    assign mst_wake  = mst_wake_d;
+    assign mst_error = mst_error_d;
+  end else begin: gen_seq_mst_wake_error
+    always_ff @(posedge clk_i, negedge rstn_i) begin: mst_wake_error_reg
+      if (!rstn_i) begin
+        mst_wake_q  <= '0;
+        mst_error_q <= '0;
+      end else begin
+        mst_wake_q  <= mst_wake_d;
+        mst_error_q <= mst_error_d;
+      end
+    end
+
+    assign mst_wake  = mst_wake_q;
+    assign mst_error = mst_error_q;
+  end endgenerate
 
 /*******************************************************/
 /**         Master In (Wake, Error) Logic End         **/
