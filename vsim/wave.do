@@ -1,5 +1,10 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
+add wave -noupdate -group sim:/tb_bfm/i_top_fractal_sync_monitor /tb_bfm/i_top_fractal_sync_monitor/PORT_WIDTH
+add wave -noupdate -group sim:/tb_bfm/i_top_fractal_sync_monitor /tb_bfm/i_top_fractal_sync_monitor/N_PORTS
+add wave -noupdate -group sim:/tb_bfm/i_top_fractal_sync_monitor /tb_bfm/i_top_fractal_sync_monitor/clk_i
+add wave -noupdate -group sim:/tb_bfm/i_top_fractal_sync_monitor /tb_bfm/i_top_fractal_sync_monitor/rstn_i
+add wave -noupdate -group sim:/tb_bfm/i_top_fractal_sync_monitor /tb_bfm/i_top_fractal_sync_monitor/error_o
 add wave -noupdate -group {sim:/tb_bfm/gen_top_sync[0]/i_top_fractal_sync} {/tb_bfm/gen_top_sync[0]/i_top_fractal_sync/SLV_WIDTH}
 add wave -noupdate -group {sim:/tb_bfm/gen_top_sync[0]/i_top_fractal_sync} {/tb_bfm/gen_top_sync[0]/i_top_fractal_sync/SLV_PORTS}
 add wave -noupdate -group {sim:/tb_bfm/gen_top_sync[0]/i_top_fractal_sync} {/tb_bfm/gen_top_sync[0]/i_top_fractal_sync/MST_PORTS}
@@ -146,4 +151,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ns} {1995 ns}
+WaveRestoreZoom {0 ns} {2008 ns}

@@ -43,7 +43,10 @@ module tb_bfm
   logic clk, rstn;
 
   int unsigned errors;
-  bit          sync_error;
+  int unsigned sync_errors;
+  int unsigned monitor_errors;
+  logic        sync_error;
+  logic        monitor_error[TOP_PORTS];
 
   int unsigned comp_cycles[CU_PORTS];
   int unsigned max_rand_cycles[CU_PORTS];
@@ -51,9 +54,9 @@ module tb_bfm
   sync_transaction sync_req;
   sync_transaction sync_rsp[CU_PORTS];
 
-  fractal_if #(.LVL_WIDTH(CU_LVL_WIDTH))     if_cu[CU_PORTS]();
-  fractal_if #(.LVL_WIDTH(CU_LVL_WIDTH-1))   if_sync[SYNC_PORTS](); // NOTE: ONLY 1 LEVEL OF SYNC TREE
-  fractal_if #(.LVL_WIDTH(TOP_LVL_WIDTH-1))  if_top[TOP_PORTS]();
+  fractal_if #(.LVL_WIDTH(CU_LVL_WIDTH))    if_cu[CU_PORTS]();
+  fractal_if #(.LVL_WIDTH(CU_LVL_WIDTH-1))  if_sync[SYNC_PORTS](); // NOTE: ONLY 1 LEVEL OF SYNC TREE
+  fractal_if #(.LVL_WIDTH(TOP_LVL_WIDTH-1)) if_top[TOP_PORTS]();
 
   cu_bfm #(.VIF_WIDTH(CU_LVL_WIDTH)) cu_bfms[CU_PORTS];
   for (genvar i = 0; i < CU_PORTS; i++) begin: gen_cu_bfm
@@ -82,25 +85,29 @@ module tb_bfm
     ) i_top_fractal_sync (
       .clk_i   ( clk                             ),
       .rstn_i  ( rstn                            ),
-      .slaves  ( '{if_sync[i*2], if_sync[i*2+1]} ),
+      .slaves  ( '{if_sync[2*i], if_sync[2*i+1]} ),
       .masters ( if_top                          )
     );
   end
 
-  for (genvar i = 0; i < TOP_PORTS; i++) begin: gen_top_wake_error
-    always begin
-      if_top[i].wake  = 1'b0;
-      if_top[i].error = 1'b0;
-      @(negedge clk);
-      if (if_top[i].sync) begin
-        @(negedge clk);
-        if_top[i].wake  = 1'b1;
-        if_top[i].error = 1'b1;
-        do
-          @(negedge clk);
-        while (!if_top[i].ack);
-      end
+  fractal_monitor #(
+    .PORT_WIDTH(TOP_LVL_WIDTH-1)
+  ) i_top_fractal_sync_monitor (
+    .clk_i   ( clk           ),
+    .rstn_i  ( rstn          ),
+    .ports   ( if_top        ),
+    .error_o ( monitor_error )
+  );
+
+  for (genvar i = 0; i < TOP_PORTS; i++) begin: gen_monitor_error_reporter
+    always @(posedge monitor_error[i]) begin
+      $error("[MONITOR %d ERROR]", i);
+      monitor_errors++;
     end
+  end
+
+  always begin
+    #1 errors = sync_errors + monitor_errors;
   end
   
   always begin
@@ -116,7 +123,7 @@ module tb_bfm
     repeat(4) @(negedge clk);
     rstn = 1'b1;
 
-    errors = 0;
+    sync_errors = 0;
 
     for (int t = 0; t < N_TESTS; t++) begin
       sync_req = new();
@@ -145,9 +152,9 @@ module tb_bfm
 
       if (sync_error) begin
         $error("[FAIL] Incorrect result");
-        errors++;
+        sync_errors++;
       end else
-        $info("[PASS] Correct result\n");
+        $info("[PASS] Correct result");
     end
 
     repeat(4) @(negedge clk);

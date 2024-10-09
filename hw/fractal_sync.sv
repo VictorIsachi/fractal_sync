@@ -34,7 +34,9 @@ module fractal_sync #(
   localparam int unsigned SLV_PORTS = 2,
   localparam int unsigned MST_PORTS = 1,
   localparam bit          SPD_COMB  = 0,
-  localparam bit          APD_COMB  = 1
+  localparam bit          APD_COMB  = 1,
+  localparam bit          WAKE_COMB = 0,
+  localparam bit          ACK_COMB  = 0
 )(
   input  logic        clk_i,
   input  logic        rstn_i,
@@ -42,9 +44,31 @@ module fractal_sync #(
   fractal_if.mst_port masters[MST_PORTS]
 );
   
+/*******************************************************/
+/**                Assertions Beginning               **/
+/*******************************************************/
+
   initial FRACTAL_SYNC_SLV_WIDTH: assert (SLV_WIDTH > 0) else $fatal("SLV_WIDTH must be > 0");
 
+/*******************************************************/
+/**                   Assertions End                  **/
+/*******************************************************/
+/**        Parameters and Definitions Beginning       **/
+/*******************************************************/
+
   localparam int unsigned MST_WIDTH = SLV_WIDTH - 1;
+
+  typedef enum logic[1:0] {
+    IDLE,
+    SYNC,
+    PROPAGATE
+  } state_e;
+
+/*******************************************************/
+/**           Parameters and Definitions End          **/
+/*******************************************************/
+/**             Internal Signals Beginning            **/
+/*******************************************************/
   
   logic[SLV_WIDTH-1:0] slv_level_d[SLV_PORTS], slv_level_q[SLV_PORTS];
 
@@ -62,34 +86,45 @@ module fractal_sync #(
 
   logic                mst_sync;
   logic                mst_ack;
+  logic                mst_ack_d, mst_ack_q;
   logic[MST_PORTS-1:0] mst_wakes;
   logic                mst_wake;
+  logic                mst_wake_d, mst_wake_q;
   logic[MST_PORTS-1:0] mst_errors;
   logic                mst_error;
 
-  typedef enum logic[1:0] {
-    IDLE,
-    SYNC,
-    PROPAGATE
-  } state_e;
-
   state_e c_state, n_state;
 
-  for (genvar i = 0; i < SLV_PORTS; i++) begin: level_sampler
+/*******************************************************/
+/**                Internal Signals End               **/
+/*******************************************************/
+/**            Hardwired Signals Beginning            **/
+/*******************************************************/
+  
+  for (genvar i = 0; i < SLV_PORTS; i++) begin
+    assign slv_syncs[i] = slaves[i].sync;
+    assign slv_acks[i]  = slaves[i].ack;
+  end
+
+  for (genvar i = 0; i < MST_PORTS; i++) begin
+    assign mst_wakes[i]  = masters[i].wake;
+    assign mst_errors[i] = masters[i].error;
+  end
+
+/*******************************************************/
+/**               Hardwired Signals End               **/
+/*******************************************************/
+/**       Sync Request and Level Logic Beginning      **/
+/*******************************************************/
+
+  for (genvar i = 0; i < SLV_PORTS; i++) begin: gen_level_sampler
     assign slv_level_d[i] = slaves[i].level;
     always_ff @(posedge clk_i, negedge rstn_i) begin: level_register
       if      (!rstn_i)      slv_level_q[i] <= '0;
       else if (slv_syncs[i]) slv_level_q[i] <= slv_level_d[i];
     end
   end
-
-  for (genvar i = 0; i < MST_PORTS; i++) begin: mst_level_generator
-    if (MST_WIDTH)
-      assign masters[i].level = slv_level_q[0][(SLV_WIDTH-1)-:MST_WIDTH];
-    else
-      assign masters[i].level = 1'b0;
-  end
-
+  
   assign local_sync = MST_WIDTH ? slv_level_q[0][0] : 1'b1;
 
   always_comb begin: level_validator
@@ -97,11 +132,6 @@ module fractal_sync #(
     for (int i = 0; i < SLV_PORTS-1; i++)
       if (slv_level_q[i] != slv_level_q[i+1])
         valid_level = 1'b0;
-  end
-
-  for (genvar i = 0; i < SLV_PORTS; i++) begin
-    assign slv_syncs[i] = slaves[i].sync;
-    assign slv_acks[i]  = slaves[i].ack;
   end
   
   presence_detector #(
@@ -114,7 +144,13 @@ module fractal_sync #(
     .present_i     ( slv_syncs           ),
     .all_present_o ( slv_sync            )
   );
-  
+
+/*******************************************************/
+/**          Sync Request and Level Logic End         **/
+/*******************************************************/
+/**            Acknowledge Logic Beginning            **/
+/*******************************************************/
+
   presence_detector #(
     .PARTICIPANTS ( SLV_PORTS ),
     .COMB         ( APD_COMB  )
@@ -126,27 +162,29 @@ module fractal_sync #(
     .all_present_o ( slv_ack            )
   );
 
-  for (genvar i = 0; i < SLV_PORTS; i++) begin: gen_slv_wake_error_generator
-    assign slaves[i].wake  = slv_wake;
-    assign slaves[i].error = slv_error_q;
-  end
+/*******************************************************/
+/**               Acknowledge Logic End               **/
+/*******************************************************/
+/**      Master In (Wake, Error) Logic Beginning      **/
+/*******************************************************/
 
-  for (genvar i = 0; i < MST_PORTS; i++) begin: gen_mst_sync_ack_generator
-    assign masters[i].sync = mst_sync;
-    assign masters[i].ack  = mst_ack;
-  end
-  
-  for (genvar i = 0; i < MST_PORTS; i++) begin
-    assign mst_wakes[i]  = masters[i].wake;
-    assign mst_errors[i] = masters[i].error;
-  end
-  
   always_comb begin: mst_wake_generator
-    mst_wake = 1'b1;
+    mst_wake_d = 1'b1;
     for (int i = 0; i < MST_PORTS; i++)
       if (mst_wakes[i] != 1'b1)
-        mst_wake = 1'b0;
+        mst_wake_d = 1'b0;
   end
+
+  generate if (WAKE_COMB) begin: gen_comb_mst_wake
+    assign mst_wake = mst_wake_d;
+  end else begin: gen_seq_mst_wake
+    always_ff @(posedge clk_i, negedge rstn_i) begin: mst_wake_reg
+      if (!rstn_i) mst_wake_q <= '0;
+      else         mst_wake_q <= mst_wake_d;
+    end
+
+    assign mst_wake = mst_wake_q;
+  end endgenerate
 
   always_comb begin: mst_error_generator
     mst_error = 1'b0;
@@ -155,7 +193,53 @@ module fractal_sync #(
         mst_error = 1'b1;
   end
 
-  always_ff @(posedge clk_i, negedge rstn_i) begin: fsm_state_register
+/*******************************************************/
+/**         Master In (Wake, Error) Logic End         **/
+/*******************************************************/
+/**   Master Out (Sync, Level, Ack) Logic Beginning   **/
+/*******************************************************/
+
+  for (genvar i = 0; i < MST_PORTS; i++) begin: gen_mst_level_generator
+    if (MST_WIDTH)
+      assign masters[i].level = slv_level_q[0][(SLV_WIDTH-1)-:MST_WIDTH];
+    else
+      assign masters[i].level = 1'b0;
+  end
+
+  generate if (ACK_COMB) begin: gen_comb_mst_ack
+    assign mst_ack = mst_ack_d;
+  end else begin: gen_seq_mst_ack
+    always_ff @(posedge clk_i, negedge rstn_i) begin: mst_ack_reg
+      if (!rstn_i) mst_ack_q <= '0;
+      else         mst_ack_q <= mst_ack_d;
+    end
+
+    assign mst_ack = mst_ack_q;
+  end endgenerate
+  
+  for (genvar i = 0; i < MST_PORTS; i++) begin: gen_mst_sync_ack_generator
+    assign masters[i].sync = mst_sync;
+    assign masters[i].ack  = mst_ack;
+  end
+
+/*******************************************************/
+/**      Master Out (Sync, Level, Ack) Logic End      **/
+/*******************************************************/
+/**      Slave Out (Wake, Error) Logic Beginning      **/
+/*******************************************************/
+  
+  for (genvar i = 0; i < SLV_PORTS; i++) begin: gen_slv_wake_error_generator
+    assign slaves[i].wake  = slv_wake;
+    assign slaves[i].error = slv_error_q;
+  end
+
+/*******************************************************/
+/**         Slave Out (Wake, Error) Logic End         **/
+/*******************************************************/
+/**           Synchronization FSM Beginning           **/
+/*******************************************************/
+
+  always_ff @(posedge clk_i, negedge rstn_i) begin: state_register
     if (!rstn_i) begin
       c_state     <= IDLE;
       slv_error_q <= 1'b0;
@@ -165,7 +249,7 @@ module fractal_sync #(
     end
   end
 
-  always_comb begin: fsm_next_state_logic
+  always_comb begin: next_state_logic
     n_state     = c_state;
     slv_error_d = slv_error_q;
 
@@ -178,20 +262,24 @@ module fractal_sync #(
     endcase
   end
 
-  always_comb begin: fsm_output_logic
+  always_comb begin: output_logic
     clear_sync_detector = 1'b0;
     clear_ack_detector  = 1'b0;
     mst_sync            = 1'b0;
-    mst_ack             = 1'b0;
+    mst_ack_d           = 1'b0;
     slv_wake            = 1'b0;
 
     case (c_state)
-      IDLE     : if      (slv_sync & (local_sync | ~valid_level)) begin slv_wake = 1'b1; clear_ack_detector = 1'b1;                   end
-                 else if (slv_sync & ~local_sync & valid_level)   begin                                              mst_sync = 1'b1; end
-      SYNC     : if      (slv_ack)                                begin slv_wake = 1'b1; clear_sync_detector = 1'b1; mst_ack = 1'b1;  end
-                 else                                             begin slv_wake = 1'b1;                                              end
-      PROPAGATE: if      (mst_wake)                               begin slv_wake = 1'b1; clear_ack_detector = 1'b1;                   end
+      IDLE     : if      (slv_sync & (local_sync | ~valid_level)) begin slv_wake = 1'b1; clear_ack_detector = 1'b1;                    end
+                 else if (slv_sync & ~local_sync & valid_level)   begin                                              mst_sync = 1'b1;  end
+      SYNC     : if      (slv_ack)                                begin slv_wake = 1'b1; clear_sync_detector = 1'b1; mst_ack_d = 1'b1; end
+                 else                                             begin slv_wake = 1'b1;                                               end
+      PROPAGATE: if      (mst_wake)                               begin slv_wake = 1'b1; clear_ack_detector = 1'b1;                    end
     endcase
   end
+
+/*******************************************************/
+/**              Synchronization FSM End              **/
+/*******************************************************/
   
 endmodule: fractal_sync
