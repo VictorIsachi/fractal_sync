@@ -27,6 +27,7 @@ sources:
     - hw/fractal_if.sv
     - hw/presence_detector.sv
     - hw/fractal_sync.sv
+    - hw/fractal_monitor.sv
 
     - target: dv
       files:
