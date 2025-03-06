@@ -16,3 +16,21 @@
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  */
+
+package fractal_sync_pkg;
+
+  `include "include/typedef.svh"
+  `include "include/assign.svh"
+
+  typedef enum logic[1:0] { 
+    SD_LEFT_NORTH  = 2'b10,
+    SD_RIGHT_SOUTH = 2'b01,
+    SD_BOTH        = 2'b11
+  } sd_e;
+  
+  typedef enum logic { 
+    RF1D = 0,
+    RF2D = 1
+  } rf_e;
+
+endpackage: fractal_sync_pkg
