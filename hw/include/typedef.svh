@@ -22,35 +22,29 @@
 `ifndef FSYNC_TYPEDEF_SVH_
 `define FSYNC_TYPEDEF_SVH_
 
-`define FSYNC_TYPEDEF_MST_SIG_T(fsync_mst_sig_t, level_t, id_t) \
-  typedef struct packed {                                       \
-    level_t level;                                              \
-    id_t    id;                                                 \
-  } fsync_mst_sig_t;
+`define FSYNC_TYPEDEF_SIG_T(fsync_sig_t, level_t, id_t) \
+  typedef struct packed {                               \
+    level_t aggr;                                       \
+    id_t    id;                                         \
+  } fsync_sig_t;
 
-`define FSYNC_TYPEDEF_SLV_SIG_T(fsync_slv_sig_t, level_t, id_t) \
-  typedef struct packed {                                       \
-    level_t level;                                              \
-    id_t    id;                                                 \
-  } fsync_slv_sig_t;
-
-`define FYSNC_TYPEDEF_REQ_T(fsync_req_t, fsync_mst_sig_t) \
-  typedef struct packed {                                 \
-    logic           sync;                                 \
-    fsync_mst_sig_t mst_sig;                              \
+`define FYSNC_TYPEDEF_REQ_T(fsync_req_t, fsync_sig_t, fsync_src_t) \
+  typedef struct packed {                                          \
+    logic       sync;                                              \
+    fsync_sig_t sig;                                               \
+    fsync_src_t src;                                               \
   } fsync_req_t;
 
-`define FSYNC_TYPEDEF_RSP_T(fsync_rsp_t, fsync_slv_sig_t) \
-  typedef struct packed {                                 \
-    logic           wake;                                 \
-    fsync_slv_sig_t slv_sig;                              \
-    logic           error;                                \
+`define FSYNC_TYPEDEF_RSP_T(fsync_rsp_t, fsync_dst_t) \
+  typedef struct packed {                             \
+    logic       wake;                                 \
+    fsync_dst_t dst;                                  \
+    logic       error;                                \
   } fsycn_rsp_t;
 
-`define FSYNC_TYPEDEF_ALL(__name, __mst_level_t, __mst_id_t, __slv_level_t, __slv_id_t) \
-  `FSYNC_TYPEDEF_MST_SIG_T(__name``mst_sig_t, __mst_level_t, __mst_id_t)                \
-  `FSYNC_TYPEDEF_SLV_SIG_T(__name``slv_sig_t, __slv_level_t, __slv_id_t)                \
-  `FYSNC_TYPEDEF_REQ_T(__name``req_t, __name``mst_sig_t)                                \
-  `FSYNC_TYPEDEF_RSP_T(__name``rsp_t, __name``slv_sig_t)
+`define FSYNC_TYPEDEF_ALL(__name, __level_t, __id_t, __src_t, __dst_t) \
+  `FSYNC_TYPEDEF_SIG_T(__name``sig_t, __level_t, __id_t)               \
+  `FYSNC_TYPEDEF_REQ_T(__name``req_t, __name``sig_t, __src_t)          \
+  `FSYNC_TYPEDEF_RSP_T(__name``rsp_t, __dst_t)
 
 `endif /* FSYNC_TYPEDEF_SVH_ */

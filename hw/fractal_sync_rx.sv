@@ -21,9 +21,9 @@
  *
  * Parameters:
  *  fsync_req_in_t  - Type of the input request
- *  fsync_req_out_t - Type of the output request: level width must be 1 less than input level width
+ *  fsync_req_out_t - Type of the output request: aggregate width must be 1 less than input aggregate width; sources width must be 2 more than input sources width
  *  COMB_IN         - 1: Combinational datapath, 0: sample input
- *  MUX_OUT         - 1: two output ports muxed based on id, 0: single output port
+ *  SD_MASK         - Mask that indicates the source of synchronization request: 01 -> Right; 10 -> Left; 11 -> Both
  *  FIFO_DEPTH      - Depth of the request FIFO
  *
  * Interface signals:
@@ -38,13 +38,14 @@
  * WARRNING: Proper measures for error detection and handling must be implemented
  */
 
-module fractal_sync_rx #(
-  parameter type          fsync_req_in_t  = logic,
-  parameter type          fsync_req_out_t = logic,
-  parameter bit           COMB_IN         = 1'b0,
-  parameter bit           MUX_OUT         = 1'b1,
-  localparam int unsigned OUT_PORTS       = MUX_OUT ? 2 : 1,
-  parameter int unsigned  FIFO_DEPTH      = 1
+module fractal_sync_rx 
+  import fractal_sync_pkg::*; 
+#(
+  parameter type                   fsync_req_in_t  = logic,
+  parameter type                   fsync_req_out_t = logic,
+  parameter bit                    COMB_IN         = 1'b0,
+  parameter fractal_sync_pkg::sd_e SD_MASK         = fractal_sync_pkg::SD_BOTH,
+  parameter int unsigned           FIFO_DEPTH      = 1
 )(
   // Request interface - in
   input  logic           clk_i,
@@ -56,8 +57,8 @@ module fractal_sync_rx #(
   output logic           error_overflow_o,
   // FIFO interface - out
   output logic           empty_o,
-  output fsync_req_out_t req_o[OUT_PORTS],
-  input logic            pop_i
+  output fsync_req_out_t req_o,
+  input  logic           pop_i
 );
 
 /*******************************************************/
@@ -65,7 +66,8 @@ module fractal_sync_rx #(
 /*******************************************************/
 
   `ASSERT_INIT(FRACTAL_SYNC_RX_FIFO_DEPTH, (FIFO_DEPTH > 0), "FIFO_DEPTH must be > 0")
-  `ASSERT_INIT(FRACTAL_SYNC_RX_LEVEL, ($bits(req_i.mst_sig.level) == $bits(req_o.mst_sig.level)-1), "Output level must be 1 bit less than input level")
+  `ASSERT_INIT(FRACTAL_SYNC_RX_LEVEL, ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)-1), "Output aggregate width must be 1 bit less than input aggregate")
+  `ASSERT_INIT(FRACTAL_SYNC_RX_LEVEL, ($bits(req_i.src) == $bits(req_o.src)+2), "Output sources width must be 2 bits more than input sources")
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -101,11 +103,12 @@ module fractal_sync_rx #(
   
   assign en_sample = req_i.sync;
   assign propagate = ~sampled_req.level[0];
-  assign enqueue   = sampled_req.sync && propagate;
+  assign enqueue   = sampled_req.sync & propagate;
 
-  assign sampled_out_req.sync          = sampled_req.sync
-  assign sampled_out_req.mst_sig.level = sampled_req.mst_sig.level >> 1;
-  assign sampled_out_req.mst_sig.id    = sampled_req.mst_sig.id
+  assign sampled_out_req.sync      = sampled_req.sync;
+  assign sampled_out_req.sig.level = sampled_req.sig.level >> 1;
+  assign sampled_out_req.dst       = {sampled_req.sig.dst, SD_MASK};
+  assign sampled_out_req.sig.id    = sampled_req.sig.id;
 
   assign flush_fifo = 1'b0;
   assign test_fifo  = 1'b0;
@@ -150,21 +153,10 @@ module fractal_sync_rx #(
     .data_o     ( fifo_out_req    ),
     .pop_i      
   );
+  assign req_o = fifo_out_req;
 
 /*******************************************************/
 /**                    REQ FIFO End                   **/
-/*******************************************************/
-/**                 REQ MUX Beginning                 **/
-/*******************************************************/
-
-  generate if (MUX_OUT) begin: gen_mux_out
-    assign req_o[fifo_out_req.mst_sig.id[0]] = fifo_out_req;
-  end else begin: gen_no_mux_out
-    assign req_o[0] = fifo_out_req;
-  end endgenerate
-
-/*******************************************************/
-/**                    REQ MUX End                    **/
 /*******************************************************/
 
 endmodule: fractal_sync_rx

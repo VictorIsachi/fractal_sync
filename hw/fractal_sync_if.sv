@@ -19,56 +19,54 @@
  * Fractal synchronization interface
  *
  * Parameters:
- *  LVL_WIDTH   - Width of the level indicator of the synchronization tree
- *  LVL_OFFSET  - Number of bits removed from level at each network hop (m->s)
- *  ID_WIDTH    - Width of the id indicator of the barrier, each id is local to the specific synchronization node: distinct nodes have overlapping id's
- *  ID_OFFSET   - Number of bits to be added to id at each network hop (m->s)
+ *  AGGR_WIDTH - Width of aggr, representing the the levels of the tree where aggregation ought to occur; leading 1 represent the root level of the synchronization request
+ *  ID_WIDTH   - Width of the id indicator of the barrier, each id is local to the specific synchronization node: distinct nodes have overlapping id's
+ *  SD_WIDTH   - Width of src/dst: used for beack-routing
  *
  * Interface signals:
- *  sync      - Indicates request for synchronization
- *  level_mst - Indicates the level of the synchronization tree the synchronization request should be routed to
- *  id_mst    - Indicates the id of the barrier of the synchronization request (local to specific synchronization node)
- *  wake      - Indicates granted synchronization
- *  level_slv - Indicates the level of the synchronization tree the synchronization response is coming from
- *  id_slv    - Indicates the id of the barrier of the synchronization response
- *  error     - Indicates error
+ *  sync               - Indicates request for synchronization
+ *  aggr (aggregate)   - Indicates the levels of the tree where synchronization requests should be aggregated, leading 1 indicates level of synchronization request
+ *  id                 - Indicates the id of the barrier of the synchronization request (local to specific synchronization node)
+ *  src (sources)      - Indicates the sources of the synchronization request
+ *  wake               - Indicates granted synchronization
+ *  dst (destinations) - Indicates the destinations of the synchronization response
+ *  error              - Indicates error
  */
 
 interface fractal_if
 #(
-  parameter int unsigned LVL_WIDTH   = 0,
-  parameter int unsigned LVL_OFFSET  = 0,
-  parameter int unsigned ID_WIDTH    = 0,
-  parameter int unsigned ID_OFFSET   = 0
+  parameter int unsigned AGGR_WIDTH = 0,
+  parameter int unsigned ID_WIDTH   = 0,
+  parameter int unsigned SD_WIDTH   = 0
 )(
 );
 
-  logic                             sync;
-  logic[LVL_WIDTH-1:0]              level_mst;
-  logic[ID_WIDTH-1:0]               id_mst;
+  logic                 sync;
+  logic[AGGR_WIDTH-1:0] aggr;
+  logic[ID_WIDTH-1:0]   id;
+  logic[SD_WIDTH-1:0]   src;
 
-  logic                             wake;
-  logic[(LVL_WIDTH-LVL_OFFSET)-1:0] level_slv;
-  logic[(ID_WIDTH+ID_OFFSET)-1:0]   id_slv;
-  logic                             error;
+  logic                 wake;
+  logic[SD_WIDTH-1:0]   dst;
+  logic                 error;
 
   modport mst_port (
     output sync,
-    output level_mst,
-    output id_mst,
+    output aggr,
+    output id,
+    output src,
     input  wake,
-    input  level_slv,
-    input  id_slv,
+    input  dst,
     input  error
   );
 
   modport slv_port (
     input  sync,
-    input  level_mst,
-    input  id_mst,
+    input  aggr,
+    input  id,
+    input  src,
     output wake,
-    output level_slv,
-    output id_slv,
+    output dst,
     output error
   );
 
