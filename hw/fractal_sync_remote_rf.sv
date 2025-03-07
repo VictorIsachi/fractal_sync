@@ -74,7 +74,7 @@ module fractal_sync_1d_remote_rf
       sig_lvl_init[i] = sig_lvl_init_base << level_i[i];
     end
 
-    always_comb begin: sig_lvl_decoder
+    always_comb begin: sig_lvl_encoder
       sig_lvl[i] = sig_lvl_init[i];
       sig_lvl[i][SIG_WIDTH-2] = sig_lvl_init[i][SIG_WIDTH-1] | sig_lvl[i][SIG_WIDTH-2];
       for (unsigned int j = SIG_WIDTH-5; j > 0; j -= 3)
