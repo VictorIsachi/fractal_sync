@@ -23,14 +23,19 @@ package fractal_sync_pkg;
   `include "include/assign.svh"
 
   typedef enum logic[1:0] { 
-    SD_LEFT_NORTH  = 2'b10,
-    SD_RIGHT_SOUTH = 2'b01,
+    SD_LEFT_SOUTH  = 2'b10,
+    SD_RIGHT_NORTH = 2'b01,
     SD_BOTH        = 2'b11
   } sd_e;
   
   typedef enum logic { 
     RF1D = 0,
     RF2D = 1
-  } rf_e;
+  } rf_dim_e;
+
+  typedef enum logic {
+    CAM_RF = 0,
+    DM_RF  = 1
+  } remote_rf_e;
 
 endpackage: fractal_sync_pkg

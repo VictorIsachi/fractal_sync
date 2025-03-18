@@ -25,14 +25,15 @@
 module fractal_sync_cc 
   import fractal_sync_pkg::*; 
 #(
-  parameter fractal_sync_pkg::rf_e RF_TYPE         = fractal_sync_pkg::RF2D,
-  parameter int unsigned           N_LOCAL_REGS    = 0,
-  parameter type                   fsync_req_in_t  = logic,
-  parameter type                   fsync_req_out_t = logic,
-  localparam int unsigned          OUT_PORTS       = (RF_TYPE == fractal_sync_pkg::RF2D) ? 2 : 
-                                                     (RF_TYPE == fractal_sync_pkg::RF1D) ? 1 :
-                                                     0,
-  parameter int unsigned           FIFO_DEPTH      = 1
+  parameter fractal_sync_pkg::rf_dim_e    RF_DIM          = fractal_sync_pkg::RF2D,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE         = fractal_sync_pkg::CAM_RF;
+  parameter int unsigned                  N_LOCAL_REGS    = 0,
+  parameter type                          fsync_req_in_t  = logic,
+  parameter type                          fsync_req_out_t = logic,
+  localparam int unsigned                 OUT_PORTS       = (RF_TYPE == fractal_sync_pkg::RF2D) ? 2 : 
+                                                            (RF_TYPE == fractal_sync_pkg::RF1D) ? 1 :
+                                                            0,
+  parameter int unsigned                  FIFO_DEPTH      = 1
 )(
   input  logic       clk_i,
   input  logic       rst_ni,

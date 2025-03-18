@@ -23,10 +23,12 @@
 module fractal_sync_1d_rf
   import fractal_sync_pkg::*; 
 #(
-  parameter int unsigned  N_LOCAL_REGS = 1,
-  parameter int unsigned  LEVEL_WIDTH  = 1,
-  parameter int unsigned  ID_WIDTH     = 1,
-  localparam int unsigned N_PORTS      = 2
+  parameter fractal_sync_pkg::remote_rf_e REMOTE_RF_TYPE = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  N_LOCAL_REGS   = 1,
+  parameter int unsigned                  LEVEL_WIDTH    = 1,
+  parameter int unsigned                  ID_WIDTH       = 1,
+  parameter int unsigned                  N_REMOTE_LINES = 1,
+  localparam int unsigned                 N_PORTS        = 2
 )(
   input  logic                  clk_i,
   input  logic                  rst_ni,
@@ -67,8 +69,10 @@ module fractal_sync_1d_rf
 /*******************************************************/
 
   fractal_sync_1d_remote_rf #(
-    .LEVEL_WIDTH ( LEVEL_WIDTH ),
-    .ID_WIDTH    ( ID_WIDTH    )
+    .RF_TYPE     ( REMOTE_RF_TYPE ),
+    .LEVEL_WIDTH ( LEVEL_WIDTH    ),
+    .ID_WIDTH    ( ID_WIDTH       ),
+    .N_CAM_LINES ( N_REMOTE_LINES )
   ) i_remote_rf (
     .clk_i                         ,
     .rst_ni                        ,
@@ -111,11 +115,13 @@ endmodule: fractal_sync_1d_rf
 module fractal_sync_2d_rf
   import fractal_sync_pkg::*; 
 #(
-  parameter int unsigned  N_LOCAL_REGS = 2,
-  parameter int unsigned  LEVEL_WIDTH  = 1,
-  parameter int unsigned  ID_WIDTH     = 1,
-  localparam int unsigned N_H_PORTS    = 2,
-  localparam int unsigned N_V_PORTS    = 2
+  parameter fractal_sync_pkg::remote_rf_e REMOTE_RF_TYPE = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  N_LOCAL_REGS   = 2,
+  parameter int unsigned                  LEVEL_WIDTH    = 1,
+  parameter int unsigned                  ID_WIDTH       = 1,
+  parameter int unsigned                  N_REMOTE_LINES = 2,
+  localparam int unsigned                 N_H_PORTS      = 2,
+  localparam int unsigned                 N_V_PORTS      = 2
 )(
   input  logic                  clk_i,
   input  logic                  rst_ni,
@@ -172,8 +178,10 @@ module fractal_sync_2d_rf
 /*******************************************************/
 
   fractal_sync_2d_remote_rf #(
-    .LEVEL_WIDTH ( LEVEL_WIDTH ),
-    .ID_WIDTH    ( ID_WIDTH    )
+    .RF_TYPE     ( REMOTE_RF_TYPE ),
+    .LEVEL_WIDTH ( LEVEL_WIDTH    ),
+    .ID_WIDTH    ( ID_WIDTH       ),
+    .N_CAM_LINES ( N_REMOTE_LINES )
   ) i_remote_rf (
     .clk_i                             ,
     .rst_ni                            ,

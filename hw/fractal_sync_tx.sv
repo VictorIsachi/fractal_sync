@@ -61,7 +61,7 @@ module fractal_sync_tx
 /*******************************************************/
 
   `ASSERT_INIT(FRACTAL_SYNC_TX_FIFO_DEPTH, (FIFO_DEPTH > 0), "FIFO_DEPTH must be > 0")
-  `ASSERT_INIT(FRACTAL_SYNC_TX_LEVEL, ($bits(rsp_i.dst) == $bits(rsp_o.dst)-2), "Output destination width must be 2 bits less than input destination")
+  `ASSERT_INIT(FRACTAL_SYNC_TX_DST, ($bits(rsp_i.dst) == $bits(rsp_o.dst)-2), "Output destination width must be 2 bits less than input destination")
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -122,13 +122,19 @@ module fractal_sync_tx
         push_d[i] = 1'b1;
   end
   
-  generate if (COMB_IN) begin: gen_comb_sample_push
+  if (COMB_IN) begin: gen_comb_sample_push
     assign sampled_rsp = rsp_i;
     assign push_q      = push_d;
   end else begin: gen_seq_sample_push
-    `FFL(sampled_rsp, rsp_i, en_sample, '0, clk_i, rst_ni)
-    `FF(push_q, push_d, 1'b0, clk_i, rst_ni)
-  end endgenerate
+    always_ff @(posedge clk_i, negedge rst_ni) begin: sample_reg
+      if      (!rst_ni)   sampled_rsp <= '0;
+      else if (en_sample) sampled_rsp <= rsp_i;
+    end
+    always_ff @(posedge clk_i, negedge rst_ni) begin: push_reg
+      if (!rst_ni) push_q <= 1'b0;
+      else         push_q <= push_d;
+    end
+  end
 
 /*******************************************************/
 /**               RSP/Push Sampling End               **/
