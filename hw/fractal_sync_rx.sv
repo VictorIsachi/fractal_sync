@@ -66,8 +66,8 @@ module fractal_sync_rx
 /*******************************************************/
 
   `ASSERT_INIT(FRACTAL_SYNC_RX_FIFO_DEPTH, (FIFO_DEPTH > 0), "FIFO_DEPTH must be > 0")
-  `ASSERT_INIT(FRACTAL_SYNC_RX_LEVEL, ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)-1), "Output aggregate width must be 1 bit less than input aggregate")
-  `ASSERT_INIT(FRACTAL_SYNC_RX_LEVEL, ($bits(req_i.src) == $bits(req_o.src)+2), "Output sources width must be 2 bits more than input sources")
+  `ASSERT_INIT(FRACTAL_SYNC_RX_AGGR, ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)-1), "Output aggregate width must be 1 bit less than input aggregate")
+  `ASSERT_INIT(FRACTAL_SYNC_RX_SRC, ($bits(req_i.src) == $bits(req_o.src)+2), "Output sources width must be 2 bits more than input sources")
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -102,19 +102,19 @@ module fractal_sync_rx
 /*******************************************************/
   
   assign en_sample = req_i.sync;
-  assign propagate = ~sampled_req.level[0];
+  assign propagate = ~sampled_req.aggr[0];
   assign enqueue   = sampled_req.sync & propagate;
 
-  assign sampled_out_req.sync      = sampled_req.sync;
-  assign sampled_out_req.sig.level = sampled_req.sig.level >> 1;
-  assign sampled_out_req.dst       = {sampled_req.sig.dst, SD_MASK};
-  assign sampled_out_req.sig.id    = sampled_req.sig.id;
+  assign sampled_out_req.sync     = sampled_req.sync;
+  assign sampled_out_req.sig.aggr = sampled_req.sig.aggr >> 1;
+  assign sampled_out_req.dst      = {sampled_req.sig.dst, SD_MASK};
+  assign sampled_out_req.sig.id   = sampled_req.sig.id;
 
   assign flush_fifo = 1'b0;
   assign test_fifo  = 1'b0;
 
   assign local_o          = ~enqueue;
-  assign root_o           = (sampled_req.level == 1) ? 1'b1 : 1'b0;
+  assign root_o           = (sampled_req.aggr == 1) ? 1'b1 : 1'b0;
   assign error_overflow_o = enqueue & full_fifo;
 
 /*******************************************************/
@@ -123,11 +123,14 @@ module fractal_sync_rx
 /**               REQ Sampling Beginning              **/
 /*******************************************************/
 
-  generate if (COMB_IN) begin: gen_comb_sample
+  if (COMB_IN) begin: gen_comb_sample
     assign sampled_req = req_i;
   end else begin: gen_seq_sample
-    `FFL(sampled_req, req_i, en_sample, '0, clk_i, rst_ni)
-  end endgenerate
+    always_ff @(posedge clk_i, negedge rst_ni) begin: sample_reg
+      if      (!rst_ni)   sampled_req <= '0;
+      else if (en_sample) sampled_req <= req_i;
+    end
+  end
 
 /*******************************************************/
 /**                  REQ Sampling End                 **/

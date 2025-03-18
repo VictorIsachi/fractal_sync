@@ -23,9 +23,11 @@
 module fractal_sync_1d_remote_rf 
   import fractal_sync_pkg::*; 
 #(
-  parameter int unsigned  LEVEL_WIDTH = 1,
-  parameter int unsigned  ID_WIDTH    = 1,
-  localparam int unsigned N_PORTS     = 2
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE     = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  LEVEL_WIDTH = 1,
+  parameter int unsigned                  ID_WIDTH    = 1,
+  parameter int unsigned                  N_CAM_LINES = 1,
+  localparam int unsigned                 N_PORTS     = 2
 )(
   input  logic                  clk_i,
   input  logic                  rst_ni,
@@ -42,9 +44,9 @@ module fractal_sync_1d_remote_rf
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam int unsigned N_REGS    = 4(2**(ID_WIDTH+2)-1)/6;
-  localparam int unsigned SIG_WIDTH = $clog2(N_REGS);
-  localparam int unsigned MAX_SIG   = N_REGS-1;
+  localparam int unsigned N_DM_REGS = 4*(2**(ID_WIDTH+2)-1)/6;
+  localparam int unsigned SIG_WIDTH = $clog2(N_DM_REGS);
+  localparam int unsigned MAX_SIG   = N_DM_REGS-1;
   
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -65,7 +67,7 @@ module fractal_sync_1d_remote_rf
 /*******************************************************/
 /**                Internal Signals End               **/
 /*******************************************************/
-/**           Signiture Generator Beginning           **/
+/**           Signature Generator Beginning           **/
 /*******************************************************/
   
   assign sig_lvl_init_base = 1'b1;
@@ -77,7 +79,7 @@ module fractal_sync_1d_remote_rf
     always_comb begin: sig_lvl_encoder
       sig_lvl[i] = sig_lvl_init[i];
       sig_lvl[i][SIG_WIDTH-2] = sig_lvl_init[i][SIG_WIDTH-1] | sig_lvl[i][SIG_WIDTH-2];
-      for (unsigned int j = SIG_WIDTH-5; j > 0; j -= 3)
+      for (int unsigned j = SIG_WIDTH-5; j > 0; j -= 3)
         sig_lvl[i][j] |= (sig_lvl[i][j+1] | sig_lvl[i][j+2]);
       sig_lvl[i][0] = 1'b0;
     end
@@ -86,7 +88,7 @@ module fractal_sync_1d_remote_rf
   end
 
 /*******************************************************/
-/**              Signiture Generator End              **/
+/**              Signature Generator End              **/
 /*******************************************************/
 /**           Remote Register File Beginning          **/
 /*******************************************************/
@@ -96,7 +98,7 @@ module fractal_sync_1d_remote_rf
     assign sig_err_o[i] = ~valid_idx[i];
   end
 
-  always_comb begin: bypass
+  always_comb begin: bypass_logic
     bypass = 1'b1;
     for (int unsigned i = 0; i < N_PORTS-1; i++)
       if (sig[i] != sig[i+1])
@@ -104,23 +106,44 @@ module fractal_sync_1d_remote_rf
   end
   assign bypass_o = bypass;
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_d_q
-    assign d[i]         = ~bypass & (check_i[i] ^ q[i]);
+  if (RF_TYPE == fractal_sync_pkg::DM_RF) begin: gen_dm_rf
+    for (genvar i = 0; i < N_PORTS; i++) begin: gen_d_q
+      assign d[i] = ~bypass & (check_i[i] ^ q[i]);
+    end
+
+    fractal_sync_mp_rf #(
+      .N_REGS    ( N_DM_REGS ),
+      .IDX_WIDTH ( SIG_WIDTH ),
+      .N_PORTS   ( N_PORTS   )
+    ) i_dm_rf (
+      .clk_i                    ,
+      .rst_ni                   ,
+      .data_i      ( d         ),
+      .idx_i       ( sig       ),
+      .idx_valid_i ( valid_idx ),
+      .data_o      ( q         )
+    );
+  end else if (RF_TYPE == fractal_sync_pkg::CAM_RF) begin: gen_cam_rf
+    for (genvar i = 0; i < N_PORTS; i++) begin: gen_d
+      assign d[i] = ~bypass & check_i[i] & valid_idx[i];
+    end
+    
+    fractal_sync_mp_cam #(
+      .SIG_WIDTH ( SIG_WIDTH   ),
+      .N_PORTS   ( N_PORTS     ),
+      .N_LINES   ( N_CAM_LINES )
+    ) i_cam_rf (
+      .clk_i              ,
+      .rst_ni             ,
+      .sig_i       ( sig ),
+      .sig_write_i ( d   ),
+      .present_o   ( q   )
+    );
+  end else $fatal("Unsupported Remote Register File Type");
+
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_q
     assign present_o[i] = q[i];
   end
-
-  fractal_sync_mp_rf #(
-    .N_REGS    ( N_REGS    ),
-    .IDX_WIDTH ( SIG_WIDTH ),
-    .N_PORTS   ( N_PORTS   )
-  ) i_mp_rf (
-    .clk_i                    ,
-    .rst_ni                   ,
-    .data_i      ( d         ),
-    .idx_i       ( sig       ),
-    .idx_valid_i ( valid_idx ),
-    .data_o      ( q         )
-  );
 
 /*******************************************************/
 /**              Remote Register File End             **/
@@ -151,10 +174,12 @@ endmodule: fractal_sync_1d_remote_rf
  */
 
 module fractal_sync_2d_remote_rf #(
-  parameter int unsigned  LEVEL_WIDTH = 1,
-  parameter int unsigned  ID_WIDTH    = 1,
-  localparam int unsigned N_H_PORTS   = 2,
-  localparam int unsigned N_V_PORTS   = 2
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE     = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  LEVEL_WIDTH = 1,
+  parameter int unsigned                  ID_WIDTH    = 1,
+  parameter int unsigned                  N_CAM_LINES = 2,
+  localparam int unsigned                 N_H_PORTS   = 2,
+  localparam int unsigned                 N_V_PORTS   = 2
 )(
   input  logic                  clk_i,
   input  logic                  rst_ni,
@@ -174,13 +199,31 @@ module fractal_sync_2d_remote_rf #(
 );
 
 /*******************************************************/
+/**                Assertions Beginning               **/
+/*******************************************************/
+
+  `ASSERT_INIT(FRACTAL_SYNC_2D_REMOTE_RF_CAM_LINES, (N_CAM_LINES%2 == 0), "N_CAM_LINES must be even")
+
+/*******************************************************/
+/**                   Assertions End                  **/
+/*******************************************************/
+/**        Parameters and Definitions Beginning       **/
+/*******************************************************/
+
+  localparam int unsigned N_H_CAM_LINES = N_CAM_LINES/2;
+  localparam int unsigned N_V_CAM_LINES = N_CAM_LINES/2;
+  
+/*******************************************************/
+/**           Parameters and Definitions End          **/
+/*******************************************************/
 /**              Horizontal RF Beginning              **/
 /*******************************************************/
 
   fractal_sync_1d_remote_rf #(
-    .LEVEL_WIDTH ( LEVEL_WIDTH ),
-    .ID_WIDTH    ( ID_WIDTH    ),
-    .SIG_WIDTH   (             )
+    .RF_TYPE     ( RF_TYPE       ),
+    .LEVEL_WIDTH ( LEVEL_WIDTH   ),
+    .ID_WIDTH    ( ID_WIDTH      ),
+    .N_CAM_LINES ( N_H_CAM_LINES )
   ) i_rf_h (
     .clk_i                    ,
     .rst_ni                   ,
@@ -199,9 +242,10 @@ module fractal_sync_2d_remote_rf #(
 /*******************************************************/
 
   fractal_sync_1d_remote_rf #(
-    .LEVEL_WIDTH ( LEVEL_WIDTH ),
-    .ID_WIDTH    ( ID_WIDTH  ),
-    .SIG_WIDTH   (             )
+    .RF_TYPE     ( RF_TYPE       ),
+    .LEVEL_WIDTH ( LEVEL_WIDTH   ),
+    .ID_WIDTH    ( ID_WIDTH      ),
+    .N_CAM_LINES ( N_V_CAM_LINES )
   ) i_rf_v (
     .clk_i                    ,
     .rst_ni                   ,
