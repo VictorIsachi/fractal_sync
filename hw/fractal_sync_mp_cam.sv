@@ -67,7 +67,7 @@ module fractal_sync_mp_cam_line
   end
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_present_logic
-    assign sig_bit_eql[i] = sig ^ sig_i[i];
+    assign sig_bit_eql[i] = sig ~^ sig_i[i];
     assign sig_eql[i]     = &sig_bit_eql[i];
     assign present[i]     = sig_eql[i] & full;
     assign present_o[i]   = present[i];
@@ -207,7 +207,7 @@ module fractal_sync_mp_cam
 
   for (genvar i = 0; i < N_LINES; i++) begin: gen_hit_full_logic
     assign hit_line[i]  = |present_line[i];
-    assign full_line[i] = ~hit_line[i] & (~free_line[i] | write_line[i]);
+    assign full_line[i] = hit_line[i] | ~free_line[i] | write_line[i];
   end
 
 /*******************************************************/
