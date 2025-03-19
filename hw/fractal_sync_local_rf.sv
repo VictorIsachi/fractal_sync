@@ -41,8 +41,8 @@ module fractal_sync_1d_local_rf
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  `ASSERT_INIT(FRACTAL_SYNC_1D_LOCAL_RF_MAX_ID, (N_REGS == MAX_ID+1), "MAX_ID must be the id of the \"last\" register")
-  `ASSERT_INIT(FRACTAL_SYNC_1D_LOCAL_RF_ID_W, (2**ID_WIDTH >= MAX_ID), "ID_WIDTH must be able to support MAX_ID")
+  initial FRACTAL_SYNC_1D_LOCAL_RF_MAX_ID: assert (N_REGS == MAX_ID+1) else $fatal("MAX_ID must be the id of the \"last\" register");
+  initial FRACTAL_SYNC_1D_LOCAL_RF_ID_W: assert (2**ID_WIDTH >= MAX_ID) else $fatal("ID_WIDTH must be able to support MAX_ID");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -153,7 +153,7 @@ module fractal_sync_2d_local_rf #(
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  `ASSERT_INIT(FRACTAL_SYNC_2D_LOCAL_RF_REGS, (N_REGS%2 == 0), "N_REGS must be even")
+  initial FRACTAL_SYNC_2D_LOCAL_RF_REGS: assert (N_REGS%2 == 0) else $fatal("N_REGS must be even");
 
 /*******************************************************/
 /**                   Assertions End                  **/

@@ -202,7 +202,7 @@ module fractal_sync_2d_remote_rf #(
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  `ASSERT_INIT(FRACTAL_SYNC_2D_REMOTE_RF_CAM_LINES, (N_CAM_LINES%2 == 0), "N_CAM_LINES must be even")
+  initial FRACTAL_SYNC_2D_REMOTE_RF_CAM_LINES: assert (N_CAM_LINES%2 == 0) else $fatal("N_CAM_LINES must be even");
 
 /*******************************************************/
 /**                   Assertions End                  **/

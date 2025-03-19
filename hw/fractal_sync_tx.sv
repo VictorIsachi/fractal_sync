@@ -60,8 +60,8 @@ module fractal_sync_tx
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  `ASSERT_INIT(FRACTAL_SYNC_TX_FIFO_DEPTH, (FIFO_DEPTH > 0), "FIFO_DEPTH must be > 0")
-  `ASSERT_INIT(FRACTAL_SYNC_TX_DST, ($bits(rsp_i.dst) == $bits(rsp_o.dst)-2), "Output destination width must be 2 bits less than input destination")
+  initial FRACTAL_SYNC_TX_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
+  initial FRACTAL_SYNC_TX_DST: assert ($bits(rsp_i.dst) == $bits(rsp_o.dst)-2) else $fatal("Output destination width must be 2 bits less than input destination");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -69,7 +69,7 @@ module fractal_sync_tx
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam bit FALL_THROUGH = 1'b1;
+  localparam bit FIFO_COMB_OUT = 1'b1;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -79,8 +79,6 @@ module fractal_sync_tx
   
   logic en_sample;
 
-  logic flush_fifo;
-  logic test_fifo;
   logic full_fifo[NUM_FIFOS];
 
   fsync_rsp_in_t  sampled_rsp;
@@ -101,9 +99,6 @@ module fractal_sync_tx
   assign sampled_out_rsp.wake  = sampled_rsp.wake;
   assign sampled_out_rsp.dst   = sampled_rsp.dst >> 2;
   assign sampled_out_rsp.error = sampled_rsp.error;
-
-  assign flush_fifo = 1'b0;
-  assign test_fifo  = 1'b0;
 
   for (genvar i = 0; i < NUM_FIFOS; i++) begin: gen_ovewflow
     assign error_overflow_o[i] = push_q[i] & full_fifo[i];
@@ -143,23 +138,19 @@ module fractal_sync_tx
 /*******************************************************/
 
   for (genvar i = 0; i < NUM_FIFOS; i++) begin: gen_rsp_fifos
-    fifo_v3 #(
-      .FALL_THROUGH ( FALL_THROUGH    ),
-      .DATA_WIDTH   ( /* Not Used */  ),
-      .DEPTH        ( FIFO_DEPTH      ),
-      .dtype        ( fsync_rsp_out_t )
+    fractal_sync_fifo #(
+      .FIFO_DEPTH ( FIFO_DEPTH      ),
+      .fifo_t     ( fsync_rsp_out_t ),
+      .COMB_OUT   ( FIFO_COMB_OUT   )
     ) i_rsp_fifo (
-      .clk_i                         ,
-      .rst_ni                        ,
-      .flush_i    ( flush_fifo      ),
-      .testmode_i ( test_fifo       ),
-      .full_o     ( full_fifo[i]    ),
-      .empty_o    ( empty_o[i]      ),
-      .usage_o    (                 ),
-      .data_i     ( sampled_out_rsp ),
-      .push_i     ( push_q[i]       ),
-      .data_o     ( fifo_out_rsp[i] ),
-      .pop_i      ( pop_i[i]        )
+      .clk_i                        ,
+      .rst_ni                       ,
+      .push_i    ( push_q[i]       ),
+      .element_i ( sampled_out_rsp ),
+      .pop_i     ( pop_i[i]        ),
+      .element_o ( fifo_out_rsp[i] ),
+      .empty_o   ( empty_o[i]      ),
+      .full_o    ( full_fifo[i]    )
     );
     assign rsp_o[i] = fifo_out_rsp[i];
   end

@@ -65,9 +65,9 @@ module fractal_sync_rx
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  `ASSERT_INIT(FRACTAL_SYNC_RX_FIFO_DEPTH, (FIFO_DEPTH > 0), "FIFO_DEPTH must be > 0")
-  `ASSERT_INIT(FRACTAL_SYNC_RX_AGGR, ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)-1), "Output aggregate width must be 1 bit less than input aggregate")
-  `ASSERT_INIT(FRACTAL_SYNC_RX_SRC, ($bits(req_i.src) == $bits(req_o.src)+2), "Output sources width must be 2 bits more than input sources")
+  initial FRACTAL_SYNC_RX_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
+  initial FRACTAL_SYNC_RX_AGGR: assert ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)-1) else $fatal("Output aggregate width must be 1 bit less than input aggregate");
+  initial FRACTAL_SYNC_RX_SRC: assert ($bits(req_i.src) == $bits(req_o.src)+2) else $fatal("Output sources width must be 2 bits more than input sources");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -75,7 +75,7 @@ module fractal_sync_rx
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam bit FALL_THROUGH = 1'b1;
+  localparam bit FIFO_COMB_OUT = 1'b1;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -87,8 +87,6 @@ module fractal_sync_rx
   logic propagate;
   logic enqueue;
 
-  logic flush_fifo;
-  logic test_fifo;
   logic full_fifo;
 
   fsync_req_in_t  sampled_req;
@@ -109,9 +107,6 @@ module fractal_sync_rx
   assign sampled_out_req.sig.aggr = sampled_req.sig.aggr >> 1;
   assign sampled_out_req.dst      = {sampled_req.sig.dst, SD_MASK};
   assign sampled_out_req.sig.id   = sampled_req.sig.id;
-
-  assign flush_fifo = 1'b0;
-  assign test_fifo  = 1'b0;
 
   assign local_o          = ~enqueue;
   assign root_o           = (sampled_req.aggr == 1) ? 1'b1 : 1'b0;
@@ -138,23 +133,19 @@ module fractal_sync_rx
 /**                 REQ FIFO Beginning                **/
 /*******************************************************/
 
-  fifo_v3 #(
-    .FALL_THROUGH ( FALL_THROUGH    ),
-    .DATA_WIDTH   ( /* Not Used */  ),
-    .DEPTH        ( FIFO_DEPTH      ),
-    .dtype        ( fsync_req_out_t )
+  fractal_sync_fifo #(
+    .FIFO_DEPTH ( FIFO_DEPTH      ),
+    .fifo_t     ( fsync_req_out_t ),
+    .COMB_OUT   ( FIFO_COMB_OUT   )
   ) i_req_fifo (
-    .clk_i                         ,
-    .rst_ni                        ,
-    .flush_i    ( flush_fifo      ),
-    .testmode_i ( test_fifo       ),
-    .full_o     ( full_fifo       ),
-    .empty_o                       ,
-    .usage_o    (                 ),
-    .data_i     ( sampled_out_req ),
-    .push_i     ( enqueue         ),
-    .data_o     ( fifo_out_req    ),
-    .pop_i      
+    .clk_i                        ,
+    .rst_ni                       ,
+    .push_i    ( enqueue         ),
+    .element_i ( sampled_out_req ),
+    .pop_i                        ,
+    .element_o ( fifo_out_req    ),
+    .empty_o                      ,
+    .full_o    ( full_fifo       )
   );
   assign req_o = fifo_out_req;
 
