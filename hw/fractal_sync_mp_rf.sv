@@ -38,7 +38,7 @@ module fractal_sync_mp_rf #(
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  `ASSERT_INIT(FRACTAL_SYNC_MP_RF, (2**IDX_WIDTH >= N_REGS), "IDX_WIDTH must be able to index all N_REGS registers")
+  initial FRACTAL_SYNC_MP_RF: assert (2**IDX_WIDTH >= N_REGS) else $fatal("IDX_WIDTH must be able to index all N_REGS registers");
 
 /*******************************************************/
 /**                   Assertions End                  **/

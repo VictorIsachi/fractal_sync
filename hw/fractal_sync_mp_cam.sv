@@ -120,7 +120,7 @@ module fractal_sync_mp_cam
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  `ASSERT_INIT(FRACTAL_SYNC_MP_CAM, (N_LINES >= N_PORTS/2), "N_LINES must be able >= N_PORTS/2")
+  initial FRACTAL_SYNC_MP_CAM: assert (N_LINES >= N_PORTS/2) else $fatal("N_LINES must be able >= N_PORTS/2");
 
 /*******************************************************/
 /**                   Assertions End                  **/

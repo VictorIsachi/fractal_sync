@@ -15,6 +15,7 @@
  * SPDX-License-Identifier: SHL-0.51
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
+ * Fractal synchronization package
  */
 
 package fractal_sync_pkg;
