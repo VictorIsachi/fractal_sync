@@ -41,12 +41,40 @@ module fractal_sync_1d_remote_rf
 );
 
 /*******************************************************/
+/**                Assertions Beginning               **/
+/*******************************************************/
+
+  initial FRACTAL_SYNC_SIG_ENC_MAX_LVL: assert (MAX_LVL_WIDTH >= LEVEL_WIDTH) else $fatal("Unsupported (exceeds maximum of 4 - 16 levels) level width for signature generation: update Sig. Gen.");
+
+/*******************************************************/
+/**                   Assertions End                  **/
+/*******************************************************/
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
   localparam int unsigned N_DM_REGS = 4*(2**(ID_WIDTH+2)-1)/6;
   localparam int unsigned SIG_WIDTH = $clog2(N_DM_REGS);
   localparam int unsigned MAX_SIG   = N_DM_REGS-1;
+
+  localparam int unsigned                                  MAX_LVL_WIDTH     = 4;
+  localparam int unsigned                                  MAX_LVL_SIG       = 2**MAX_LVL_WIDTH;
+  localparam int unsigned                                  MAX_LVL_SIG_WIDTH = MAX_LVL_SIG-1;
+  localparam logic[MAX_LVL_SIG-1:0][MAX_LVL_SIG_WIDTH-1:0] LVL_SIG_LOOKUP    = '{'b110_1010_1010_1010,  // Level 16
+                                                                                 'b010_1010_1010_1010,  // Level 15
+                                                                                 'b001_1010_1010_1010,  // Level 14
+                                                                                 'b000_1010_1010_1010,  // Level 13
+                                                                                 'b000_0110_1010_1010,  // Level 12
+                                                                                 'b000_0010_1010_1010,  // Level 11
+                                                                                 'b000_0001_1010_1010,  // Level 10
+                                                                                 'b000_0000_1010_1010,  // Level 9
+                                                                                 'b000_0000_0110_1010,  // Level 8
+                                                                                 'b000_0000_0010_1010,  // Level 7
+                                                                                 'b000_0000_0001_1010,  // Level 6
+                                                                                 'b000_0000_0000_1010,  // Level 5
+                                                                                 'b000_0000_0000_0110,  // Level 4
+                                                                                 'b000_0000_0000_0010,  // Level 3
+                                                                                 'b000_0000_0000_0001,  // Level 2
+                                                                                 'b000_0000_0000_0000}; // Level 1
   
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -54,8 +82,6 @@ module fractal_sync_1d_remote_rf
 /**             Internal Signals Beginning            **/
 /*******************************************************/
   
-  logic[SIG_WIDTH-1:0] sig_lvl_init_base;
-  logic[SIG_WIDTH-1:0] sig_lvl_init[N_PORTS];
   logic[SIG_WIDTH-1:0] sig_lvl[N_PORTS];
   logic[SIG_WIDTH-1:0] sig[N_PORTS];
 
@@ -70,21 +96,9 @@ module fractal_sync_1d_remote_rf
 /**           Signature Generator Beginning           **/
 /*******************************************************/
   
-  assign sig_lvl_init_base = 1'b1;
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_signiture
-    always_comb begin: level_init
-      sig_lvl_init[i] = sig_lvl_init_base << level_i[i];
-    end
-
-    always_comb begin: sig_lvl_encoder
-      sig_lvl[i] = sig_lvl_init[i];
-      sig_lvl[i][SIG_WIDTH-2] = sig_lvl_init[i][SIG_WIDTH-1] | sig_lvl[i][SIG_WIDTH-2];
-      for (int unsigned j = SIG_WIDTH-5; j > 0; j -= 3)
-        sig_lvl[i][j] |= (sig_lvl[i][j+1] | sig_lvl[i][j+2]);
-      sig_lvl[i][0] = 1'b0;
-    end
-
-    assign sig[i] = sig_lvl[i] + id_i[i];
+    assign sig_lvl[i] = LVL_SIG_LOOKUP[level_i[i]];
+    assign sig[i]     = sig_lvl[i] + id_i[i];
   end
 
 /*******************************************************/
