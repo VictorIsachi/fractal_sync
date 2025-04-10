@@ -34,8 +34,6 @@
  *  < empty_o          - Indicates empty fifo
  *  < req_o            - Synchronization request
  *  > pop_i            - Pop current synchronization request
- *
- * WARRNING: Proper measures for error detection and handling must be implemented
  */
 
 module fractal_sync_rx 
@@ -105,8 +103,8 @@ module fractal_sync_rx
 
   assign sampled_out_req.sync     = sampled_req.sync;
   assign sampled_out_req.sig.aggr = sampled_req.sig.aggr >> 1;
-  assign sampled_out_req.dst      = {sampled_req.sig.dst, SD_MASK};
   assign sampled_out_req.sig.id   = sampled_req.sig.id;
+  assign sampled_out_req.rsc      = {sampled_req.sig.src, SD_MASK};
 
   assign local_o          = ~enqueue;
   assign root_o           = (sampled_req.aggr == 1) ? 1'b1 : 1'b0;

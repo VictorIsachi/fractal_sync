@@ -31,8 +31,6 @@
  *  < empty_o          - Indicates empty fifo
  *  < rsp_o            - Synchronization response
  *  > pop_i            - Pop current synchronization request
- *
- * WARRNING: Proper measures for error detection and handling must be implemented
  */
 
 module fractal_sync_tx 
