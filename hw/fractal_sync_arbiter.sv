@@ -16,25 +16,25 @@
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * Fractal synchronization req arbiter
+ * Fractal synchronization arbiter
  * Asynchronous valid low reset
  */
 
-module fractal_sync_req_arbiter
+module fractal_sync_arbiter
   import fractal_sync_pkg::*;
 #(
-  parameter int unsigned IN_PORTS    = 1,
-  parameter int unsigned OUT_PORTS   = 1,
-  parameter type         fsync_req_t = logic
+  parameter int unsigned IN_PORTS  = 1,
+  parameter int unsigned OUT_PORTS = 1,
+  parameter type         fsync_t   = logic
 )(
-  input  logic       clk_i,
-  input  logic       rst_ni,
+  input  logic   clk_i,
+  input  logic   rst_ni,
 
-  output logic       pop_o[IN_PORTS],
-  input  logic       empty_i[IN_PORTS]
-  input  fsync_req_t element_i[IN_PORTS],
+  output logic   pop_o[IN_PORTS],
+  input  logic   empty_i[IN_PORTS],
+  input  fsync_t element_i[IN_PORTS],
 
-  output fsync_req_t element_o[OUT_PORTS]
+  output fsync_t element_o[OUT_PORTS]
 );
 
 /*******************************************************/
@@ -134,77 +134,4 @@ module fractal_sync_req_arbiter
 /**                    Arbiter End                    **/
 /*******************************************************/
 
-endmodule: fractal_sync_req_arbiter
-
-/*
- * Copyright (C) 2023-2024 ETH Zurich and University of Bologna
- *
- * Licensed under the Solderpad Hardware License, Version 0.51 
- * (the "License"); you may not use this file except in compliance 
- * with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * SPDX-License-Identifier: SHL-0.51
- *
- * Authors: Victor Isachi <victor.isachi@unibo.it>
- *
- * Fractal synchronization rsp arbiter
- * Asynchronous valid low reset
- */
-
-module fractal_sync_rsp_arbiter
-  import fractal_sync_pkg::*;
-#(
-  parameter int unsigned IN_PORTS    = 1,
-  parameter int unsigned OUT_PORTS   = 1,
-  parameter type         fsync_rsp_t = logic
-)(
-  input  logic       clk_i,
-  input  logic       rst_ni,
-
-  output logic       en_pop_o[IN_PORTS],
-  input  logic       en_empty_i[IN_PORTS],
-  input  fsync_rsp_t en_element_i[IN_PORTS],
-
-  output logic       ws_pop_o[IN_PORTS],
-  input  logic       ws_empty_i[IN_PORTS],
-  input  fsync_rsp_t ws_element_i[IN_PORTS],
-
-  output fsync_rsp_t en_element_o[OUT_PORTS],
-  output fsync_rsp_t ws_element_o[OUT_PORTS]
-);
-
-/*******************************************************/
-/**                Assertions Beginning               **/
-/*******************************************************/
-
-  initial FRACTAL_SYNC_2D_ARBITER_IN_PORTS: assert (IN_PORTS > 0) else $fatal("IN_PORTS must be > 0");
-  initial FRACTAL_SYNC_2D_ARBITER_OUT_PORTS: assert (OUT_PORTS > 0) else $fatal("OUT_PORTS must be > 0");
-
-/*******************************************************/
-/**                   Assertions End                  **/
-/*******************************************************/
-/**        Parameters and Definitions Beginning       **/
-/*******************************************************/
-
-  localparam int unsigned SEL_IDX_W = $clog2(IN_PORTS);
-
-/*******************************************************/
-/**           Parameters and Definitions End          **/
-/*******************************************************/
-/**                 Arbiter Beginning                 **/
-/*******************************************************/
-
-  
-
-/*******************************************************/
-/**                    Arbiter End                    **/
-/*******************************************************/
-
-endmodule: fractal_sync_rsp_arbiter
+endmodule: fractal_sync_arbiter

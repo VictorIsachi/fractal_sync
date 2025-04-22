@@ -50,10 +50,10 @@ module fractal_sync_tx
   output logic           ws_error_overflow_o,
   // FIFO interface - out
   output logic           en_empty_o,
-  output logic           ws_empty_o,
   output fsync_rsp_out_t en_rsp_o,
-  output fsync_rsp_out_t ws_rsp_o,
   input  logic           en_pop_i,
+  output logic           ws_empty_o,
+  output fsync_rsp_out_t ws_rsp_o,
   input  logic           ws_pop_i
 );
 
@@ -62,7 +62,7 @@ module fractal_sync_tx
 /*******************************************************/
 
   initial FRACTAL_SYNC_TX_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
-  initial FRACTAL_SYNC_TX_DST: assert ($bits(rsp_i.dst) == $bits(rsp_o.dst)-2) else $fatal("Output destination width must be 2 bits less than input destination");
+  initial FRACTAL_SYNC_TX_DST: assert ($bits(rsp_i.dst) == $bits(rsp_o.dst)+2) else $fatal("Output destination width must be 2 bits less than input destination");
 
 /*******************************************************/
 /**                   Assertions End                  **/

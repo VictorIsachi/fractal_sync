@@ -47,11 +47,9 @@ package fractal_sync_pkg;
     RT_NODE  = 4
   } node_e;
 
-  typedef enum logic[1:0] {
-    H01_IDX = 0,
-    H02_IDX = 2,
-    V01_IDX = 1,
-    V02_IDX = 3
-  }
+  typedef enum logic {
+    ENN_REMOTE_RF = 0,
+    EN_REMOTE_RF  = 1 
+  } en_remote_rf_e;
 
 endpackage: fractal_sync_pkg

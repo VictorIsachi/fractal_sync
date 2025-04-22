@@ -25,7 +25,7 @@ module fractal_sync_1d_local_rf
 #(
   parameter int unsigned  N_REGS   = 1,
   parameter int unsigned  ID_WIDTH = 1,
-  localparam int unsigned N_PORTS  = 2
+  parameter int unsigned  N_PORTS  = 2
 )(
   input  logic               clk_i,
   input  logic               rst_ni,
@@ -34,7 +34,8 @@ module fractal_sync_1d_local_rf
   input  logic               check_i[N_PORTS],
   output logic               present_o[N_PORTS],
   output logic               id_err_o[N_PORTS],
-  output logic               bypass_o
+  output logic               bypass_o[N_PORTS],
+  output logic               ignore_o[N_PORTS]
 );
 
 /*******************************************************/
@@ -59,7 +60,8 @@ module fractal_sync_1d_local_rf
 /*******************************************************/
   
   logic valid_idx[N_PORTS];
-  logic bypass;
+  logic bypass[N_PORTS];
+  logic ignore[N_PORTS];
   logic d[N_PORTS];
   logic q[N_PORTS];
 
@@ -74,16 +76,27 @@ module fractal_sync_1d_local_rf
     assign id_err_o[i]  = ~valid_idx[i];
   end
 
-  always_comb begin: bypass
-    bypass = 1'b1;
-    for (int unsigned i = 0; i < N_PORTS-1; i++)
-      if (id_i[i] != id_i[i+1])
-        bypass = 1'b0;
+  always_comb begin: bypass_ignore_logic
+    bypass = '{default: 1'b0};
+    ignore = '{default: 1'b0};
+    for (int unsigned i = 0; i < N_PORTS-1; i++) begin
+      if (ignore[i]) continue;
+      else begin
+        for (int unsigned j = i; i < N_PORTS; j++) begin
+          if (id_i[i] == id_i[j]) begin
+            bypass[i] = 1'b1;
+            ignore[j] = 1'b1;
+            break;
+          end
+        end
+      end
+    end
   end
   assign bypass_o = bypass;
+  assign ignore_o = ignore;
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_d_q
-    assign d[i]         = ~bypass & (check_i[i] ^ q[i]);
+    assign d[i]         = ~(bypass[i] | ignore[i]) & (check_i[i] ^ q[i]);
     assign present_o[i] = q[i];
   end
 
@@ -129,24 +142,27 @@ endmodule: fractal_sync_1d_local_rf
  */
 
 module fractal_sync_2d_local_rf #(
-  parameter int unsigned  N_REGS    = 2,
-  parameter int unsigned  ID_WIDTH  = 1,
-  localparam int unsigned N_H_PORTS = 2,
-  localparam int unsigned N_V_PORTS = 2
+  parameter int unsigned N_REGS    = 2,
+  parameter int unsigned ID_WIDTH  = 1,
+  parameter int unsigned N_H_PORTS = 2,
+  parameter int unsigned N_V_PORTS = 2
 )(
   input  logic               clk_i,
   input  logic               rst_ni,
 
   input  logic[ID_WIDTH-1:0] id_h_i[N_H_PORTS],
-  input  logic[ID_WIDTH-1:0] id_v_i[N_V_PORTS],
   input  logic               check_h_i[N_H_PORTS],
-  input  logic               check_v_i[N_V_PORTS],
   output logic               h_present_o[N_H_PORTS],
-  output logic               v_present_o[N_V_PORTS],
   output logic               h_id_err_o[N_H_PORTS],
+  output logic               h_bypass_o[N_H_PORTS],
+  output logic               h_ignore_o[N_H_PORTS],
+
+  input  logic[ID_WIDTH-1:0] id_v_i[N_V_PORTS],
+  input  logic               check_v_i[N_V_PORTS],
+  output logic               v_present_o[N_V_PORTS],
   output logic               v_id_err_o[N_V_PORTS],
-  output logic               h_bypass_o,
-  output logic               v_bypass_o
+  output logic               v_bypass_o[N_V_PORTS],
+  output logic               v_ignore_o[N_V_PORTS]
 );
 
 /*******************************************************/
@@ -171,8 +187,9 @@ module fractal_sync_2d_local_rf #(
 /*******************************************************/
   
   fractal_sync_1d_local_rf #(
-    .N_REGS   ( N_H_REGS ),
-    .ID_WIDTH ( ID_WIDTH )
+    .N_REGS   ( N_H_REGS  ),
+    .ID_WIDTH ( ID_WIDTH  ),
+    .N_PORTS  ( N_H_PORTS )
   ) i_rf_h (
     .clk_i                    ,
     .rst_ni                   ,
@@ -180,7 +197,8 @@ module fractal_sync_2d_local_rf #(
     .check_i   ( check_h_i   ),
     .present_o ( h_present_o ),
     .id_err_o  ( h_id_err_o  ),
-    .bypass_o  ( h_bypass_o  )
+    .bypass_o  ( h_bypass_o  ),
+    .ignore_o  ( h_ignore_o  )
   );
 
 /*******************************************************/
@@ -191,7 +209,8 @@ module fractal_sync_2d_local_rf #(
   
   fractal_sync_1d_local_rf #(
     .N_REGS   ( N_V_REGS ),
-    .ID_WIDTH ( ID_WIDTH )
+    .ID_WIDTH ( ID_WIDTH ),
+    .N_PORTS  ( N_V_PORTS )
   ) i_rf_v (
     .clk_i                    ,
     .rst_ni                   ,
@@ -199,7 +218,8 @@ module fractal_sync_2d_local_rf #(
     .check_i   ( check_v_i   ),
     .present_o ( v_present_o ),
     .id_err_o  ( v_id_err_o  ),
-    .bypass_o  ( v_bypass_o  )
+    .bypass_o  ( v_bypass_o  ),
+    .ignore_o  ( v_ignore_o  )
   );
 
 /*******************************************************/

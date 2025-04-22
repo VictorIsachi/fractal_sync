@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2024 ETH Zurich and University of Bologna
+# Copyright (C) 2024-2025 Victor Isachi
 #
 # Licensed under the Solderpad Hardware License, Version 0.51 
 # (the "License"); you may not use this file except in compliance 
@@ -22,17 +22,32 @@ package:
   authors:
     - "Victor Isachi (victor.isachi@gmail.com)"
 
+export_include_dirs:
+  - hw/include
+
 sources:
   files:
-    - hw/fractal_if.sv
-    - hw/presence_detector.sv
-    - hw/fractal_sync.sv
-    - hw/fractal_monitor.sv
+    - hw/fractal_sync_pkg.svh
+    - hw/fractal_sync_if.sv
+    - hw/fractal_sync_fifo.sv
+    - hw/fractal_sync_arbiter.sv
+    - hw/fractal_sync_mp_rf.sv
+    - hw/fractal_sync_mp_cam.sv
+    - hw/fractal_sync_local_rf.sv
+    - hw/fractal_sync_remote_rf.sv
+    - hw/fractal_sync_rf.sv
+    - hw/fractal_sync_cc.sv
+    - hw/fractal_sync_rx.sv
+    - hw/fractal_sync_tx.sv
+    - hw/fractal_sync_neighbor.sv
+    - hw/fractal_sync_1d.sv
+    - hw/fractal_sync_2d.sv
+    # Completre Network
+    - hw/trees/fractal_sync_4x4.sv
 
     - target: dv
       files:
         - dv/fractal_dv_pkg.svh
         - dv/sync_transaction.sv
         - dv/cu_bfm.sv
-        - dv/tb_bfm
-        - vsim/wave.do
+        - dv/tb_bfm.sv
