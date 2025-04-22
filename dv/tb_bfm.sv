@@ -82,7 +82,7 @@ module tb_bfm
     .FIFO_DEPTH      ( CU_FIFO_D                  ),
     .IN_PORTS        ( CU_IN_PORTS                ),
     .OUT_PORTS       ( CU_OUT_PORTS               )
-  ) i_dut_1d_fsync_node (
+  ) i_dut_fractal_sync_1d (
     .clk_i     ( clk     ),
     .rst_ni    ( rstn    ),
     .req_in_i  ( in_req  ),
@@ -118,7 +118,7 @@ module tb_bfm
       sync_req.set_uid();
       for (int i = 0; i < CU_IN_PORTS; i++)
         sync_rsp[i] = new();
-      assert(sync_req.randomize() with { this.sync_level inside {1}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0} }) else $error("Sync randomization failed");
+      assert(sync_req.randomize() with { this.sync_level inside {1}; this.sync_aggregate inside {0}; this.sync_barrier_id inside {0} }) else $error("Sync randomization failed");
       for (int i = 0; i < CU_IN_PORTS; i++) begin
         comp_cycles[i]     = $urandom_range(MIN_COMP_CYCLES, MAX_COMP_CYCLES);
         max_rand_cycles[i] = MAX_RAND_CYCLES;
