@@ -51,9 +51,10 @@ class sync_transaction;
     $display("FractalSync transaction:");
     $display("TIME: %0t", $time);
     $display("ID: %0d (Global ID: %0d)", this.transaction_id, sync_transaction::global_id);
-    $display("LEVEL: %0d", this.sync_level);
-    $display("AGGREGATE: %0b", this.sync_aggregate);
-    $display("AGGR. Field: %0b", this.sync_level + this.sync_aggregate);
+    $display("LEVEL: 0b%0b", this.sync_level);
+    $display("AGGREGATE: 0b%0b", this.sync_aggregate);
+    $display("AGGR. Field: 0b%0b", this.sync_level + this.sync_aggregate);
+    $display("ID Field: %0d", this.sync_barrier_id);
     $display("-------------------------\n");
   endfunction: print
 
