@@ -24,9 +24,13 @@ import fractal_dv_pkg::*;
 class sync_transaction;
   
   rand   int unsigned sync_level;
-  rand   bit          transaction_error;
+  rand   bit[31:0]    sync_aggregate;
+  rand   int unsigned sync_barrier_id; 
+
          int unsigned transaction_id;
   static int unsigned global_id = 0;
+
+  constraint aggregate_range { sync_level < sync_aggregate; }
 
   function new();
   endfunction: new
@@ -35,23 +39,21 @@ class sync_transaction;
     this.transaction_id = global_id++;
   endfunction: set_uid
 
-  function automatic void update_error(bit error_bit);
-    this.transaction_error |= error_bit;
-  endfunction: update_error
-
   function automatic void scp(sync_transaction src);
-    this.sync_level        = src.sync_level;
-    this.transaction_error = src.transaction_error;
-    this.transaction_id    = src.transaction_id;
+    this.sync_level      = src.sync_level;
+    this.sync_aggregate  = src.sync_aggregate;
+    this.sync_barrier_id = src.sync_barrier_id;
+    this.transaction_id  = src.transaction_id;
   endfunction: scp
 
   function automatic void print();
     $display("-------------------------");
-    $display("Fractal Sync transaction:");
+    $display("FractalSync transaction:");
     $display("TIME: %0t", $time);
     $display("ID: %0d (Global ID: %0d)", this.transaction_id, sync_transaction::global_id);
     $display("LEVEL: %0d", this.sync_level);
-    $display("ERROR: %s", this.transaction_error == 1 ? "yes" : "no");
+    $display("AGGREGATE: %0b", this.sync_aggregate);
+    $display("AGGR. Field: %0b", this.sync_level + this.sync_aggregate);
     $display("-------------------------\n");
   endfunction: print
 
