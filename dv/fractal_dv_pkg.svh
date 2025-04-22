@@ -20,9 +20,6 @@
  */
 
 package fractal_dv_pkg;
-
-  // Maximul allowed distance from the desired synchronization level in a synchronization with error
-  localparam int unsigned MAX_ERROR = 3;
   
   `include "sync_transaction.sv"
   `include "cu_bfm.sv"

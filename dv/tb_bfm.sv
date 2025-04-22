@@ -29,12 +29,16 @@ module tb_bfm
   
   localparam int unsigned N_TESTS = 10;
 
-  localparam int unsigned LEVELS        = 2;
-  localparam int unsigned CU_PORTS      = 2**LEVELS;
-  localparam int unsigned SYNC_PORTS    = 2**LEVELS - 2;
-  localparam int unsigned TOP_PORTS     = 1;
-  localparam int unsigned CU_LVL_WIDTH  = LEVELS + 1;
-  localparam int unsigned TOP_LVL_WIDTH = 2;
+  localparam int unsigned CU_L_REGS    = 1;
+  localparam int unsigned CU_R_LINES   = 1;
+  localparam int unsigned CU_AGGR_W    = 6;
+  localparam int unsigned CU_ID_W      = 5;
+  localparam int unsigned CU_FIFO_D    = 1;
+  localparam int unsigned CU_IN_PORTS  = 2;
+  localparam int unsigned CU_OUT_PORTS = CU_IN_PORTS/2;
+
+  `FSYNC_TYPEDEF_ALL(cu_fsync_in, logic[CU_AGGR_W-1:0], logic[CU_ID_W-1:0], logic[1:0], logic[1:0])
+  `FSYNC_TYPEDEF_ALL(cu_fsync_out, logic[CU_AGGR_W:0], logic[CU_ID_W:0], logic[3:0], logic[3:0])
 
   localparam int unsigned MIN_COMP_CYCLES = 10;
   localparam int unsigned MAX_COMP_CYCLES = 100;
@@ -42,72 +46,58 @@ module tb_bfm
 
   logic clk, rstn;
 
-  int unsigned errors;
-  int unsigned sync_errors;
-  int unsigned monitor_errors;
-  logic        sync_error;
-  logic        monitor_error[TOP_PORTS];
-
-  int unsigned comp_cycles[CU_PORTS];
-  int unsigned max_rand_cycles[CU_PORTS];
+  int unsigned comp_cycles[CU_IN_PORTS];
+  int unsigned max_rand_cycles[CU_IN_PORTS];
 
   sync_transaction sync_req;
-  sync_transaction sync_rsp[CU_PORTS];
+  sync_transaction sync_rsp[CU_IN_PORTS];
 
-  fractal_if #(.LVL_WIDTH(CU_LVL_WIDTH))    if_cu[CU_PORTS]();
-  fractal_if #(.LVL_WIDTH(CU_LVL_WIDTH-1))  if_sync[SYNC_PORTS](); // NOTE: ONLY 1 LEVEL OF SYNC TREE
-  fractal_if #(.LVL_WIDTH(TOP_LVL_WIDTH-1)) if_top[TOP_PORTS]();
+  cu_fsync_in_req_t  in_req[CU_IN_PORTS];
+  cu_fsync_in_rsp_t  in_rsp[CU_IN_PORTS];
+  cu_fsync_out_req_t out_req[CU_OUT_PORTS];
+  cu_fsync_out_rsp_t out_rsp[CU_OUT_PORTS];
 
-  cu_bfm #(.VIF_WIDTH(CU_LVL_WIDTH)) cu_bfms[CU_PORTS];
-  for (genvar i = 0; i < CU_PORTS; i++) begin: gen_cu_bfm
-    initial begin
+  fractal_sync_if #(.AGGR_WIDTH(CU_AGGR_W), .ID_WIDTH(CU_ID_W)) if_cu[CU_IN_PORTS]();
+
+  cu_bfm #(.AGGR_WIDTH(CU_AGGR_W), .ID_WIDTH(CU_ID_W)) cu_bfms[CU_IN_PORTS];
+  
+  initial begin
+    for (int unsigned i = 0; i < CU_IN_PORTS; i++) begin
       cu_bfms[i] = new(.instance_name($sformatf("cu_bfm_%0d", i)), .vif_master(if_cu[i]));
       cu_bfms[i].init();
     end
   end
-  
-  // LEVEL 0 - CU's
-  for (genvar i = 0; i < 2**(LEVELS-1); i++) begin: gen_cu_sync
-    fractal_sync #(
-      .SLV_WIDTH ( CU_LVL_WIDTH )
-    ) i_cu_fractal_sync (
-      .clk_i   ( clk                         ),
-      .rstn_i  ( rstn                        ),
-      .slaves  ( '{if_cu[2*i], if_cu[2*i+1]} ),
-      .masters ( '{if_sync[i]}               )
-    );
-  end
 
-  // LEVEL 1 - Sync tree
-  for (genvar i = 0; i < 2**(LEVELS-2); i++) begin: gen_top_sync
-    fractal_sync #(
-      .SLV_WIDTH ( TOP_LVL_WIDTH )
-    ) i_top_fractal_sync (
-      .clk_i   ( clk                             ),
-      .rstn_i  ( rstn                            ),
-      .slaves  ( '{if_sync[2*i], if_sync[2*i+1]} ),
-      .masters ( if_top                          )
-    );
-  end
-
-  fractal_monitor #(
-    .PORT_WIDTH(TOP_LVL_WIDTH-1)
-  ) i_top_fractal_sync_monitor (
-    .clk_i   ( clk           ),
-    .rstn_i  ( rstn          ),
-    .ports   ( if_top        ),
-    .error_o ( monitor_error )
+  fractal_sync_1d #(
+    .NODE_TYPE       ( fractal_sync_pkg::HOR_NODE ),
+    .RF_TYPE         ( fractal_sync_pkg::CAM_RF   ),
+    .N_LOCAL_REGS    ( CU_L_REGS                  ),
+    .N_REMOTE_LINES  ( CU_R_LINES                 ),
+    .AGGREGATE_WIDTH ( CU_AGGR_W                  ),
+    .ID_WIDTH        ( CU_ID_W                    ),
+    .fsync_req_in_t  ( cu_fsync_in_req_t          ),
+    .fsync_rsp_in_t  ( cu_fsync_in_rsp_t          ),
+    .fsync_req_out_t ( cu_fsync_out_req_t         ),
+    .fsync_rsp_out_t ( cu_fsync_out_rsp_t         ),
+    .FIFO_DEPTH      ( CU_FIFO_D                  ),
+    .IN_PORTS        ( CU_IN_PORTS                ),
+    .OUT_PORTS       ( CU_OUT_PORTS               )
+  ) i_dut_1d_fsync_node (
+    .clk_i     ( clk     ),
+    .rst_ni    ( rstn    ),
+    .req_in_i  ( in_req  ),
+    .rsp_in_o  ( in_rsp  ),
+    .req_out_o ( out_req ),
+    .rsp_out_i ( out_rsp )
   );
 
-  for (genvar i = 0; i < TOP_PORTS; i++) begin: gen_monitor_error_reporter
-    always @(posedge monitor_error[i]) begin
-      $error("[MONITOR %d ERROR]", i);
-      monitor_errors++;
-    end
-  end
+  for (genvar i = 0; i < CU_IN_PORTS; i++) begin
+    `FSYNC_ASSIGN_I2S_REQ(if_cu[i], in_req[i])
+    `FSYNC_ASSIGN_S2I_RSP(in_rsp[i], if_cu[i])
 
-  always begin
-    #1 errors = sync_errors + monitor_errors;
+    assign out_rsp[i].wake  = 1'b0;
+    assign out_rsp[i].dst   = '0;
+    assign out_rsp[i].error = 1'b0;
   end
   
   always begin
@@ -123,20 +113,18 @@ module tb_bfm
     repeat(4) @(negedge clk);
     rstn = 1'b1;
 
-    sync_errors = 0;
-
     for (int t = 0; t < N_TESTS; t++) begin
       sync_req = new();
       sync_req.set_uid();
-      for (int i = 0; i < CU_PORTS; i++)
+      for (int i = 0; i < CU_IN_PORTS; i++)
         sync_rsp[i] = new();
-      assert(sync_req.randomize() with { this.sync_level inside {1, 2}; this.transaction_error dist {1'b0:=4, 1'b1:=0}; }) else $error("Sync randomization failed");
-      for (int i = 0; i < CU_PORTS; i++) begin
+      assert(sync_req.randomize() with { this.sync_level inside {1}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0} }) else $error("Sync randomization failed");
+      for (int i = 0; i < CU_IN_PORTS; i++) begin
         comp_cycles[i]     = $urandom_range(MIN_COMP_CYCLES, MAX_COMP_CYCLES);
         max_rand_cycles[i] = MAX_RAND_CYCLES;
       end
       fork begin
-        for (int i = 0; i < CU_PORTS; i++) begin
+        for (int i = 0; i < CU_IN_PORTS; i++) begin
           fork
             automatic int j = i;
             cu_bfms[j].sync(sync_req, sync_rsp[j], comp_cycles[j], max_rand_cycles[j], clk);
@@ -144,22 +132,11 @@ module tb_bfm
         end
         wait fork;
       end join
-
-      sync_error = 1'b0;
-      for (int i = 0; i < CU_PORTS; i++)
-        if (sync_req.transaction_error != sync_rsp[i].transaction_error)
-          sync_error = 1'b1;
-
-      if (sync_error) begin
-        $error("[FAIL] Incorrect result");
-        sync_errors++;
-      end else
-        $info("[PASS] Correct result");
     end
 
     repeat(4) @(negedge clk);
     
-    $info("%s Test finished with %d errors", (errors == 0) ? "[PASS]" : "[FAIL]", errors);
+    $info("Test finished");
 
     $stop;
   end

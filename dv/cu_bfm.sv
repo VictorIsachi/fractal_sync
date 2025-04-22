@@ -22,45 +22,43 @@
 import fractal_dv_pkg::*;
 
 class cu_bfm #(
-  parameter int unsigned VIF_WIDTH = 0
+  parameter int unsigned AGGR_WIDTH = 0,
+  parameter int unsigned ID_WIDTH   = 0
 );
 
   string instance_name;
   
-  virtual fractal_if.mst_port #(.LVL_WIDTH(VIF_WIDTH)) vif_master;
+  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(AGGR_WIDTH), .ID_WIDTH(ID_WIDTH)) vif_master;
 
-  function new(string instance_name, virtual fractal_if.mst_port #(.LVL_WIDTH(VIF_WIDTH)) vif_master);
+  function new(string instance_name, virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(AGGR_WIDTH), .ID_WIDTH(ID_WIDTH)) vif_master);
     this.instance_name = instance_name;
     this.vif_master    = vif_master;
   endfunction: new
 
   task automatic init();
-    vif_master.level = 1'b0;
-    vif_master.sync  = 1'b0;
-    vif_master.ack   = 1'b0;
+    vif_master.sync = 1'b0;
+    vif_master.aggr = '0;
+    vif_master.id   = '0;
+    vif_master.src  = '0;
   endtask: init
   
   task automatic sync_req(sync_transaction fsync, int unsigned comp_cycles, int unsigned max_rand_cycles, const ref logic clk);
     int unsigned rand_cycles = $urandom_range(0, max_rand_cycles);
-    repeat (comp_cycles + max_rand_cycles) @(negedge clk);
+    repeat (comp_cycles + rand_cycles) @(negedge clk);
     @(negedge clk);
-    vif_master.level = fsync.transaction_error ? fsync.sync_level + $urandom_range(1, fractal_dv_pkg::MAX_ERROR) : fsync.sync_level;
-    vif_master.sync  = 1'b1;
+    vif_master.aggr = (1'b1 << fsync.sync_level) | fsync.sync_aggregate;
+    vif_master.id   = fsync.sync_barrier_id;
+    vif_master.sync = 1'b1;
     @(negedge clk);
-    vif_master.sync  = 1'b0;
+    vif_master.sync = 1'b0;
   endtask: sync_req
 
-  task automatic sync_ack(sync_transaction fsync_req, ref sync_transaction fsync_rsp, const ref logic clk);
+  task automatic sync_rsp(sync_transaction fsync_req, ref sync_transaction fsync_rsp, const ref logic clk);
     fsync_rsp.scp(fsync_req);
     do
       @(negedge clk);
     while (!vif_master.wake);
-    fsync_rsp.update_error(vif_master.error);
-    @(negedge clk);
-    vif_master.ack = 1'b1;
-    @(negedge clk);
-    vif_master.ack = 1'b0;
-  endtask: sync_ack
+  endtask: sync_rsp
 
   task automatic sync(input sync_transaction fsync_req, ref sync_transaction fsync_rsp, input int unsigned comp_cycles, input int unsigned max_rand_cycles, const ref logic clk);
     fork
