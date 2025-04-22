@@ -23,41 +23,45 @@
 module fractal_sync_cc 
   import fractal_sync_pkg::*; 
 #(
-  parameter fractal_sync_pkg::node_e      NODE_TYPE       = fractal_sync_pkg::HV_NODE,
-  localparam fractal_sync_pkg::rf_dim_e   RF_DIM          = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
-                                                            (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
-                                                            fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
-  parameter fractal_sync_pkg::remote_rf_e RF_TYPE         = fractal_sync_pkg::CAM_RF,
-  parameter int unsigned                  N_LOCAL_REGS    = 0,
-  parameter int unsigned                  N_REMOTE_LINES  = 0,
-  parameter int unsigned                  AGGREGATE_WIDTH = 1,
-  parameter int unsigned                  ID_WIDTH        = 1,
-  parameter type                          fsync_req_in_t  = logic,
-  parameter type                          fsync_rsp_in_t  = logic,
-  parameter type                          fsync_req_out_t = logic,
-  parameter fractal_sync_pkg::sd_e        SD_MASK         = fractal_sync_pkg::SD_BOTH,
-  localparam int unsigned                 N_PORTS         = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
-                                                            (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
-                                                            0,
-  parameter int unsigned                  FIFO_DEPTH_L    = 1,
-  parameter int unsigned                  FIFO_DEPTH_R    = 1
+  parameter fractal_sync_pkg::node_e         NODE_TYPE       = fractal_sync_pkg::HV_NODE,
+  localparam fractal_sync_pkg::rf_dim_e      RF_DIM          = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
+                                                               (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
+                                                               fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
+  parameter fractal_sync_pkg::remote_rf_e    RF_TYPE         = fractal_sync_pkg::CAM_RF,
+  parameter fractal_sync_pkg::en_remote_rf_e EN_REMOTE_RF    = fractal_sync_pkg::EN_REMOTE_RF,
+  parameter int unsigned                     N_LOCAL_REGS    = 0,
+  parameter int unsigned                     N_REMOTE_LINES  = 0,
+  parameter int unsigned                     AGGREGATE_WIDTH = 1,
+  parameter int unsigned                     ID_WIDTH        = 1,
+  parameter type                             fsync_req_in_t  = logic,
+  parameter type                             fsync_rsp_in_t  = logic,
+  parameter type                             fsync_req_out_t = logic,
+  parameter int unsigned                     N_RX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
+                                                               (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
+                                                               0,  // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
+  parameter int unsigned                     N_TX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
+                                                               (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
+                                                               0,  // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
+  localparam int unsigned                    N_PORTS         = N_RX_PORTS + N_TX_PORTS,  // Total number of ports: lower indexes represent RX ports; higher indexes represent TX ports
+  localparam int unsigned                    N_FIFOS         = N_RX_PORTS, // 2D CC: even indexed FIFOs -> horizontal channel; odd indexed FIFOs -> vertical channel
+  parameter int unsigned                     FIFO_DEPTH      = 1
 )(
   input  logic           clk_i,
   input  logic           rst_ni,
 
-  input  fsync_req_in_t  req_i[N_PORTS],
-  input  logic           local_i[N_PORTS],
-  input  logic           root_i[N_PORTS],
-  input  logic           error_overflow_rx_i[N_PORTS],
-  input  logic           error_overflow_tx_i[N_PORTS],
+  input  fsync_req_in_t  req_i[N_RX_PORTS],
+  input  logic           local_i[N_RX_PORTS],
+  input  logic           root_i[N_RX_PORTS],
+  input  logic           error_overflow_rx_i[N_RX_PORTS],
+  input  logic           error_overflow_tx_i[N_TX_PORTS],
 
-  output logic           local_empty_o[N_PORTS],
-  output fsync_rsp_in_t  local_rsp_o[N_PORTS],
-  input  logic           local_pop_i[N_PORTS],
+  output logic           local_empty_o[N_FIFOS],
+  output fsync_rsp_in_t  local_rsp_o[N_FIFOS],
+  input  logic           local_pop_i[N_FIFOS],
 
-  output logic           remote_empty_o[N_PORTS],
-  output fsync_req_out_t remote_req_o[N_PORTS],
-  input  logic           remote_pop_i[N_PORTS],
+  output logic           remote_empty_o[N_FIFOS],
+  output fsync_req_out_t remote_req_o[N_FIFOS],
+  input  logic           remote_pop_i[N_FIFOS],
 
   output logic           detected_error_o[N_PORTS]
 );
@@ -70,8 +74,11 @@ module fractal_sync_cc
   initial FRACTAL_SYNC_CC_REMOTE_LINES: assert (RF_TYPE == fractal_sync_pkg::CAM_RF -> N_REMOTE_LINES > 0) else $fatal("N_REMOTE_LINES must be > 0 for CAM Remote Register File");
   initial FRACTAL_SYNC_CC_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
   initial FRACTAL_SYNC_CC_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
-  initial FRACTAL_SYNC_CC_FIFO_D_L: assert (FIFO_DEPTH_L > 0) else $fatal("FIFO_DEPTH_L must be > 0");
-  initial FRACTAL_SYNC_CC_FIFO_D_R: assert (FIFO_DEPTH_R > 0) else $fatal("FIFO_DEPTH_R must be > 0");
+  initial FRACTAL_SYNC_CC_DST: assert ($bits(req_i.src) == $bits(remote_req_o.rsc)-2) else $fatal("Output sources width must be 2 bits more than input destination");
+  initial FRACTAL_SYNC_CC_SRC: assert ($bits(req_i.src) == $bits(local_rsp_o.dst)) else $fatal("Output destination width must be equal to input sources");
+  initial FRACTAL_SYNC_CC_RX_PORTS: assert (N_RX_PORTS > 0) else $fatal("N_RX_PORTS must be > 0");
+  initial FRACTAL_SYNC_CC_TX_PORTS: assert (N_TX_PORTS > 0) else $fatal("N_TX_PORTS must be > 0");
+  initial FRACTAL_SYNC_CC_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -79,8 +86,9 @@ module fractal_sync_cc
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam int unsigned LEVEL_WIDTH = $clog2(AGGREGATE_WIDTH);
-  localparam int unsigned N_FIFOS     = N_PORTS;
+  localparam int unsigned           LEVEL_WIDTH   = $clog2(AGGREGATE_WIDTH);
+  localparam fractal_sync_pkg::sd_e SD_MASK       = fractal_sync_pkg::SD_BOTH;
+  localparam int unsigned           N_1D_RX_PORTS = N_RX_PORTS/2;
 
   typedef enum logic[1:0] {
     IDLE,
@@ -94,23 +102,23 @@ module fractal_sync_cc
 /**             Internal Signals Beginning            **/
 /*******************************************************/
 
-  logic[LEVEL_WIDTH-1:0] level[N_PORTS];
-  logic[LEVEL_WIDTH-1:0] h_level[N_PORTS/2];
-  logic[LEVEL_WIDTH-1:0] v_level[N_PORTS/2];
-  logic[ID_WIDTH-1:0]    id[N_PORTS];
-  logic[ID_WIDTH-1:0]    h_id[N_PORTS/2];
-  logic[ID_WIDTH-1:0]    v_id[N_PORTS/2];
+  logic[LEVEL_WIDTH-1:0] level[N_RX_PORTS];
+  logic[LEVEL_WIDTH-1:0] h_level[N_1D_RX_PORTS];
+  logic[LEVEL_WIDTH-1:0] v_level[N_1D_RX_PORTS];
+  logic[ID_WIDTH-1:0]    id[N_RX_PORTS];
+  logic[ID_WIDTH-1:0]    h_id[N_1D_RX_PORTS];
+  logic[ID_WIDTH-1:0]    v_id[N_1D_RX_PORTS];
 
-  fsync_rsp_in_t  local_rsp[N_PORTS];
-  fsync_req_out_t remote_req[N_PORTS];
+  fsync_rsp_in_t  local_rsp[N_RX_PORTS];
+  fsync_req_out_t remote_req[N_RX_PORTS];
   
-  logic id_error[N_PORTS];
-  logic h_id_error[N_PORTS/2];
-  logic v_id_error[N_PORTS/2];
-  logic sig_error[N_PORTS];
-  logic h_sig_error[N_PORTS/2];
-  logic v_sig_error[N_PORTS/2];
-  logic rf_error[N_PORTS];
+  logic id_error[N_RX_PORTS];
+  logic h_id_error[N_1D_RX_PORTS];
+  logic v_id_error[N_1D_RX_PORTS];
+  logic sig_error[N_RX_PORTS];
+  logic h_sig_error[N_1D_RX_PORTS];
+  logic v_sig_error[N_1D_RX_PORTS];
+  logic rf_error[N_RX_PORTS];
 
   logic empty_local_fifo_err[N_FIFOS];
   logic full_local_fifo_err[N_FIFOS];
@@ -118,32 +126,32 @@ module fractal_sync_cc
   logic full_remote_fifo_err[N_FIFOS];
   logic fifo_error[N_FIFOS];
 
-  logic check_local[N_PORTS];
-  logic h_check_local[N_PORTS/2];
-  logic v_check_local[N_PORTS/2];
-  logic check_remote[N_PORTS];
-  logic h_check_remote[N_PORTS/2];
-  logic v_check_remote[N_PORTS/2];
-  logic bypass_local[N_PORTS];
-  logic h_bypass_local[N_PORTS/2];
-  logic v_bypass_local[N_PORTS/2];
-  logic bypass_remote[N_PORTS];
-  logic h_bypass_remote[N_PORTS/2];
-  logic v_bypass_remote[N_PORTS/2];
-  logic present_local[N_PORTS];
-  logic h_present_local[N_PORTS/2];
-  logic v_present_local[N_PORTS/2];
-  logic present_remote[N_PORTS];
-  logic h_present_remote[N_PORTS/2];
-  logic v_present_remote[N_PORTS/2];
+  logic check_local[N_RX_PORTS];
+  logic h_check_local[N_1D_RX_PORTS];
+  logic v_check_local[N_1D_RX_PORTS];
+  logic check_remote[N_RX_PORTS];
+  logic h_check_remote[N_1D_RX_PORTS];
+  logic v_check_remote[N_1D_RX_PORTS];
+  logic bypass_local[N_RX_PORTS];
+  logic h_bypass_local[N_1D_RX_PORTS];
+  logic v_bypass_local[N_1D_RX_PORTS];
+  logic bypass_remote[N_RX_PORTS];
+  logic h_bypass_remote[N_1D_RX_PORTS];
+  logic v_bypass_remote[N_1D_RX_PORTS];
+  logic present_local[N_RX_PORTS];
+  logic h_present_local[N_1D_RX_PORTS];
+  logic v_present_local[N_1D_RX_PORTS];
+  logic present_remote[N_RX_PORTS];
+  logic h_present_remote[N_1D_RX_PORTS];
+  logic v_present_remote[N_1D_RX_PORTS];
   
   logic push_local[N_FIFOS];
   logic full_local[N_FIFOS];
   logic push_remote[N_FIFOS];
   logic full_remote[N_FIFOS];
 
-  state_e c_state[N_PORTS];
-  state_e n_state[N_PORTS];
+  state_e c_state[N_RX_PORTS];
+  state_e n_state[N_RX_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -152,73 +160,55 @@ module fractal_sync_cc
 /*******************************************************/
 
   if (RF_DIM == fractal_sync_pkg::RF2D) begin: gen_2d_map
-    assign id_error[H01_IDX] = h_id_error[0];
-    assign id_error[H02_IDX] = h_id_error[1];
-    assign id_error[V01_IDX] = v_id_error[0];
-    assign id_error[V02_IDX] = v_id_error[1];
+    for (int unsigned i = 0; i < N_1D_RX_PORTS; i++) begin
+      assign id_error[2*i]   = h_id_error[i];
+      assign id_error[2*i+1] = v_id_error[i];
 
-    assign sig_error[H01_IDX] = h_sig_error[0];
-    assign sig_error[H02_IDX] = h_sig_error[1];
-    assign sig_error[V01_IDX] = v_sig_error[0];
-    assign sig_error[V02_IDX] = v_sig_error[1];
+      assign sig_error[2*i]   = h_sig_error[i];
+      assign sig_error[2*i+1] = v_sig_error[i];
 
-    assign h_level[0] = level[H01_IDX];
-    assign h_level[1] = level[H02_IDX];
-    assign v_level[0] = level[V01_IDX];
-    assign v_level[1] = level[V02_IDX];
-    
-    assign h_id[0] = id[H01_IDX];
-    assign h_id[1] = id[H02_IDX];
-    assign v_id[0] = id[V01_IDX];
-    assign v_id[1] = id[V02_IDX];
+      assign h_level[i] = level[2*i];
+      assign v_level[i] = level[2*i+1];
 
-    assign h_check_local[0] = check_local[H01_IDX];
-    assign h_check_local[1] = check_local[H02_IDX];
-    assign v_check_local[0] = check_local[V01_IDX];
-    assign v_check_local[1] = check_local[V02_IDX];
+      assign h_id[i] = id[2*i];
+      assign v_id[i] = id[2*i+1];
 
-    assign h_check_remote[0] = check_remote[H01_IDX];
-    assign h_check_remote[1] = check_remote[H02_IDX];
-    assign v_check_remote[0] = check_remote[V01_IDX];
-    assign v_check_remote[1] = check_remote[V02_IDX];
+      assign h_check_local[i] = check_local[2*i];
+      assign v_check_local[i] = check_local[2*i+1];
 
-    assign bypass_local[H01_IDX] = h_bypass_local[0];
-    assign bypass_local[H02_IDX] = h_bypass_local[1];
-    assign bypass_local[V01_IDX] = v_bypass_local[0];
-    assign bypass_local[V02_IDX] = v_bypass_local[1];
+      assign h_check_remote[i] = check_remote[2*i];
+      assign v_check_remote[i] = check_remote[2*i+1];
 
-    assign bypass_remote[H01_IDX] = h_bypass_remote[0];
-    assign bypass_remote[H02_IDX] = h_bypass_remote[1];
-    assign bypass_remote[V01_IDX] = v_bypass_remote[0];
-    assign bypass_remote[V02_IDX] = v_bypass_remote[1];
+      assign bypass_local[2*i]   = h_bypass_local[i];
+      assign bypass_local[2*i+1] = v_bypass_local[i];
 
-    assign present_local[H01_IDX] = h_present_local[0];
-    assign present_local[H02_IDX] = h_present_local[1];
-    assign present_local[V01_IDX] = v_present_local[0];
-    assign present_local[V02_IDX] = v_present_local[1];
+      assign bypass_remote[2*i]   = h_bypass_remote[i];
+      assign bypass_remote[2*i+1] = v_bypass_remote[i];
 
-    assign present_remote[H01_IDX] = h_present_remote[0];
-    assign present_remote[H02_IDX] = h_present_remote[1];
-    assign present_remote[V01_IDX] = v_present_remote[0];
-    assign present_remote[V02_IDX] = v_present_remote[1];
+      assign present_local[2*i]   = h_present_local[i];
+      assign present_local[2*i+1] = v_present_local[i];
+
+      assign present_remote[2*i]   = h_present_remote[i];
+      assign present_remote[2*i+1] = v_present_remote[i];
+    end
   end
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_id
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_id
     assign id[i] = req_i[i].sig.id;
   end
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_rf_error
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rf_error
     assign rf_error[i] = id_error[i] | sig_error[i];
   end
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_req
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_req
     assign remote_req[i].sync     = req_i[i].sync;
     assign remote_req[i].sig.aggr = req_i[i].sig.aggr >> 1;
     assign remote_req[i].sig.id   = req_i[i].sig.id;
     assign remote_req[i].src      = {req_i[i].src, SD_MASK};
   end
 
-  for (genvar i = 0; i < N_PORTS: i++) begin: gen_rsp
+  for (genvar i = 0; i < N_RX_PORTS: i++) begin: gen_rsp
     assign local_rsp[i].wake  = 1'b1;
     assign local_rsp[i].dst   = req_i[i].src;
     assign local_rsp[i].error = rf_error[i];
@@ -230,12 +220,12 @@ module fractal_sync_cc
 /**              Level Encoder Beginning              **/
 /*******************************************************/
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_lvl_enc
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_lvl_enc
     always_comb begin: enc_logic
-      level = '0;
+      level[i] = '0;
       for (int unsigned j = AGGREGATE_WIDTH-1; j >= 0; j++) begin
         if (req_i[i].sig.aggr[j] == 1'b1) begin
-          level = j;
+          level[i] = j;
           break;
         end
       end
@@ -249,7 +239,7 @@ module fractal_sync_cc
 /*******************************************************/
 
   if (RF_DIM == fractal_sync_pkg::RF1D) begin: gen_1d_fsm
-    for (genvar i = 0; i < N_PORTS; i++) begin: gen_fsm
+    for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_fsm
 
       always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
         if (!rst_ni) c_state[i] <= IDLE;
@@ -275,21 +265,21 @@ module fractal_sync_cc
           end
           ROOT: begin
             n_state[i] = IDLE;
-            push_local[i] = ((i == 0) & bypass_local[i]) | present_local[i] | rf_error[i];
+            push_local[i] = bypass_local[i] | present_local[i] | rf_error[i];
           end
           AGGR: begin
             n_state[i] = IDLE;
             if (rf_error[i])
               push_local[i] = 1'b1;
             else
-              push_remote[i] = ((i == 0) & bypass_remote[i]) | present_remote[i];
+              push_remote[i] = bypass_remote[i] | present_remote[i];
           end
         endcase
       end
 
     end
   end else if (RF_DIM == fractal_sync_pkg::RF2D) begin: gen_2d_fsm
-    for (genvar i = 0; i < N_PORTS/2; i++) begin: gen_h_fsm
+    for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin: gen_h_fsm
 
       always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
         if (!rst_ni) c_state[2*i] <= IDLE;
@@ -315,20 +305,20 @@ module fractal_sync_cc
           end
           ROOT: begin
             n_state[2*i] = IDLE;
-            push_local[2*i] = ((i == 0) & h_bypass_local[i]) | h_present_local[i] | rf_error[2*i];
+            push_local[2*i] = h_bypass_local[i] | h_present_local[i] | rf_error[2*i];
           end
           AGGR: begin
             n_state[2*i] = IDLE;
             if (rf_error[2*i])
               push_local[2*i] = 1'b1;
             else
-              push_remote[2*i] = ((i == 0) & h_bypass_remote[i]) | h_present_remote[i];
+              push_remote[2*i] = h_bypass_remote[i] | h_present_remote[i];
           end
         endcase
       end
 
     end
-    for (genvar i = 0; i < N_PORTS/2; i++) begin: gen_v_fsm
+    for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin: gen_v_fsm
 
       always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
         if (!rst_ni) c_state[2*i+1] <= IDLE;
@@ -354,14 +344,14 @@ module fractal_sync_cc
           end
           ROOT: begin
             n_state[2*i+1] = IDLE;
-            push_local[2*i+1] = ((i == 0) & v_bypass_local[i]) | v_present_local[i] | rf_error[2*i+1];
+            push_local[2*i+1] = v_bypass_local[i] | v_present_local[i] | rf_error[2*i+1];
           end
           AGGR: begin
             n_state[2*i+1] = IDLE;
             if (rf_error[2*i+1])
               push_local[2*i+1] = 1'b1;
             else
-              push_remote[2*i+1] = ((i == 0) & v_bypass_remote[i]) | v_present_remote[i];
+              push_remote[2*i+1] = v_bypass_remote[i] | v_present_remote[i];
           end
         endcase
       end
@@ -378,6 +368,7 @@ module fractal_sync_cc
   if (RF_DIM == fractal_sync_pkg::RF1D) begin: gen_1d_rf
     fractal_sync_1d_rf #(
       .REMOTE_RF_TYPE ( RF_TYPE        ),
+      .EN_REMOTE_RF   ( EN_REMOTE_RF   ),
       .N_LOCAL_REGS   ( N_LOCAL_REGS   ),
       .LEVEL_WIDTH    ( LEVEL_WIDTH    ),
       .ID_WIDTH       ( ID_WIDTH       ),
@@ -394,11 +385,14 @@ module fractal_sync_cc
       .id_err_o         ( id_error       ),
       .sig_err_o        ( sig_error      ),
       .bypass_local_o   ( bypass_local   ),
-      .bypass_remote_o  ( bypass_remote  )
+      .bypass_remote_o  ( bypass_remote  ),
+      .ignore_local_o   (                ),
+      .ignore_remote_o  (                )
     );
   end else if (RF_DIM == fractal_sync_pkg::RF2D) begin: gen_2d_rf
     fractal_sync_2d_rf #(
       .REMOTE_RF_TYPE ( RF_TYPE        ),
+      .EN_REMOTE_RF   ( EN_REMOTE_RF   ),
       .N_LOCAL_REGS   ( N_LOCAL_REGS   ),
       .LEVEL_WIDTH    ( LEVEL_WIDTH    ),
       .ID_WIDTH       ( ID_WIDTH       ),
@@ -416,6 +410,8 @@ module fractal_sync_cc
       .h_sig_err_o        ( h_sig_error      ),
       .h_bypass_local_o   ( h_bypass_local   ),
       .h_bypass_remote_o  ( h_bypass_remote  ),
+      .h_ignore_local_o   (                  ),
+      .h_ignore_remote_o  (                  ),
       .level_v_i          ( v_level          ),
       .id_v_i             ( v_id             ),
       .check_v_local_i    ( v_check_local    ),
@@ -425,7 +421,9 @@ module fractal_sync_cc
       .v_id_err_o         ( v_id_error       ),
       .v_sig_err_o        ( v_sig_error      ),
       .v_bypass_local_o   ( v_bypass_local   ),
-      .v_bypass_remote_o  ( v_bypass_remote  )
+      .v_bypass_remote_o  ( v_bypass_remote  ),
+      .v_ignore_local_o   (                  ),
+      .v_ignore_remote_o  (                  )
     );
   end else $fatal("Unsupported Register File Dimension");
 
@@ -443,8 +441,11 @@ module fractal_sync_cc
     assign fifo_error[i]            = empty_local_fifo_err[i] | full_local_fifo_err[i] | empty_remote_fifo_err[i] | full_remote_fifo_err[i];
   end
   
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_error
-    assign detected_error_o[i] = error_overflow_rx_i[i] | error_overflow_tx_i[i] | fifo_error[i];
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_error_rx
+    assign detected_error_o[i] = error_overflow_rx_i[i] | fifo_error[i];
+  end
+  for (genvar i = N_RX_PORTS; i < N_PORTS; i++) begin: gen_error_tx
+    assign detected_error_o[i] = error_overflow_tx_i[i];
   end
 
 /*******************************************************/

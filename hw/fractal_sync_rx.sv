@@ -65,7 +65,7 @@ module fractal_sync_rx
 
   initial FRACTAL_SYNC_RX_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
   initial FRACTAL_SYNC_RX_AGGR: assert ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)-1) else $fatal("Output aggregate width must be 1 bit less than input aggregate");
-  initial FRACTAL_SYNC_RX_SRC: assert ($bits(req_i.src) == $bits(req_o.src)+2) else $fatal("Output sources width must be 2 bits more than input sources");
+  initial FRACTAL_SYNC_RX_SRC: assert ($bits(req_i.src) == $bits(req_o.src)-2) else $fatal("Output sources width must be 2 bits more than input sources");
 
 /*******************************************************/
 /**                   Assertions End                  **/
