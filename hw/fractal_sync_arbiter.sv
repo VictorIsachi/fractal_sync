@@ -25,16 +25,16 @@ module fractal_sync_arbiter
 #(
   parameter int unsigned IN_PORTS  = 1,
   parameter int unsigned OUT_PORTS = 1,
-  parameter type         fsync_t   = logic
+  parameter type         arbiter_t = logic
 )(
-  input  logic   clk_i,
-  input  logic   rst_ni,
+  input  logic     clk_i,
+  input  logic     rst_ni,
 
-  output logic   pop_o[IN_PORTS],
-  input  logic   empty_i[IN_PORTS],
-  input  fsync_t element_i[IN_PORTS],
+  output logic     pop_o[IN_PORTS],
+  input  logic     empty_i[IN_PORTS],
+  input  arbiter_t element_i[IN_PORTS],
 
-  output fsync_t element_o[OUT_PORTS]
+  output arbiter_t element_o[OUT_PORTS]
 );
 
 /*******************************************************/
@@ -122,7 +122,7 @@ module fractal_sync_arbiter
   end
   
   always_ff @(posedge clk_i, negedge rst_ni) begin: current_mask_logic
-    if (!rst_ni) c_mask <= '1;
+    if (!rst_ni) c_mask <= '{default: 1'b1};
     else         c_mask <= n_mask;
   end
   

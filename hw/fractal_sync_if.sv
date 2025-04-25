@@ -33,7 +33,7 @@
  *  error              - Indicates error
  */
 
-interface fractal_if
+interface fractal_sync_if
 #(
   parameter int unsigned  AGGR_WIDTH = 0,
   parameter int unsigned  ID_WIDTH   = 0,
@@ -70,4 +70,4 @@ interface fractal_if
     output error
   );
 
-endinterface: fractal_if
+endinterface: fractal_sync_if

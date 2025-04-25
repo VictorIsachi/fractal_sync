@@ -30,7 +30,7 @@ class sync_transaction;
          int unsigned transaction_id;
   static int unsigned global_id = 0;
 
-  constraint aggregate_range { sync_level < sync_aggregate; }
+  constraint aggregate_range { sync_level > sync_aggregate; }
 
   function new();
   endfunction: new

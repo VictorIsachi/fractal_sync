@@ -88,7 +88,7 @@ module fractal_sync_rx
   logic full_fifo;
 
   fsync_req_in_t  sampled_req;
-  fsycn_req_out_t sampled_out_req;
+  fsync_req_out_t sampled_out_req;
   fsync_req_out_t fifo_out_req;
 
 /*******************************************************/
@@ -98,16 +98,16 @@ module fractal_sync_rx
 /*******************************************************/
   
   assign en_sample = req_i.sync;
-  assign propagate = ~sampled_req.aggr[0];
+  assign propagate = ~sampled_req.sig.aggr[0];
   assign enqueue   = sampled_req.sync & propagate;
 
   assign sampled_out_req.sync     = sampled_req.sync;
   assign sampled_out_req.sig.aggr = sampled_req.sig.aggr >> 1;
   assign sampled_out_req.sig.id   = sampled_req.sig.id;
-  assign sampled_out_req.rsc      = {sampled_req.sig.src, SD_MASK};
+  assign sampled_out_req.src      = {sampled_req.src, SD_MASK};
 
   assign local_o          = ~enqueue;
-  assign root_o           = (sampled_req.aggr == 1) ? 1'b1 : 1'b0;
+  assign root_o           = (sampled_req.sig.aggr == 1) ? 1'b1 : 1'b0;
   assign error_overflow_o = enqueue & full_fifo;
 
 /*******************************************************/

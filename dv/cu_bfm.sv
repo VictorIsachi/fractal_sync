@@ -67,7 +67,7 @@ class cu_bfm #(
         fsync_req.print();
         sync_req(fsync_req, comp_cycles, max_rand_cycles, clk);
       end begin
-        sync_ack(fsync_req, fsync_rsp, clk);
+        sync_rsp(fsync_req, fsync_rsp, clk);
         $display("BFM instance [%s]: synchronization response", instance_name);
         fsync_rsp.print();
       end

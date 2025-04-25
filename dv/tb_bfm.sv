@@ -22,10 +22,14 @@
  */
 
 module tb_bfm 
+  import fractal_sync_pkg::*;
   import fractal_dv_pkg::*;
 #(
 )(
 );
+  
+  `include "../hw/include/typedef.svh"
+  `include "../hw/include/assign.svh"
   
   localparam int unsigned N_TESTS = 10;
 
@@ -61,8 +65,8 @@ module tb_bfm
 
   cu_bfm #(.AGGR_WIDTH(CU_AGGR_W), .ID_WIDTH(CU_ID_W)) cu_bfms[CU_IN_PORTS];
   
-  initial begin
-    for (int unsigned i = 0; i < CU_IN_PORTS; i++) begin
+  for (genvar i = 0; i < CU_IN_PORTS; i++) begin: gen_cu_bfm
+    initial begin
       cu_bfms[i] = new(.instance_name($sformatf("cu_bfm_%0d", i)), .vif_master(if_cu[i]));
       cu_bfms[i].init();
     end
@@ -94,7 +98,9 @@ module tb_bfm
   for (genvar i = 0; i < CU_IN_PORTS; i++) begin
     `FSYNC_ASSIGN_I2S_REQ(if_cu[i], in_req[i])
     `FSYNC_ASSIGN_S2I_RSP(in_rsp[i], if_cu[i])
+  end
 
+  for (genvar i = 0; i < CU_OUT_PORTS; i++) begin
     assign out_rsp[i].wake  = 1'b0;
     assign out_rsp[i].dst   = '0;
     assign out_rsp[i].error = 1'b0;
@@ -118,7 +124,7 @@ module tb_bfm
       sync_req.set_uid();
       for (int i = 0; i < CU_IN_PORTS; i++)
         sync_rsp[i] = new();
-      assert(sync_req.randomize() with { this.sync_level inside {1}; this.sync_aggregate inside {0}; this.sync_barrier_id inside {0} }) else $error("Sync randomization failed");
+      assert(sync_req.randomize() with { this.sync_level inside {1}; this.sync_aggregate inside {0}; this.sync_barrier_id inside {0}; }) else $error("Sync randomization failed");
       for (int i = 0; i < CU_IN_PORTS; i++) begin
         comp_cycles[i]     = $urandom_range(MIN_COMP_CYCLES, MAX_COMP_CYCLES);
         max_rand_cycles[i] = MAX_RAND_CYCLES;

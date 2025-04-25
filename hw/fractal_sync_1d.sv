@@ -104,16 +104,16 @@ module fractal_sync_1d
     .element_o ( req_out_o     )
   );
 
-  logic    en_overflow_tx[OUT_PORTS];
-  logic    ws_overflow_tx[OUT_PORTS];
-  logic    overflow_tx[OUT_PORTS];
+  logic          en_overflow_tx[OUT_PORTS];
+  logic          ws_overflow_tx[OUT_PORTS];
+  logic          overflow_tx[OUT_PORTS];
 
-  logic    en_empty_tx[OUT_PORTS];
-  rsp_in_o en_rsp_tx[OUT_PORTS];
-  logic    en_pop_tx[OUT_PORTS];
-  logic    ws_empty_tx[OUT_PORTS];
-  rsp_in_o ws_rsp_tx[OUT_PORTS];
-  logic    ws_pop_tx[OUT_PORTS];
+  logic          en_empty_tx[OUT_PORTS];
+  fsync_rsp_in_t en_rsp_tx[OUT_PORTS];
+  logic          en_pop_tx[OUT_PORTS];
+  logic          ws_empty_tx[OUT_PORTS];
+  fsync_rsp_in_t ws_rsp_tx[OUT_PORTS];
+  logic          ws_pop_tx[OUT_PORTS];
 
   for (genvar i = 0; i < OUT_PORTS; i++) begin
     assign overflow_tx[i] = en_overflow_tx[i] | ws_overflow_tx[i];
@@ -143,11 +143,11 @@ module fractal_sync_1d
   logic          en_pop_rsp_arb[RSP_ARB_PORTS];
   logic          en_empty_rsp_arb[RSP_ARB_PORTS];
   fsync_rsp_in_t en_rsp_arb_in[RSP_ARB_PORTS];
-  fsync_rsp_in_t en_rsp_arb_out[RSP_ARB_PORTS];
+  fsync_rsp_in_t en_rsp_arb_out[EN_IN_PORTS];
   logic          ws_pop_rsp_arb[RSP_ARB_PORTS];
   logic          ws_empty_rsp_arb[RSP_ARB_PORTS];
   fsync_rsp_in_t ws_rsp_arb_in[RSP_ARB_PORTS];
-  fsync_rsp_in_t ws_rsp_arb_out[RSP_ARB_PORTS];
+  fsync_rsp_in_t ws_rsp_arb_out[WS_IN_PORTS];
 
   for (genvar i = 0; i < OUT_PORTS; i++) begin
     assign en_pop_tx[i]                 = en_pop_rsp_arb[i+IN_PORTS];

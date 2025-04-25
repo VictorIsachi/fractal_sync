@@ -42,8 +42,9 @@ module fractal_sync_1d_local_rf
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  initial FRACTAL_SYNC_1D_LOCAL_RF_MAX_ID: assert (N_REGS == MAX_ID+1) else $fatal("MAX_ID must be the id of the \"last\" register");
-  initial FRACTAL_SYNC_1D_LOCAL_RF_ID_W: assert (2**ID_WIDTH >= MAX_ID) else $fatal("ID_WIDTH must be able to support MAX_ID");
+  initial FRACTAL_SYNC_1D_LOCAL_RF_REGS: assert (N_REGS > 0) else $fatal("N_REGS must be > 0");
+  initial FRACTAL_SYNC_1D_LOCAL_RF_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
+  initial FRACTAL_SYNC_1D_LOCAL_RF_PORTS: assert (N_PORTS >= 2) else $fatal("N_PORTS must be > 1");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -82,7 +83,7 @@ module fractal_sync_1d_local_rf
     for (int unsigned i = 0; i < N_PORTS-1; i++) begin
       if (ignore[i]) continue;
       else begin
-        for (int unsigned j = i; i < N_PORTS; j++) begin
+        for (int unsigned j = i; j < N_PORTS; j++) begin
           if (id_i[i] == id_i[j]) begin
             bypass[i] = 1'b1;
             ignore[j] = 1'b1;
