@@ -120,7 +120,7 @@ module fractal_sync_1d_remote_rf
     for (int unsigned i = 0; i < N_PORTS-1; i++) begin
       if (ignore[i]) continue;
       else begin
-        for (int unsigned j = i; i < N_PORTS; j++) begin
+        for (int unsigned j = i; j < N_PORTS; j++) begin
           if (id_i[i] == id_i[j]) begin
             bypass[i] = 1'b1;
             ignore[j] = 1'b1;

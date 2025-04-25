@@ -74,8 +74,8 @@ module fractal_sync_cc
   initial FRACTAL_SYNC_CC_REMOTE_LINES: assert (RF_TYPE == fractal_sync_pkg::CAM_RF -> N_REMOTE_LINES > 0) else $fatal("N_REMOTE_LINES must be > 0 for CAM Remote Register File");
   initial FRACTAL_SYNC_CC_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
   initial FRACTAL_SYNC_CC_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
-  initial FRACTAL_SYNC_CC_DST: assert ($bits(req_i.src) == $bits(remote_req_o.rsc)-2) else $fatal("Output sources width must be 2 bits more than input destination");
-  initial FRACTAL_SYNC_CC_SRC: assert ($bits(req_i.src) == $bits(local_rsp_o.dst)) else $fatal("Output destination width must be equal to input sources");
+  initial FRACTAL_SYNC_CC_DST: assert ($bits(req_i[0].src) == $bits(remote_req_o[0].src)-2) else $fatal("Output sources width must be 2 bits more than input destination");
+  initial FRACTAL_SYNC_CC_SRC: assert ($bits(req_i[0].src) == $bits(local_rsp_o[0].dst)) else $fatal("Output destination width must be equal to input sources");
   initial FRACTAL_SYNC_CC_RX_PORTS: assert (N_RX_PORTS > 0) else $fatal("N_RX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_TX_PORTS: assert (N_TX_PORTS > 0) else $fatal("N_TX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
@@ -160,7 +160,7 @@ module fractal_sync_cc
 /*******************************************************/
 
   if (RF_DIM == fractal_sync_pkg::RF2D) begin: gen_2d_map
-    for (int unsigned i = 0; i < N_1D_RX_PORTS; i++) begin
+    for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin
       assign id_error[2*i]   = h_id_error[i];
       assign id_error[2*i+1] = v_id_error[i];
 
@@ -208,7 +208,7 @@ module fractal_sync_cc
     assign remote_req[i].src      = {req_i[i].src, SD_MASK};
   end
 
-  for (genvar i = 0; i < N_RX_PORTS: i++) begin: gen_rsp
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rsp
     assign local_rsp[i].wake  = 1'b1;
     assign local_rsp[i].dst   = req_i[i].src;
     assign local_rsp[i].error = rf_error[i];
@@ -223,7 +223,7 @@ module fractal_sync_cc
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_lvl_enc
     always_comb begin: enc_logic
       level[i] = '0;
-      for (int unsigned j = AGGREGATE_WIDTH-1; j >= 0; j++) begin
+      for (int j = AGGREGATE_WIDTH-1; j >= 0; j--) begin
         if (req_i[i].sig.aggr[j] == 1'b1) begin
           level[i] = j;
           break;
@@ -456,7 +456,7 @@ module fractal_sync_cc
 
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_local_fifos
     fractal_sync_fifo #(
-      .FIFO_DEPTH ( FIFO_DEPTH_L   ),
+      .FIFO_DEPTH ( FIFO_DEPTH     ),
       .fifo_t     ( fsync_rsp_in_t )
     ) i_local_fifo (
       .clk_i                         ,
@@ -464,7 +464,7 @@ module fractal_sync_cc
       .push_i    ( push_local[i]    ),
       .element_i ( local_rsp[i]     ),
       .pop_i     ( local_pop_i[i]   ),
-      .element_o ( local_req_o[i]   ),
+      .element_o ( local_rsp_o[i]   ),
       .empty_o   ( local_empty_o[i] ),
       .full_o    ( full_local[i]    )
     );
@@ -478,7 +478,7 @@ module fractal_sync_cc
 
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_remote_fifos
     fractal_sync_fifo #(
-      .FIFO_DEPTH ( FIFO_DEPTH_R    ),
+      .FIFO_DEPTH ( FIFO_DEPTH      ),
       .fifo_t     ( fsync_req_out_t )
     ) i_remote_fifo (
       .clk_i                          ,

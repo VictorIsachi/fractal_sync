@@ -40,11 +40,11 @@
     logic wake;                                 \
     dst_t dst;                                  \
     logic error;                                \
-  } fsycn_rsp_t;
+  } fsync_rsp_t;
 
 `define FSYNC_TYPEDEF_ALL(__name, __aggr_t, __id_t, __src_t, __dst_t) \
-  `FSYNC_TYPEDEF_SIG_T(__name``sig_t, __aggr_t, __id_t)               \
-  `FYSNC_TYPEDEF_REQ_T(__name``req_t, __name``sig_t, __src_t)         \
-  `FSYNC_TYPEDEF_RSP_T(__name``rsp_t, __dst_t)
+  `FSYNC_TYPEDEF_SIG_T(__name``_sig_t, __aggr_t, __id_t)              \
+  `FYSNC_TYPEDEF_REQ_T(__name``_req_t, __name``_sig_t, __src_t)       \
+  `FSYNC_TYPEDEF_RSP_T(__name``_rsp_t, __dst_t)
 
 `endif /* FSYNC_TYPEDEF_SVH_ */

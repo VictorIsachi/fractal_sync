@@ -50,7 +50,7 @@ module fractal_sync_fifo
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam ADDR_WIDTH = $clog2(FIFO_DEPTH);
+  localparam int unsigned ADDR_WIDTH = $clog2(FIFO_DEPTH);
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -72,8 +72,9 @@ module fractal_sync_fifo
 /**                   FIFO Beginning                  **/
 /*******************************************************/
 
-  if (COMB_OUT): gen_comb
+  if (COMB_OUT) begin: gen_comb
     assign comb_out = empty_fifo & push_i;
+  end
 
   always_ff @(posedge clk_i, negedge rst_ni) begin: addr_state_logic
     if (!rst_ni) begin

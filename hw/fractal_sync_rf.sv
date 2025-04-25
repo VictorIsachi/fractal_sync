@@ -226,7 +226,7 @@ module fractal_sync_2d_rf
       .v_present_o ( v_present_remote_o ),
       .v_sig_err_o ( v_sig_err_o        ),
       .v_bypass_o  ( v_bypass_remote_o  ),
-      .v_ignore_o  ( v_ignore_remote_o  ),
+      .v_ignore_o  ( v_ignore_remote_o  )
     );
   end else begin: gen_no_2d_remote_rf
     for (genvar i = 0; i < N_H_PORTS; i++) begin

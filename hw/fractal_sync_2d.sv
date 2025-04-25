@@ -168,16 +168,16 @@ module fractal_sync_2d
     .element_o ( v_req_out_o     )
   );
 
-  logic    h_en_overflow_tx[OUT_H_PORTS];
-  logic    h_ws_overflow_tx[OUT_H_PORTS];
-  logic    h_overflow_tx[OUT_H_PORTS];
+  logic          h_en_overflow_tx[OUT_H_PORTS];
+  logic          h_ws_overflow_tx[OUT_H_PORTS];
+  logic          h_overflow_tx[OUT_H_PORTS];
 
-  logic    h_en_empty_tx[OUT_H_PORTS];
-  rsp_in_o h_en_rsp_tx[OUT_H_PORTS];
-  logic    h_en_pop_tx[OUT_H_PORTS];
-  logic    h_ws_empty_tx[OUT_H_PORTS];
-  rsp_in_o h_ws_rsp_tx[OUT_H_PORTS];
-  logic    h_ws_pop_tx[OUT_H_PORTS];
+  logic          h_en_empty_tx[OUT_H_PORTS];
+  fsync_rsp_in_t h_en_rsp_tx[OUT_H_PORTS];
+  logic          h_en_pop_tx[OUT_H_PORTS];
+  logic          h_ws_empty_tx[OUT_H_PORTS];
+  fsync_rsp_in_t h_ws_rsp_tx[OUT_H_PORTS];
+  logic          h_ws_pop_tx[OUT_H_PORTS];
 
   for (genvar i = 0; i < OUT_H_PORTS; i++) begin
     assign h_overflow_tx[i] = h_en_overflow_tx[i] | h_ws_overflow_tx[i];
@@ -204,16 +204,16 @@ module fractal_sync_2d
     );
   end
 
-  logic    v_en_overflow_tx[OUT_V_PORTS];
-  logic    v_ws_overflow_tx[OUT_V_PORTS];
-  logic    v_overflow_tx[OUT_V_PORTS];
+  logic          v_en_overflow_tx[OUT_V_PORTS];
+  logic          v_ws_overflow_tx[OUT_V_PORTS];
+  logic          v_overflow_tx[OUT_V_PORTS];
 
-  logic    v_en_empty_tx[OUT_V_PORTS];
-  rsp_in_o v_en_rsp_tx[OUT_V_PORTS];
-  logic    v_en_pop_tx[OUT_V_PORTS];
-  logic    v_ws_empty_tx[OUT_V_PORTS];
-  rsp_in_o v_ws_rsp_tx[OUT_V_PORTS];
-  logic    v_ws_pop_tx[OUT_V_PORTS];
+  logic          v_en_empty_tx[OUT_V_PORTS];
+  fsync_rsp_in_t v_en_rsp_tx[OUT_V_PORTS];
+  logic          v_en_pop_tx[OUT_V_PORTS];
+  logic          v_ws_empty_tx[OUT_V_PORTS];
+  fsync_rsp_in_t v_ws_rsp_tx[OUT_V_PORTS];
+  logic          v_ws_pop_tx[OUT_V_PORTS];
 
   for (genvar i = 0; i < OUT_V_PORTS; i++) begin
     assign v_overflow_tx[i] = v_en_overflow_tx[i] | v_ws_overflow_tx[i];

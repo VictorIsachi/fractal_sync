@@ -62,7 +62,8 @@ module fractal_sync_tx
 /*******************************************************/
 
   initial FRACTAL_SYNC_TX_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
-  initial FRACTAL_SYNC_TX_DST: assert ($bits(rsp_i.dst) == $bits(rsp_o.dst)+2) else $fatal("Output destination width must be 2 bits less than input destination");
+  initial FRACTAL_SYNC_TX_EN_DST: assert ($bits(rsp_i.dst) == $bits(en_rsp_o.dst)+2) else $fatal("Output Est-North destination width must be 2 bits less than input destination");
+  initial FRACTAL_SYNC_TX_WS_DST: assert ($bits(rsp_i.dst) == $bits(ws_rsp_o.dst)+2) else $fatal("Output West-South destination width must be 2 bits less than input destination");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -84,7 +85,7 @@ module fractal_sync_tx
   logic ws_full_fifo;
 
   fsync_rsp_in_t  sampled_rsp;
-  fsycn_rsp_out_t sampled_out_rsp;
+  fsync_rsp_out_t sampled_out_rsp;
   fsync_rsp_out_t en_fifo_out_rsp;
   fsync_rsp_out_t ws_fifo_out_rsp;
 

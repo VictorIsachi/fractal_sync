@@ -26,7 +26,7 @@ module fractal_sync_neighbor
   parameter type          fsync_req_t = logic,
   parameter type          fsync_rsp_t = logic,
   parameter bit           COMB        = 1'b0,
-  localparam int unsigned N_PORTS     = 2,
+  localparam int unsigned N_PORTS     = 2
 )(
   input  logic       clk_i,
   input  logic       rst_ni,
