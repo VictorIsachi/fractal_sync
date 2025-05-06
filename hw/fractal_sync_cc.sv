@@ -18,6 +18,34 @@
  *
  * Fractal synchronization core control
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  NODE_TYPE       - Node type of control core (horizontal, vertical, 2D, root)
+ *  RF_TYPE         - Remote RF type (Directly Mapped or CAM)
+ *  N_LOCAL_REGS    - Number of register in teh local RF
+ *  N_REMOTE_LINES  - Number of CAM lines in a CAM-based remote RF
+ *  AGGREGATE_WIDTH - Width of the aggr field
+ *  ID_WIDTH        - Width of the id field
+ *  fsync_req_in_t  - Input synchronization request type (RX -> CC)
+ *  fsync_rsp_in_t  - Input synchronization response type (CC -> TX arb.)
+ *  fsync_req_out_t - Output synchronization request type (CC -> RX arb.)
+ *  N_RX_PORTS      - Number of input (RX) ports
+ *  N_TX_PORTS      - Number of output (TX) ports
+ *  FIFO_DEPTH      - Maximum number of elements that can be present in a FIFO
+ *
+ * Interface signals:
+ *  > req_i               - Synchronization request (input)
+ *  > local_i             - Indicates that synch. req. should be managed by current node (root or aggregate)
+ *  > root_i              - Indicates that synch. req. has reached the root of the synchronization tree
+ *  > error_overflow_rx_i - Indicates RX FIFO overflow
+ *  > error_overflow_tx_i - Indicates TX FIFO overflow
+ *  > local_empty_o       - Indicates that local FIFO (associated with local RF) is empty
+ *  > local_rsp_o         - Local synchronization response (input) FIFO
+ *  > local_pop_i         - Pop synch. rsp.
+ *  > remote_empty_o      - Indicates that remote FIFO (associated with remote RF) is empty
+ *  > remote_req_o        - Remote synch. req. (output) FIFO
+ *  > remote_pop_i        - Pop synch. req.
+ *  > detected_error_o    - Detected error associated with RX/TX transaction
  */
 
 module fractal_sync_cc 
@@ -28,7 +56,6 @@ module fractal_sync_cc
                                                                (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
                                                                fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
   parameter fractal_sync_pkg::remote_rf_e    RF_TYPE         = fractal_sync_pkg::CAM_RF,
-  parameter fractal_sync_pkg::en_remote_rf_e EN_REMOTE_RF    = fractal_sync_pkg::EN_REMOTE_RF,
   parameter int unsigned                     N_LOCAL_REGS    = 0,
   parameter int unsigned                     N_REMOTE_LINES  = 0,
   parameter int unsigned                     AGGREGATE_WIDTH = 1,
@@ -36,14 +63,18 @@ module fractal_sync_cc
   parameter type                             fsync_req_in_t  = logic,
   parameter type                             fsync_rsp_in_t  = logic,
   parameter type                             fsync_req_out_t = logic,
+  // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
   parameter int unsigned                     N_RX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
                                                                (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
-                                                               0,  // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
+                                                               0,
+  // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
   parameter int unsigned                     N_TX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
                                                                (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
-                                                               0,  // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
-  localparam int unsigned                    N_PORTS         = N_RX_PORTS + N_TX_PORTS,  // Total number of ports: lower indexes represent RX ports; higher indexes represent TX ports
-  localparam int unsigned                    N_FIFOS         = N_RX_PORTS, // 2D CC: even indexed FIFOs -> horizontal channel; odd indexed FIFOs -> vertical channel
+                                                               0,
+  // Total number of ports: lower indexes represent RX ports; higher indexes represent TX ports
+  localparam int unsigned                    N_PORTS         = N_RX_PORTS + N_TX_PORTS,
+  // 2D CC: even indexed FIFOs -> horizontal channel; odd indexed FIFOs -> vertical channel
+  localparam int unsigned                    N_FIFOS         = N_RX_PORTS, 
   parameter int unsigned                     FIFO_DEPTH      = 1
 )(
   input  logic           clk_i,
@@ -86,14 +117,14 @@ module fractal_sync_cc
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam int unsigned           LEVEL_WIDTH   = $clog2(AGGREGATE_WIDTH);
-  localparam fractal_sync_pkg::sd_e SD_MASK       = fractal_sync_pkg::SD_BOTH;
-  localparam int unsigned           N_1D_RX_PORTS = N_RX_PORTS/2;
+  localparam fractal_sync_pkg::en_remote_rf_e EN_REMOTE_RF  = (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? fractal_sync_pkg::ENN_REMOTE_RF : fractal_sync_pkg::EN_REMOTE_RF;
+  localparam int unsigned                     LEVEL_WIDTH   = $clog2(AGGREGATE_WIDTH);
+  localparam fractal_sync_pkg::sd_e           SD_MASK       = fractal_sync_pkg::SD_BOTH;
+  localparam int unsigned                     N_1D_RX_PORTS = N_RX_PORTS/2;
 
-  typedef enum logic[1:0] {
+  typedef enum logic {
     IDLE,
-    ROOT,
-    AGGR
+    CHECK
   } state_e;
 
 /*******************************************************/
@@ -255,25 +286,19 @@ module fractal_sync_cc
         push_remote[i]  = 1'b0;
         unique case (c_state[i])
           IDLE: begin
-            if (req_i[i].sync & root_i[i]) begin 
-              n_state[i] = ROOT; 
-              check_local[i] = 1'b1;
-            end else if (req_i[i].sync & ~root_i[i] & local_i[i]) begin
-              n_state[i] = AGGR;
-              check_remote[i] = 1'b1;
+            if (local_i[i]) begin
+              n_state[i] = CHECK;
+              if (!root_i[i]) begin
+                check_remote[i] = 1'b1;
+                if (!rf_error[i]) push_remote[i] = bypass_remote[i] | present_remote[i];
+                else              push_local[i]  = 1'b1;
+              end else begin
+                check_local[i] = 1'b1;
+                push_local[i]  = bypass_local[i] | present_local[i] | rf_error[i];
+              end
             end
           end
-          ROOT: begin
-            n_state[i] = IDLE;
-            push_local[i] = bypass_local[i] | present_local[i] | rf_error[i];
-          end
-          AGGR: begin
-            n_state[i] = IDLE;
-            if (rf_error[i])
-              push_local[i] = 1'b1;
-            else
-              push_remote[i] = bypass_remote[i] | present_remote[i];
-          end
+          CHECK: n_state[i] = IDLE;
         endcase
       end
 
@@ -295,25 +320,19 @@ module fractal_sync_cc
         push_remote[2*i]  = 1'b0;
         unique case (c_state[2*i])
           IDLE: begin
-            if (req_i[2*i].sync & root_i[2*i]) begin 
-              n_state[2*i] = ROOT; 
-              h_check_local[i] = 1'b1;
-            end else if (req_i[2*i].sync & ~root_i[2*i] & local_i[2*i]) begin
-              n_state[2*i] = AGGR;
-              h_check_remote[i] = 1'b1;
+            if (local_i[2*i]) begin
+              n_state[2*i] = CHECK;
+              if (!root_i[2*i]) begin
+                h_check_remote[i] = 1'b1;
+                if (!rf_error[2*i]) push_remote[2*i] = h_bypass_remote[i] | h_present_remote[i];
+                else                push_local[2*i]  = 1'b1;
+              end else begin
+                h_check_local[i] = 1'b1;
+                push_local[2*i]  = h_bypass_local[i] | h_present_local[i] | rf_error[2*i];
+              end
             end
           end
-          ROOT: begin
-            n_state[2*i] = IDLE;
-            push_local[2*i] = h_bypass_local[i] | h_present_local[i] | rf_error[2*i];
-          end
-          AGGR: begin
-            n_state[2*i] = IDLE;
-            if (rf_error[2*i])
-              push_local[2*i] = 1'b1;
-            else
-              push_remote[2*i] = h_bypass_remote[i] | h_present_remote[i];
-          end
+          CHECK: n_state[2*i] = IDLE;
         endcase
       end
 
@@ -334,25 +353,19 @@ module fractal_sync_cc
         push_remote[2*i+1] = 1'b0;
         unique case (c_state[2*i+1])
           IDLE: begin
-            if (req_i[2*i+1].sync & root_i[2*i+1]) begin 
-              n_state[2*i+1] = ROOT; 
-              v_check_local[i] = 1'b1;
-            end else if (req_i[2*i+1].sync & ~root_i[2*i+1] & local_i[2*i+1]) begin
-              n_state[2*i+1] = AGGR;
-              v_check_remote[i] = 1'b1;
+            if (local_i[2*i+1]) begin
+              n_state[2*i+1] = CHECK;
+              if (!root_i[2*i+1]) begin
+                v_check_remote[i] = 1'b1;
+                if (!rf_error[2*i+1]) push_remote[2*i+1] = v_bypass_remote[i] | v_present_remote[i];
+                else                  push_local[2*i+1]  = 1'b1;
+              end else begin
+                v_check_local[i]  = 1'b1;
+                push_local[2*i+1] = v_bypass_local[i] | v_present_local[i] | rf_error[2*i+1];
+              end
             end
           end
-          ROOT: begin
-            n_state[2*i+1] = IDLE;
-            push_local[2*i+1] = v_bypass_local[i] | v_present_local[i] | rf_error[2*i+1];
-          end
-          AGGR: begin
-            n_state[2*i+1] = IDLE;
-            if (rf_error[2*i+1])
-              push_local[2*i+1] = 1'b1;
-            else
-              push_remote[2*i+1] = v_bypass_remote[i] | v_present_remote[i];
-          end
+          CHECK: n_state[2*i+1] = IDLE;
         endcase
       end
 
@@ -372,7 +385,8 @@ module fractal_sync_cc
       .N_LOCAL_REGS   ( N_LOCAL_REGS   ),
       .LEVEL_WIDTH    ( LEVEL_WIDTH    ),
       .ID_WIDTH       ( ID_WIDTH       ),
-      .N_REMOTE_LINES ( N_REMOTE_LINES )
+      .N_REMOTE_LINES ( N_REMOTE_LINES ),
+      .N_PORTS        ( N_RX_PORTS     )
     ) i_rf (
       .clk_i                              ,
       .rst_ni                             ,
@@ -396,7 +410,9 @@ module fractal_sync_cc
       .N_LOCAL_REGS   ( N_LOCAL_REGS   ),
       .LEVEL_WIDTH    ( LEVEL_WIDTH    ),
       .ID_WIDTH       ( ID_WIDTH       ),
-      .N_REMOTE_LINES ( N_REMOTE_LINES )
+      .N_REMOTE_LINES ( N_REMOTE_LINES ),
+      .N_H_PORTS      ( N_1D_RX_PORTS  ),
+      .N_V_PORTS      ( N_1D_RX_PORTS  )
     ) i_rf (
       .clk_i                                  ,
       .rst_ni                                 ,
@@ -444,14 +460,14 @@ module fractal_sync_cc
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_error_rx
     assign detected_error_o[i] = error_overflow_rx_i[i] | fifo_error[i];
   end
-  for (genvar i = N_RX_PORTS; i < N_PORTS; i++) begin: gen_error_tx
-    assign detected_error_o[i] = error_overflow_tx_i[i];
+  for (genvar i = 0; i < N_TX_PORTS; i++) begin: gen_error_tx
+    assign detected_error_o[i+N_RX_PORTS] = error_overflow_tx_i[i];
   end
 
 /*******************************************************/
 /**                 Error Handler End                 **/
 /*******************************************************/
-/**               Local FIFOs Beginning               **/
+/**                  FIFOs Beginning                  **/
 /*******************************************************/
 
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_local_fifos
@@ -470,12 +486,6 @@ module fractal_sync_cc
     );
   end
 
-/*******************************************************/
-/**                  Local FIFOs End                  **/
-/*******************************************************/
-/**               Remote FIFOs Beginning              **/
-/*******************************************************/
-
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_remote_fifos
     fractal_sync_fifo #(
       .FIFO_DEPTH ( FIFO_DEPTH      ),
@@ -493,7 +503,7 @@ module fractal_sync_cc
   end
 
 /*******************************************************/
-/**                  Remote FIFOs End                 **/
+/**                     FIFOs End                     **/
 /*******************************************************/
 
 endmodule: fractal_sync_cc

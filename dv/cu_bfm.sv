@@ -46,7 +46,7 @@ class cu_bfm #(
     int unsigned rand_cycles = $urandom_range(0, max_rand_cycles);
     repeat (comp_cycles + rand_cycles) @(negedge clk);
     @(negedge clk);
-    vif_master.aggr = (1'b1 << fsync.sync_level) | fsync.sync_aggregate;
+    vif_master.aggr = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
     vif_master.id   = fsync.sync_barrier_id;
     vif_master.sync = 1'b1;
     @(negedge clk);

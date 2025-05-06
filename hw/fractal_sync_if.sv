@@ -20,16 +20,16 @@
  *
  * Parameters:
  *  AGGR_WIDTH - Width of aggr, representing the the levels of the tree where aggregation ought to occur; leading 1 represent the root level of the synchronization request
- *  ID_WIDTH   - Width of the id indicator of the barrier, each id is local to the specific synchronization node: distinct nodes have overlapping id's
- *  SD_WIDTH   - Width of src/dst: used for beack-routing
+ *  ID_WIDTH   - Width of the id indicator of the barrier, each id is local to the specific synchronization node: distinct nodes have overlapping ids
+ *  SD_WIDTH   - Width of src/dst: used for back-routing
  *
  * Interface signals:
  *  sync               - Indicates request for synchronization
  *  aggr (aggregate)   - Indicates the levels of the tree where synchronization requests should be aggregated, leading 1 indicates level of synchronization request
  *  id                 - Indicates the id of the barrier of the synchronization request (local to specific synchronization node)
- *  src (sources)      - Indicates the sources of the synchronization request
+ *  src (sources)      - Indicates the sources of the synchronization request (01 => East-North; 10 => West-South; 11 => Both)
  *  wake               - Indicates granted synchronization
- *  dst (destinations) - Indicates the destinations of the synchronization response
+ *  dst (destinations) - Indicates the destinations of the synchronization response (01 => East-North; 10 => West-South; 11 => Both)
  *  error              - Indicates error
  */
 

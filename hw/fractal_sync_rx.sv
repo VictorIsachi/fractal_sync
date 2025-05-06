@@ -23,16 +23,17 @@
  *  fsync_req_in_t  - Type of the input request
  *  fsync_req_out_t - Type of the output request: aggregate width must be 1 less than input aggregate width; sources width must be 2 more than input sources width
  *  COMB_IN         - 1: Combinational datapath, 0: sample input
- *  SD_MASK         - Mask that indicates the source of synchronization request: 01 -> Right; 10 -> Left; 11 -> Both
+ *  SD_MASK         - Mask that indicates the source of synchronization request: 01 -> East-North; 10 -> West-South; 11 -> Both
  *  FIFO_DEPTH      - Depth of the request FIFO
  *
  * Interface signals:
  *  > req_i            - Synchronization request
- *  < local_o          - Indicates that we should wait locally for neighboring request
+ *  < sampled_req_o    - Sampled synchronization request
+ *  < local_o          - Indicates that synchronization request should be managed locally (root or aggregate)
  *  < root_o           - Indicates the root of the synchronization request
  *  < error_overflow_o - Indicates error: fifo overflown
  *  < empty_o          - Indicates empty fifo
- *  < req_o            - Synchronization request
+ *  < req_o            - Synchronization request propagated directly (without involvement of the control-core)
  *  > pop_i            - Pop current synchronization request
  */
 
@@ -49,6 +50,7 @@ module fractal_sync_rx
   input  logic           clk_i,
   input  logic           rst_ni,
   input  fsync_req_in_t  req_i,
+  output fsync_req_in_t  sampled_req_o,
   // Status
   output logic           local_o,
   output logic           root_o,
@@ -64,7 +66,7 @@ module fractal_sync_rx
 /*******************************************************/
 
   initial FRACTAL_SYNC_RX_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
-  initial FRACTAL_SYNC_RX_AGGR: assert ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)-1) else $fatal("Output aggregate width must be 1 bit less than input aggregate");
+  initial FRACTAL_SYNC_RX_AGGR: assert ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)+1) else $fatal("Output aggregate width must be 1 bit less than input aggregate");
   initial FRACTAL_SYNC_RX_SRC: assert ($bits(req_i.src) == $bits(req_o.src)-2) else $fatal("Output sources width must be 2 bits more than input sources");
 
 /*******************************************************/
@@ -82,14 +84,13 @@ module fractal_sync_rx
 /*******************************************************/
   
   logic en_sample;
+  logic sampled_sync;
   logic propagate;
-  logic enqueue;
+  logic push;
 
   logic full_fifo;
 
-  fsync_req_in_t  sampled_req;
   fsync_req_out_t sampled_out_req;
-  fsync_req_out_t fifo_out_req;
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -98,35 +99,41 @@ module fractal_sync_rx
 /*******************************************************/
   
   assign en_sample = req_i.sync;
-  assign propagate = ~sampled_req.sig.aggr[0];
-  assign enqueue   = sampled_req.sync & propagate;
-
-  assign sampled_out_req.sync     = sampled_req.sync;
-  assign sampled_out_req.sig.aggr = sampled_req.sig.aggr >> 1;
-  assign sampled_out_req.sig.id   = sampled_req.sig.id;
-  assign sampled_out_req.src      = {sampled_req.src, SD_MASK};
-
-  assign local_o          = ~enqueue;
-  assign root_o           = (sampled_req.sig.aggr == 1) ? 1'b1 : 1'b0;
-  assign error_overflow_o = enqueue & full_fifo;
+  assign propagate = ~sampled_req_o.sig.aggr[0];
 
 /*******************************************************/
 /**               Hardwired Signals End               **/
 /*******************************************************/
-/**               REQ Sampling Beginning              **/
+/**                 RX Logic Beginning                **/
 /*******************************************************/
-
+  
   if (COMB_IN) begin: gen_comb_sample
-    assign sampled_req = req_i;
+    assign sampled_sync  = req_i.sync;
+    assign sampled_req_o = req_i;
   end else begin: gen_seq_sample
+    always_ff @(posedge clk_i, negedge rst_ni) begin: sync_reg
+      if (!rst_ni) sampled_sync <= 1'b0;
+      else         sampled_sync <= req_i.sync;
+    end
     always_ff @(posedge clk_i, negedge rst_ni) begin: sample_reg
-      if      (!rst_ni)   sampled_req <= '0;
-      else if (en_sample) sampled_req <= req_i;
+      if      (!rst_ni)   sampled_req_o <= '0;
+      else if (en_sample) sampled_req_o <= req_i;
     end
   end
 
+  assign sampled_out_req.sync     = sampled_req_o.sync;
+  assign sampled_out_req.sig.aggr = sampled_req_o.sig.aggr >> 1;
+  assign sampled_out_req.sig.id   = sampled_req_o.sig.id;
+  assign sampled_out_req.src      = {sampled_req_o.src, SD_MASK};
+
+  assign push = sampled_sync & propagate;
+
+  assign local_o          = sampled_sync & ~propagate;
+  assign root_o           = (sampled_req_o.sig.aggr == 1) ? 1'b1 : 1'b0;
+  assign error_overflow_o = full_fifo & push & ~pop_i;
+
 /*******************************************************/
-/**                  REQ Sampling End                 **/
+/**                    RX Logic End                   **/
 /*******************************************************/
 /**                 REQ FIFO Beginning                **/
 /*******************************************************/
@@ -138,14 +145,13 @@ module fractal_sync_rx
   ) i_req_fifo (
     .clk_i                        ,
     .rst_ni                       ,
-    .push_i    ( enqueue         ),
+    .push_i    ( push            ),
     .element_i ( sampled_out_req ),
     .pop_i                        ,
-    .element_o ( fifo_out_req    ),
+    .element_o ( req_o           ),
     .empty_o                      ,
     .full_o    ( full_fifo       )
   );
-  assign req_o = fifo_out_req;
 
 /*******************************************************/
 /**                    REQ FIFO End                   **/

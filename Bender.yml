@@ -43,7 +43,11 @@ sources:
     - hw/fractal_sync_1d.sv
     - hw/fractal_sync_2d.sv
     # Completre Network
+    - hw/trees/fractal_sync_2x2.sv
     - hw/trees/fractal_sync_4x4.sv
+    - hw/trees/fractal_sync_8x8.sv
+    - hw/trees/fractal_sync_16x16.sv
+    - hw/trees/fractal_sync_32x32.sv
 
     - target: dv
       files:

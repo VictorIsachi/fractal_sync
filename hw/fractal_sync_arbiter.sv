@@ -18,6 +18,17 @@
  *
  * Fractal synchronization arbiter
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  IN_PORTS  - Number of input ports
+ *  OUT_PORTS - Number of output ports
+ *  arbiter_t - Arbiter element type
+ *
+ * Interface signals:
+ *  < pop_o     - Pop input element
+ *  > empty_i   - Indicates empty input FIFO
+ *  > element_i - Input element
+ *  < element_o - Output element
  */
 
 module fractal_sync_arbiter
@@ -41,8 +52,8 @@ module fractal_sync_arbiter
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  initial FRACTAL_SYNC_1D_ARBITER_IN_PORTS: assert (IN_PORTS > 0) else $fatal("IN_PORTS must be > 0");
-  initial FRACTAL_SYNC_1D_ARBITER_OUT_PORTS: assert (OUT_PORTS > 0) else $fatal("OUT_PORTS must be > 0");
+  initial FRACTAL_SYNC_ARBITER_IN_PORTS: assert (IN_PORTS > 0) else $fatal("IN_PORTS must be > 0");
+  initial FRACTAL_SYNC_ARBITER_OUT_PORTS: assert (OUT_PORTS > 0) else $fatal("OUT_PORTS must be > 0");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -102,23 +113,25 @@ module fractal_sync_arbiter
           break;
         end
       end
-      clear_mask = 1'b1;
-      for (int unsigned j = 0; j < IN_PORTS; j++) begin
-        if (pending_req[j]) begin
-          pending_req[j] = 1'b0;
-          gnt_arb[j]     = 1'b1;
-          out_en[i]      = 1'b1;
-          sel_idx[i]     = j;
-          break;
+      if (out_en[i]) break;
+      else begin
+        clear_mask = 1'b1;
+        for (int unsigned j = 0; j < IN_PORTS; j++) begin
+          if (pending_req[j]) begin
+            pending_req[j] = 1'b0;
+            gnt_arb[j]     = 1'b1;
+            out_en[i]      = 1'b1;
+            sel_idx[i]     = j;
+            break;
+          end
         end
       end
     end
   end
 
   always_comb begin: next_mask_logic
-    for (int unsigned i = 0; i < IN_PORTS; i++) begin
-      n_mask[i] = (c_mask[i] & clear_mask & gnt_arb[i]) | (~gnt_arb[i] & (c_mask[i] ^ clear_mask));
-    end
+    for (int unsigned i = 0; i < IN_PORTS; i++)
+      n_mask[i] = (c_mask[i] & clear_mask & gnt_arb[i]) | (~gnt_arb[i] & (c_mask[i] | clear_mask));
   end
   
   always_ff @(posedge clk_i, negedge rst_ni) begin: current_mask_logic

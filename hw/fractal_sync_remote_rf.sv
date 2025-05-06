@@ -18,6 +18,22 @@
  *
  * Fractal synchronization 1D remote register file
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  RF_TYPE     - Register file type (Directly Mapped or CAM)
+ *  LEVEL_WIDTH - Width needed to represent the possible levels
+ *  ID_WIDTH    - Width needed to represent the possible barrier ids
+ *  N_CAM_LINES - Number of CAM lines (used if RF is CAM-based)
+ *  N_PORTS     - Number of ports
+ *
+ * Interface signals:
+ *  > level_i   - Level of synchronization requests
+ *  > id_i      - Id of synch. req.
+ *  > check_i   - Check RF for synch. req.
+ *  < present_o - Indicates that synch. req. is present in RF
+ *  < sig_err_o - Indicates that RF detected an incorrect signature
+ *  < bypass_o  - Indicates that current RF req. should be bypassed (detected 2 req. to the same barrier)
+ *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
  */
 
 module fractal_sync_1d_remote_rf 
@@ -45,7 +61,7 @@ module fractal_sync_1d_remote_rf
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  initial FRACTAL_SYNC_SIG_ENC_MAX_LVL: assert (MAX_LVL_WIDTH >= LEVEL_WIDTH) else $fatal("Unsupported (exceeds maximum of 4 - 16 levels) level width for signature generation: update Sig. Gen.");
+  initial FRACTAL_SYNC_1D_REMOTE_RF_SIG_ENC_MAX_LVL: assert (MAX_LVL_WIDTH >= LEVEL_WIDTH) else $fatal("Unsupported (exceeds maximum of 4 - 16 levels) level width for signature generation: update Sig. Gen.");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -53,29 +69,31 @@ module fractal_sync_1d_remote_rf
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam int unsigned N_DM_REGS = 4*(2**(ID_WIDTH+2)-1)/6;
-  localparam int unsigned SIG_WIDTH = $clog2(N_DM_REGS);
-  localparam int unsigned MAX_SIG   = N_DM_REGS-1;
+  localparam int unsigned LOCAL_ID_WIDTH = ID_WIDTH-1;
+  localparam int unsigned N_DM_REGS      = (2**(ID_WIDTH+2)-2)/3;
+  localparam int unsigned SIG_WIDTH      = $clog2(N_DM_REGS);
+  localparam int unsigned MAX_SIG        = N_DM_REGS-1;
 
-  localparam int unsigned                                  MAX_LVL_WIDTH     = 4;
-  localparam int unsigned                                  MAX_LVL_SIG       = 2**MAX_LVL_WIDTH;
-  localparam int unsigned                                  MAX_LVL_SIG_WIDTH = MAX_LVL_SIG-1;
-  localparam logic[MAX_LVL_SIG-1:0][MAX_LVL_SIG_WIDTH-1:0] LVL_SIG_LOOKUP    = '{'b110_1010_1010_1010,  // Level 16
-                                                                                 'b010_1010_1010_1010,  // Level 15
-                                                                                 'b001_1010_1010_1010,  // Level 14
-                                                                                 'b000_1010_1010_1010,  // Level 13
-                                                                                 'b000_0110_1010_1010,  // Level 12
-                                                                                 'b000_0010_1010_1010,  // Level 11
-                                                                                 'b000_0001_1010_1010,  // Level 10
-                                                                                 'b000_0000_1010_1010,  // Level 9
-                                                                                 'b000_0000_0110_1010,  // Level 8
-                                                                                 'b000_0000_0010_1010,  // Level 7
-                                                                                 'b000_0000_0001_1010,  // Level 6
-                                                                                 'b000_0000_0000_1010,  // Level 5
-                                                                                 'b000_0000_0000_0110,  // Level 4
-                                                                                 'b000_0000_0000_0010,  // Level 3
-                                                                                 'b000_0000_0000_0001,  // Level 2
-                                                                                 'b000_0000_0000_0000}; // Level 1
+  localparam int unsigned                                          MAX_LVL_WIDTH        = 4;
+  localparam int unsigned                                          LVL_LOOKUP_WIDTH     = 2**MAX_LVL_WIDTH + 1;  // One extra as the sentinel
+  localparam int unsigned                                          MAX_LOOKUP_LVL_WIDTH = LVL_LOOKUP_WIDTH-1;
+  localparam logic[LVL_LOOKUP_WIDTH-1:0][MAX_LOOKUP_LVL_WIDTH-1:0] LVL_SIG_LOOKUP       = '{'b1010_1010_1010_1010,  // Sentinel
+                                                                                            'b0110_1010_1010_1010,  // Level 16
+                                                                                            'b0010_1010_1010_1010,  // Level 15
+                                                                                            'b0001_1010_1010_1010,  // Level 14
+                                                                                            'b0000_1010_1010_1010,  // Level 13
+                                                                                            'b0000_0110_1010_1010,  // Level 12
+                                                                                            'b0000_0010_1010_1010,  // Level 11
+                                                                                            'b0000_0001_1010_1010,  // Level 10
+                                                                                            'b0000_0000_1010_1010,  // Level 9
+                                                                                            'b0000_0000_0110_1010,  // Level 8
+                                                                                            'b0000_0000_0010_1010,  // Level 7
+                                                                                            'b0000_0000_0001_1010,  // Level 6
+                                                                                            'b0000_0000_0000_1010,  // Level 5
+                                                                                            'b0000_0000_0000_0110,  // Level 4
+                                                                                            'b0000_0000_0000_0010,  // Level 3
+                                                                                            'b0000_0000_0000_0001,  // Level 2
+                                                                                            'b0000_0000_0000_0000}; // Level 1
   
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -83,14 +101,15 @@ module fractal_sync_1d_remote_rf
 /**             Internal Signals Beginning            **/
 /*******************************************************/
   
-  logic[SIG_WIDTH-1:0] sig_lvl[N_PORTS];
-  logic[SIG_WIDTH-1:0] sig[N_PORTS];
+  logic[LOCAL_ID_WIDTH-1:0] local_id[N_PORTS];
+  
+  logic[MAX_LOOKUP_LVL_WIDTH-1:0] lvl_sig[N_PORTS];
+  logic[MAX_LOOKUP_LVL_WIDTH-1:0] sig[N_PORTS];
 
-  logic valid_idx[N_PORTS];
-  logic bypass[N_PORTS];
-  logic ignore[N_PORTS];
-  logic d[N_PORTS];
-  logic q[N_PORTS];
+  logic[SIG_WIDTH-1:0] local_sig[N_PORTS];
+
+  logic valid_sig[N_PORTS];
+  logic check_rf[N_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -98,9 +117,11 @@ module fractal_sync_1d_remote_rf
 /**           Signature Generator Beginning           **/
 /*******************************************************/
   
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_signiture
-    assign sig_lvl[i] = LVL_SIG_LOOKUP[level_i[i]];
-    assign sig[i]     = sig_lvl[i] + id_i[i];
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_id_signiture
+    assign local_id[i]  = id_i[i][ID_WIDTH-1:1];
+    assign lvl_sig[i]   = LVL_SIG_LOOKUP[level_i[i]];
+    assign sig[i]       = lvl_sig[i] + local_id[i];
+    assign local_sig[i] = sig[i][SIG_WIDTH-1:0];
   end
 
 /*******************************************************/
@@ -110,34 +131,32 @@ module fractal_sync_1d_remote_rf
 /*******************************************************/
   
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_id_err
-    assign valid_idx[i] = (sig[i] <= MAX_SIG) ? 1'b1 : 1'b0;
-    assign sig_err_o[i] = ~valid_idx[i];
+    assign valid_sig[i] = ((sig[i] <= MAX_SIG) && (sig[i] < LVL_SIG_LOOKUP[level_i[i]+1])) ? 1'b1 : 1'b0;
+    assign sig_err_o[i] = ~valid_sig[i];
   end
 
  always_comb begin: bypass_ignore_logic
-    bypass = '{default: 1'b0};
-    ignore = '{default: 1'b0};
+    bypass_o = '{default: 1'b0};
+    ignore_o = '{default: 1'b0};
     for (int unsigned i = 0; i < N_PORTS-1; i++) begin
-      if (ignore[i]) continue;
+      if (~check_i[i] | ignore_o[i]) continue;
       else begin
-        for (int unsigned j = i; j < N_PORTS; j++) begin
-          if (id_i[i] == id_i[j]) begin
-            bypass[i] = 1'b1;
-            ignore[j] = 1'b1;
+        for (int unsigned j = i+1; j < N_PORTS; j++) begin
+          if ((local_id[i] == local_id[j]) && check_i[j]) begin
+            bypass_o[i] = 1'b1;
+            ignore_o[j] = 1'b1;
             break;
           end
         end
       end
     end
   end
-  assign bypass_o = bypass;
-  assign ignore_o = ignore;
 
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_check
+    assign check_rf[i] = ~(bypass_o[i] | ignore_o[i]) & check_i[i];
+  end
+  
   if (RF_TYPE == fractal_sync_pkg::DM_RF) begin: gen_dm_rf
-    for (genvar i = 0; i < N_PORTS; i++) begin: gen_d_q
-      assign d[i] = ~(bypass[i] | ignore[i]) & (check_i[i] ^ q[i]);
-    end
-
     fractal_sync_mp_rf #(
       .N_REGS    ( N_DM_REGS ),
       .IDX_WIDTH ( SIG_WIDTH ),
@@ -145,32 +164,25 @@ module fractal_sync_1d_remote_rf
     ) i_dm_rf (
       .clk_i                    ,
       .rst_ni                   ,
-      .data_i      ( d         ),
-      .idx_i       ( sig       ),
-      .idx_valid_i ( valid_idx ),
-      .data_o      ( q         )
+      .check_i     ( check_rf  ),
+      .idx_i       ( local_sig ),
+      .idx_valid_i ( valid_sig ),
+      .present_o   ( present_o )
     );
   end else if (RF_TYPE == fractal_sync_pkg::CAM_RF) begin: gen_cam_rf
-    for (genvar i = 0; i < N_PORTS; i++) begin: gen_d
-      assign d[i] = ~(bypass[i] | ignore[i]) & check_i[i] & valid_idx[i];
-    end
-    
     fractal_sync_mp_cam #(
+      .N_LINES   ( N_CAM_LINES ),
       .SIG_WIDTH ( SIG_WIDTH   ),
-      .N_PORTS   ( N_PORTS     ),
-      .N_LINES   ( N_CAM_LINES )
+      .N_PORTS   ( N_PORTS     )
     ) i_cam_rf (
-      .clk_i              ,
-      .rst_ni             ,
-      .sig_i       ( sig ),
-      .sig_write_i ( d   ),
-      .present_o   ( q   )
+      .clk_i                    ,
+      .rst_ni                   ,
+      .check_i     ( check_rf  ),
+      .sig_i       ( local_sig ),
+      .sig_valid_i ( valid_sig ),
+      .present_o   ( present_o )
     );
   end else $fatal("Unsupported Remote Register File Type");
-
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_q
-    assign present_o[i] = q[i];
-  end
 
 /*******************************************************/
 /**              Remote Register File End             **/
@@ -196,8 +208,24 @@ endmodule: fractal_sync_1d_remote_rf
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * Fractal synchronization 2D remote register file
+ * Fractal synchronization 2D (H - horizontal; V - vertical) remote register file
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  RF_TYPE     - Register file type (Directly Mapped or CAM)
+ *  LEVEL_WIDTH - Width needed to represent the possible levels
+ *  ID_WIDTH    - Width needed to represent the possible barrier ids
+ *  N_CAM_LINES - Number of CAM lines (used if RF is CAM-based)
+ *  N_PORTS     - Number of ports
+ *
+ * Interface signals:
+ *  > level_i   - Level of synchronization requests
+ *  > id_i      - Id of synch. req.
+ *  > check_i   - Check RF for synch. req.
+ *  < present_o - Indicates that synch. req. is present in RF
+ *  < sig_err_o - Indicates that RF detected an incorrect signature
+ *  < bypass_o  - Indicates that current RF req. should be bypassed (detected 2 req. to the same barrier)
+ *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
  */
 
 module fractal_sync_2d_remote_rf #(

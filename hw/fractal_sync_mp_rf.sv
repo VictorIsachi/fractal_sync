@@ -16,8 +16,19 @@
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * Fractal synchronization multi-port register file
+ * Fractal synchronization multi-port register file: synch. multi-port check; asynch. multi-port present
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  N_REGS    - Number of registers in the register file
+ *  IDX_WIDTH - Width of the selected register; width must be large enough to be able to select all registers in the RF
+ *  N_PORTS   - Number of ports
+ *
+ * Interface signals:
+ *  > check_i     - Check (synchronous) the register at selected index updating it accordingly (present AND valid => clear; NOT(present) AND valid => set)
+ *  > idx_i       - Register index
+ *  > idx_valid_i - Indicates that the selected index is valid
+ *  < present_o   - Indicates whether register at selected index is present (asynchronous)
  */
 
 module fractal_sync_mp_rf #(
@@ -28,10 +39,10 @@ module fractal_sync_mp_rf #(
   input  logic                clk_i,
   input  logic                rst_ni,
 
-  input  logic                data_i[N_PORTS],
+  input  logic                check_i[N_PORTS],
   input  logic[IDX_WIDTH-1:0] idx_i[N_PORTS],
   input  logic                idx_valid_i[N_PORTS],
-  output logic                data_o[N_PORTS]
+  output logic                present_o[N_PORTS]
 );
 
 /*******************************************************/
@@ -43,50 +54,72 @@ module fractal_sync_mp_rf #(
 /*******************************************************/
 /**                   Assertions End                  **/
 /*******************************************************/
+/**        Parameters and Definitions Beginning       **/
+/*******************************************************/
+
+  localparam int unsigned REG_IDX_WIDTH = N_REGS > 1 ? $clog2(N_REGS) : 1;
+  
+/*******************************************************/
+/**           Parameters and Definitions End          **/
+/*******************************************************/
 /**             Internal Signals Beginning            **/
 /*******************************************************/
 
-  logic[N_REGS-1:0] d_demux[N_PORTS];
-  logic[N_REGS-1:0] reg_d;
-  logic[N_REGS-1:0] reg_q;
-  logic[N_REGS-1:0] reg_en_base;
-  logic[N_REGS-1:0] reg_en;
+  logic[REG_IDX_WIDTH-1:0] reg_idx[N_PORTS];
+  
+  logic check_demux[N_PORTS][N_REGS];
+  logic check_reg[N_REGS];
+
+  logic reg_d[N_REGS];
+  logic reg_q[N_REGS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
 /*******************************************************/
+/**            Hardwired Signals Beginning            **/
+/*******************************************************/
+
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_reg_idx
+    assign reg_idx[i] = idx_i[i][REG_IDX_WIDTH-1:0];
+  end
+
+/*******************************************************/
+/**               Hardwired Signals End               **/
+/*******************************************************/
 /**         Multi-Port Register File Beginning        **/
 /*******************************************************/
   
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_d_demux
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_check_demux
     always_comb begin
-      d_demux[i]           = '0;
-      d_demux[i][idx_i[i]] = data_i[i];
+      check_demux[i] = '{default: 1'b0};
+      if (idx_valid_i[i]) 
+        check_demux[i][reg_idx[i]] = check_i[i];
     end
   end
 
-  always_comb begin: reg_d_logic
-    reg_d = '0;
+  always_comb begin: check_reg_logic
+    check_reg = '{default: 1'b0};
     for (int unsigned i = 0; i < N_PORTS; i++)
-      reg_d |= d_demux[i];
+      for (int unsigned j = 0; j < N_REGS; j++)
+        if (check_demux[i][j]) check_reg[j] = 1'b1;
   end
 
-  assign reg_en_base = 1'b1;
-  always_comb begin: reg_en_logic
-    reg_en = '0;
-    for (int unsigned i = 0; i < N_PORTS; i++)
-      reg_en |= idx_valid_i[i] ? (reg_en_base << idx_i[i]) : '0;
+  always_comb begin: reg_d_logic
+    reg_d = reg_q;
+    for (int unsigned i = 0; i < N_REGS; i++) begin
+      if (check_reg[i]) reg_d[i] = ~reg_q[i];
+    end
   end
 
   for (genvar i = 0; i < N_REGS; i++) begin: gen_regs
     always_ff @(posedge clk_i, negedge rst_ni) begin
-      if      (!rst_ni)   reg_q[i] <= 1'b0;
-      else if (reg_en[i]) reg_q[i] <= reg_d[i];
+      if (!rst_ni) reg_q[i] <= 1'b0;
+      else         reg_q[i] <= reg_d[i];
     end
   end
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_data
-    assign data_o[i] = reg_q[idx_i[i]];
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_present
+    assign present_o[i] = idx_valid_i[i] ? reg_q[reg_idx[i]] : 1'b0;
   end
 
 /*******************************************************/

@@ -18,6 +18,29 @@
  *
  * Fractal synchronization 1D register file
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  REMOTE_RF_TYPE - Remote register file type (Directly Mapped or CAM)
+ *  EN_REMOTE_RF   - Enable/disable remote RF (for root node)
+ *  N_LOCAL_REGS   - Number of registers in the local RF
+ *  LEVEL_WIDTH    - Width needed to represent the possible levels
+ *  ID_WIDTH       - Width needed to represent the possible barrier ids
+ *  N_REMOTE_LINES - Number of CAM lines in a CAM-based remote RF
+ *  N_PORTS        - Number of ports
+ *
+ * Interface signals:
+ *  > level_i          - Level of synchronization requests
+ *  > id_i             - Id of synch. req.
+ *  > check_local_i    - Check local RF for synch. req.
+ *  > check_remote_i   - Check remote RF for synch. req.
+ *  < present_local_o  - Indicates that synch. req. is present in local RF
+ *  < present_remote_o - Indicates that synch. req. is present in remote RF
+ *  < id_err_o         - Indicates that local RF detected an incorrect id
+ *  < sig_err_o        - Indicates that remote RF detected an incorrect signature
+ *  < bypass_local_o   - Indicates that current local RF req. should be bypassed and pushed to FIFO (detected 2 req. to the same barrier)
+ *  < bypass_remote_o  - Indicates that current remote RF req. should be bypassed and pushed to FIFO (detected 2 req. to the same barrier)
+ *  < ignore_local_o   - Indicates that current local RF req. should be ignored and not pushed to FIFO (detected 2 req. to the same barrier)
+ *  < ignore_remote_o  - Indicates that current remote RF req. should be ignored and not pushed to FIFO (detected 2 req. to the same barrier)
  */
 
 module fractal_sync_1d_rf
@@ -29,7 +52,7 @@ module fractal_sync_1d_rf
   parameter int unsigned                     LEVEL_WIDTH    = 1,
   parameter int unsigned                     ID_WIDTH       = 1,
   parameter int unsigned                     N_REMOTE_LINES = 1,
-  localparam int unsigned                    N_PORTS        = 2
+  parameter int unsigned                     N_PORTS        = 2
 )(
   input  logic                  clk_i,
   input  logic                  rst_ni,
@@ -53,8 +76,8 @@ module fractal_sync_1d_rf
 /*******************************************************/
 
   fractal_sync_1d_local_rf #(
-    .N_REGS   ( N_LOCAL_REGS ),
     .ID_WIDTH ( ID_WIDTH     ),
+    .N_REGS   ( N_LOCAL_REGS ),
     .N_PORTS  ( N_PORTS      )
   ) i_local_rf (
     .clk_i                        ,
@@ -124,8 +147,31 @@ endmodule: fractal_sync_1d_rf
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * Fractal synchronization 2D register file
+ * Fractal synchronization 2D (H - horizontal; V - vertical) register file
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  REMOTE_RF_TYPE - Remote register file type (Directly Mapped or CAM)
+ *  EN_REMOTE_RF   - Enable/disable remote RF (for root node)
+ *  N_LOCAL_REGS   - Number of registers in the local RF
+ *  LEVEL_WIDTH    - Width needed to represent the possible number of levels
+ *  ID_WIDTH       - Width needed to represent the possible barrier ids
+ *  N_REMOTE_LINES - Number of CAM lines in a CAM-based remote RF
+ *  N_PORTS        - Number of ports
+ *
+ * Interface signals:
+ *  > level_i          - Level of synchronization requests
+ *  > id_i             - Id of synch. req.
+ *  > check_local_i    - Check local RF for synch. req.
+ *  > check_remote_i   - Check remote RF for synch. req.
+ *  < present_local_o  - Indicates that synch. req. is present in local RF
+ *  < present_remote_o - Indicates that synch. req. is present in remote RF
+ *  < id_err_o         - Indicates that local RF detected an incorrect id
+ *  < sig_err_o        - Indicates that remote RF detected an incorrect signature
+ *  < bypass_local_o   - Indicates that current local RF req. should be bypassed and pushed to FIFO (detected 2 req. to the same barrier)
+ *  < bypass_remote_o  - Indicates that current remote RF req. should be bypassed and pushed to FIFO (detected 2 req. to the same barrier)
+ *  < ignore_local_o   - Indicates that current local RF req. should be ignored and not pushed to FIFO (detected 2 req. to the same barrier)
+ *  < ignore_remote_o  - Indicates that current remote RF req. should be ignored and not pushed to FIFO (detected 2 req. to the same barrier)
  */
 
 module fractal_sync_2d_rf
@@ -175,8 +221,8 @@ module fractal_sync_2d_rf
 /*******************************************************/
 
   fractal_sync_2d_local_rf #(
-    .N_REGS    ( N_LOCAL_REGS ),
     .ID_WIDTH  ( ID_WIDTH     ),
+    .N_REGS    ( N_LOCAL_REGS ),
     .N_H_PORTS ( N_H_PORTS    ),
     .N_V_PORTS ( N_V_PORTS    )
   ) i_local_rf (
