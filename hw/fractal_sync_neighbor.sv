@@ -18,6 +18,15 @@
  *
  * Fractal synchronization neighbor node
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  fsync_req_t - Synchronization request type (see include/typedef.svh for template)
+ *  fsync_rsp_t - Synchronization response type (see include/typedef.svh for template)
+ *  COMB        - Output obtained combinationally from input: creates single combinational path from input to output
+ *
+ * Interface signals:
+ *  > req_i - Synchronization request
+ *  < rsp_o - Synchronization response
  */
 
 module fractal_sync_neighbor 
@@ -35,10 +44,20 @@ module fractal_sync_neighbor
   output fsync_rsp_t rsp_o[N_PORTS]
 );
 
+/*******************************************************/
+/**             Internal Signals Beginning            **/
+/*******************************************************/
+
   logic[N_PORTS-1:0] sync_req;
   logic              clear_sync_req;
   logic[N_PORTS-1:0] sync_present_d, sync_present_q;
   logic              wake;
+
+/*******************************************************/
+/**                Internal Signals End               **/
+/*******************************************************/
+/**           Neighbor Node Logic Beginning           **/
+/*******************************************************/
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_sync_req_rsp
     assign sync_req[i]    = req_i[i].sync;
@@ -64,5 +83,9 @@ module fractal_sync_neighbor
   end else begin: gen_seq_wake
     assign wake = &sync_present_q;
   end
+
+/*******************************************************/
+/**              Neighbor Node Logic End              **/
+/*******************************************************/
 
 endmodule: fractal_sync_neighbor

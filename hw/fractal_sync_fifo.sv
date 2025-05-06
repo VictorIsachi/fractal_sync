@@ -18,6 +18,19 @@
  *
  * Fractal synchronization FIFO
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  FIFO_DEPTH - Maximum number of elements that can be present in the FIFO
+ *  fifo_t     - FIFO element type
+ *  COMB_OUT   - Combinational output based on input (fall-through)
+ *
+ * Interface signals:
+ *  > push_i    - Push input element
+ *  > element_i - Input element
+ *  > pop_i     - Pop output element
+ *  < element_o - Output element
+ *  < empty_o   - Indicates empty FIFO (COMB_OUT => next output element will be determined combinationally, i.e. asynchronously)
+ *  < full_o    - Indicates full FIFO
  */
 
 module fractal_sync_fifo
@@ -51,6 +64,7 @@ module fractal_sync_fifo
 /*******************************************************/
 
   localparam int unsigned ADDR_WIDTH = $clog2(FIFO_DEPTH);
+  localparam int unsigned PTR_WIDTH  = (ADDR_WIDTH == 0) ? 1 : ADDR_WIDTH-1;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -58,23 +72,39 @@ module fractal_sync_fifo
 /**             Internal Signals Beginning            **/
 /*******************************************************/
 
-  logic[ADDR_WIDTH:0] w_addr_c, w_addr_n;
-  logic[ADDR_WIDTH:0] r_addr_c, r_addr_n;
+  logic[ADDR_WIDTH:0]  w_addr_c, w_addr_n;
+  logic[ADDR_WIDTH:0]  r_addr_c, r_addr_n;
+  logic                w_overlap;
+  logic                r_overlap;
+  logic[PTR_WIDTH-1:0] w_ptr;
+  logic[PTR_WIDTH-1:0] r_ptr;
 
   fifo_t fifo[FIFO_DEPTH];
 
   logic empty_fifo;
-  logic comb_out;
 
 /*******************************************************/
 /**                Internal Signals End               **/
 /*******************************************************/
-/**                   FIFO Beginning                  **/
+/**            Hardwired Signals Beginning            **/
 /*******************************************************/
 
-  if (COMB_OUT) begin: gen_comb
-    assign comb_out = empty_fifo & push_i;
+  assign w_overlap = w_addr_c[ADDR_WIDTH];
+  assign r_overlap = r_addr_c[ADDR_WIDTH];
+
+  if (ADDR_WIDTH == 0) begin: gen_fixed_ptr
+    assign w_ptr = 1'b0;
+    assign r_ptr = 1'b0;
+  end else begin: gen_ptr
+    assign w_ptr = w_addr_c[ADDR_WIDTH-1:0];
+    assign r_ptr = r_addr_c[ADDR_WIDTH-1:0];
   end
+
+/*******************************************************/
+/**               Hardwired Signals End               **/
+/*******************************************************/
+/**                   FIFO Beginning                  **/
+/*******************************************************/
 
   always_ff @(posedge clk_i, negedge rst_ni) begin: addr_state_logic
     if (!rst_ni) begin
@@ -93,22 +123,24 @@ module fractal_sync_fifo
     if (pop_i)  r_addr_n = r_addr_c + 1;
   end
 
-  always_ff @(posedge clk_i)
-    if (push_i) fifo[w_addr_c[ADDR_WIDTH-1:0]] <= element_i;
-
-  if (!COMB_OUT) begin: gen_seq_out
-    assign element_o =                        fifo[r_addr_c[ADDR_WIDTH-1:0]];
-  end else begin: gen_comb_out
-    assign element_o = comb_out ? element_i : fifo[r_addr_c[ADDR_WIDTH-1:0]];
+  always_ff @(posedge clk_i, negedge rst_ni) begin: fifo_mem
+    if      (!rst_ni) fifo        <= '{default: '0}; 
+    else if (push_i)  fifo[w_ptr] <= element_i;
   end
 
-  assign   full_o     = (r_addr_c[ADDR_WIDTH] != w_addr_c[ADDR_WIDTH]) && (r_addr_c[ADDR_WIDTH-1:0] == w_addr_c[ADDR_WIDTH-1:0]);
+  assign   full_o     = (r_overlap != w_overlap) && (r_ptr == w_ptr);
+  assign   empty_fifo = (r_overlap == w_overlap) && (r_ptr == w_ptr);
 
-  if (!COMB_OUT) begin: gen_seq_empty
-    assign empty_o    = (r_addr_c[ADDR_WIDTH] == w_addr_c[ADDR_WIDTH]) && (r_addr_c[ADDR_WIDTH-1:0] == w_addr_c[ADDR_WIDTH-1:0]);
-  end else begin: gen_comb_empty
-    assign empty_fifo = (r_addr_c[ADDR_WIDTH] == w_addr_c[ADDR_WIDTH]) && (r_addr_c[ADDR_WIDTH-1:0] == w_addr_c[ADDR_WIDTH-1:0]);
-    assign empty_o    = empty_fifo & ~comb_out;
+  if (COMB_OUT) begin: gen_comb_empty
+    assign empty_o    = empty_fifo & ~push_i;
+  end else begin: gen_seq_empty
+    assign empty_o    = empty_fifo;
+  end
+
+  if (COMB_OUT) begin: gen_comb_out
+    assign element_o = (empty_fifo & push_i) ? element_i : fifo[r_ptr];
+  end else begin: gen_seq_out
+    assign element_o =                                     fifo[r_ptr];
   end
 
 /*******************************************************/

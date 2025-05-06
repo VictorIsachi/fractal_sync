@@ -18,6 +18,27 @@
  *
  * Fractal synchronization 1D node
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  NODE_TYPE       - Node type of control core (horizontal, vertical, 2D, root)
+ *  RF_TYPE         - Remote RF type (Directly Mapped or CAM)
+ *  N_LOCAL_REGS    - Number of register in teh local RF
+ *  N_REMOTE_LINES  - Number of CAM lines in a CAM-based remote RF
+ *  AGGREGATE_WIDTH - Width of the aggr field
+ *  ID_WIDTH        - Width of the id field
+ *  fsync_req_in_t  - Input synchronization request type (->RX)
+ *  fsync_rsp_in_t  - Input synchronization response type (TX arb.->)
+ *  fsync_req_out_t - Output synchronization request type (RX arb.->)
+ *  fsync_rsp_out_t - Output synchronization response type (->TX)
+ *  FIFO_DEPTH      - Maximum number of elements that can be present in a FIFO
+ *  IN_PORTS        - Number of RX (input) ports
+ *  OUT_PORTS       - Number of TX (output) ports
+ *
+ * Interface signals:
+ *  > req_in_i  - Synchronization request (input)
+ *  > rsp_in_o  - Synchronization response (output)
+ *  > req_out_o - Synch. req. (output)
+ *  > rsp_out_i - Synch. rsp. (input)
  */
 
 module fractal_sync_1d 
@@ -46,13 +67,30 @@ module fractal_sync_1d
   input  fsync_rsp_out_t rsp_out_i[OUT_PORTS]
 );
 
-  initial FRACTAL_SYNC_1D_NODE_TYPE: assert (NODE_TYPE == fractal_sync_pkg::HOR_NODE || NODE_TYPE == fractal_sync_pkg::VER_NODE) else $fatal("NODE_TYPE must be in {HOR_NODE, VER_NODE}");
-  
-  localparam int unsigned           EN_IN_PORTS   = IN_PORTS/2;
-  localparam int unsigned           WS_IN_PORTS   = IN_PORTS/2;
-  localparam int unsigned           REQ_ARB_PORTS = IN_PORTS + IN_PORTS;
-  localparam int unsigned           RSP_ARB_PORTS = IN_PORTS + OUT_PORTS;
+/*******************************************************/
+/**                Assertions Beginning               **/
+/*******************************************************/
 
+  initial FRACTAL_SYNC_1D_NODE_TYPE: assert (NODE_TYPE == fractal_sync_pkg::HOR_NODE || NODE_TYPE == fractal_sync_pkg::VER_NODE) else $fatal("NODE_TYPE must be in {HOR_NODE, VER_NODE}");
+
+/*******************************************************/
+/**                   Assertions End                  **/
+/*******************************************************/
+/**        Parameters and Definitions Beginning       **/
+/*******************************************************/
+
+  localparam int unsigned EN_IN_PORTS   = IN_PORTS/2;
+  localparam int unsigned WS_IN_PORTS   = IN_PORTS/2;
+  localparam int unsigned REQ_ARB_PORTS = IN_PORTS+IN_PORTS;
+  localparam int unsigned RSP_ARB_PORTS = IN_PORTS+OUT_PORTS;
+
+/*******************************************************/
+/**           Parameters and Definitions End          **/
+/*******************************************************/
+/**             Internal Signals Beginning            **/
+/*******************************************************/
+
+  fsync_req_in_t  sampled_req_in[IN_PORTS];
   logic           local_rx[IN_PORTS];
   logic           root_rx[IN_PORTS];
   logic           overflow_rx[IN_PORTS];
@@ -60,8 +98,49 @@ module fractal_sync_1d
   fsync_req_out_t req_rx[IN_PORTS];
   logic           pop_rx[IN_PORTS];
 
+  logic           pop_req_arb[REQ_ARB_PORTS];
+  logic           empty_req_arb[REQ_ARB_PORTS];
+  fsync_req_out_t req_arb[REQ_ARB_PORTS];
+
+  logic          en_overflow_tx[OUT_PORTS];
+  logic          ws_overflow_tx[OUT_PORTS];
+  logic          overflow_tx[OUT_PORTS];
+
+  logic          en_empty_tx[OUT_PORTS];
+  fsync_rsp_in_t en_rsp_tx[OUT_PORTS];
+  logic          en_pop_tx[OUT_PORTS];
+  logic          ws_empty_tx[OUT_PORTS];
+  fsync_rsp_in_t ws_rsp_tx[OUT_PORTS];
+  logic          ws_pop_tx[OUT_PORTS];
+
+  logic          en_pop_rsp_arb[RSP_ARB_PORTS];
+  logic          en_empty_rsp_arb[RSP_ARB_PORTS];
+  fsync_rsp_in_t en_rsp_arb_in[RSP_ARB_PORTS];
+  fsync_rsp_in_t en_rsp_arb_out[EN_IN_PORTS];
+  logic          ws_pop_rsp_arb[RSP_ARB_PORTS];
+  logic          ws_empty_rsp_arb[RSP_ARB_PORTS];
+  fsync_rsp_in_t ws_rsp_arb_in[RSP_ARB_PORTS];
+  fsync_rsp_in_t ws_rsp_arb_out[WS_IN_PORTS];
+
+  logic           remote_empty[IN_PORTS];
+  fsync_req_out_t remote_req[IN_PORTS];
+  logic           remote_pop[IN_PORTS];
+
+  logic          local_empty[IN_PORTS];
+  fsync_rsp_in_t local_rsp[IN_PORTS];
+  logic          local_pop[IN_PORTS];
+  logic[1:0]     local_pop_q[IN_PORTS];
+  logic[1:0]     local_pop_d[IN_PORTS];
+
+/*******************************************************/
+/**                Internal Signals End               **/
+/*******************************************************/
+/**                    RX Beginning                   **/
+/*******************************************************/
+
   for (genvar i = 0; i < IN_PORTS; i++) begin: gen_rx
     localparam fractal_sync_pkg::sd_e SD_MASK = (i % 2) ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EST_NORTH;
+
     fractal_sync_rx #(
       .fsync_req_in_t  ( fsync_req_in_t  ),
       .fsync_req_out_t ( fsync_req_out_t ),
@@ -69,21 +148,24 @@ module fractal_sync_1d
       .SD_MASK         ( SD_MASK         ),
       .FIFO_DEPTH      ( FIFO_DEPTH      )
     ) i_rx (
-      .clk_i                              ,
-      .rst_ni                             ,
-      .req_i            ( req_in_i[i]    ),
-      .local_o          ( local_rx[i]    ),
-      .root_o           ( root_rx[i]     ),
-      .error_overflow_o ( overflow_rx[i] ),
-      .empty_o          ( empty_rx[i]    ),
-      .req_o            ( req_rx[i]      ),
-      .pop_i            ( pop_rx[i]      )
+      .clk_i                                 ,
+      .rst_ni                                ,
+      .req_i            ( req_in_i[i]       ),
+      .sampled_req_o    ( sampled_req_in[i] ),
+      .local_o          ( local_rx[i]       ),
+      .root_o           ( root_rx[i]        ),
+      .error_overflow_o ( overflow_rx[i]    ),
+      .empty_o          ( empty_rx[i]       ),
+      .req_o            ( req_rx[i]         ),
+      .pop_i            ( pop_rx[i]         )
     );
   end
-  
-  logic           pop_req_arb[REQ_ARB_PORTS];
-  logic           empty_req_arb[REQ_ARB_PORTS];
-  fsync_req_out_t req_arb[REQ_ARB_PORTS];
+
+/*******************************************************/
+/**                       RX End                      **/
+/*******************************************************/
+/**                RX Arbiter Beginning               **/
+/*******************************************************/
 
   for (genvar i = 0; i < IN_PORTS; i++) begin
     assign pop_rx[i]                 = pop_req_arb[i+IN_PORTS];
@@ -104,22 +186,15 @@ module fractal_sync_1d
     .element_o ( req_out_o     )
   );
 
-  logic          en_overflow_tx[OUT_PORTS];
-  logic          ws_overflow_tx[OUT_PORTS];
-  logic          overflow_tx[OUT_PORTS];
-
-  logic          en_empty_tx[OUT_PORTS];
-  fsync_rsp_in_t en_rsp_tx[OUT_PORTS];
-  logic          en_pop_tx[OUT_PORTS];
-  logic          ws_empty_tx[OUT_PORTS];
-  fsync_rsp_in_t ws_rsp_tx[OUT_PORTS];
-  logic          ws_pop_tx[OUT_PORTS];
-
-  for (genvar i = 0; i < OUT_PORTS; i++) begin
-    assign overflow_tx[i] = en_overflow_tx[i] | ws_overflow_tx[i];
-  end
+/*******************************************************/
+/**                   RX Arbiter End                  **/
+/*******************************************************/
+/**                    TX Beginning                   **/
+/*******************************************************/
 
   for (genvar i = 0; i < OUT_PORTS; i++) begin: gen_tx
+    assign overflow_tx[i] = en_overflow_tx[i] | ws_overflow_tx[i];
+
     fractal_sync_tx #(
       .fsync_rsp_in_t  ( fsync_rsp_out_t ),
       .fsync_rsp_out_t ( fsync_rsp_in_t  ),
@@ -140,15 +215,12 @@ module fractal_sync_1d
     );
   end
 
-  logic          en_pop_rsp_arb[RSP_ARB_PORTS];
-  logic          en_empty_rsp_arb[RSP_ARB_PORTS];
-  fsync_rsp_in_t en_rsp_arb_in[RSP_ARB_PORTS];
-  fsync_rsp_in_t en_rsp_arb_out[EN_IN_PORTS];
-  logic          ws_pop_rsp_arb[RSP_ARB_PORTS];
-  logic          ws_empty_rsp_arb[RSP_ARB_PORTS];
-  fsync_rsp_in_t ws_rsp_arb_in[RSP_ARB_PORTS];
-  fsync_rsp_in_t ws_rsp_arb_out[WS_IN_PORTS];
-
+/*******************************************************/
+/**                       TX End                      **/
+/*******************************************************/
+/**                TX Arbiter Beginning               **/
+/*******************************************************/
+  
   for (genvar i = 0; i < OUT_PORTS; i++) begin
     assign en_pop_tx[i]                 = en_pop_rsp_arb[i+IN_PORTS];
     assign en_empty_rsp_arb[i+IN_PORTS] = en_empty_tx[i];
@@ -190,15 +262,11 @@ module fractal_sync_1d
     .element_o ( ws_rsp_arb_out   )
   );
 
-  logic           remote_empty[IN_PORTS];
-  fsync_req_out_t remote_req[IN_PORTS];
-  logic           remote_pop[IN_PORTS];
-
-  logic          local_empty[IN_PORTS];
-  fsync_rsp_in_t local_rsp[IN_PORTS];
-  logic          local_pop[IN_PORTS];
-  logic[1:0]     local_pop_q[IN_PORTS];
-  logic[1:0]     local_pop_d[IN_PORTS];
+/*******************************************************/
+/**                   TX Arbiter End                  **/
+/*******************************************************/
+/**               Control Core Beginning              **/
+/*******************************************************/
 
   for (genvar i = 0; i < IN_PORTS; i++) begin
     assign remote_pop[i]    = pop_req_arb[i];
@@ -221,34 +289,37 @@ module fractal_sync_1d
   end
   
   fractal_sync_cc #(
-    .NODE_TYPE       ( NODE_TYPE                      ),
-    .RF_TYPE         ( RF_TYPE                        ),
-    .EN_REMOTE_RF    ( fractal_sync_pkg::EN_REMOTE_RF ),
-    .N_LOCAL_REGS    ( N_LOCAL_REGS                   ),
-    .N_REMOTE_LINES  ( N_REMOTE_LINES                 ),
-    .AGGREGATE_WIDTH ( AGGREGATE_WIDTH                ),
-    .ID_WIDTH        ( ID_WIDTH                       ),
-    .fsync_req_in_t  ( fsync_req_in_t                 ),
-    .fsync_rsp_in_t  ( fsync_rsp_in_t                 ),
-    .fsync_req_out_t ( fsync_req_out_t                ),
-    .N_RX_PORTS      ( IN_PORTS                       ),
-    .N_TX_PORTS      ( OUT_PORTS                      ),
-    .FIFO_DEPTH      ( FIFO_DEPTH                     )
+    .NODE_TYPE       ( NODE_TYPE       ),
+    .RF_TYPE         ( RF_TYPE         ),
+    .N_LOCAL_REGS    ( N_LOCAL_REGS    ),
+    .N_REMOTE_LINES  ( N_REMOTE_LINES  ),
+    .AGGREGATE_WIDTH ( AGGREGATE_WIDTH ),
+    .ID_WIDTH        ( ID_WIDTH        ),
+    .fsync_req_in_t  ( fsync_req_in_t  ),
+    .fsync_rsp_in_t  ( fsync_rsp_in_t  ),
+    .fsync_req_out_t ( fsync_req_out_t ),
+    .N_RX_PORTS      ( IN_PORTS        ),
+    .N_TX_PORTS      ( OUT_PORTS       ),
+    .FIFO_DEPTH      ( FIFO_DEPTH      )
   ) i_cc (
-    .clk_i                               ,
-    .rst_ni                              ,
-    .req_i               ( req_in_i     ),
-    .local_i             ( local_rx     ),
-    .root_i              ( root_rx      ),
-    .error_overflow_rx_i ( overflow_rx  ),
-    .error_overflow_tx_i ( overflow_tx  ),
-    .local_empty_o       ( local_empty  ),
-    .local_rsp_o         ( local_rsp    ),
-    .local_pop_i         ( local_pop    ),
-    .remote_empty_o      ( remote_empty ),
-    .remote_req_o        ( remote_req   ),
-    .remote_pop_i        ( remote_pop   ),
-    .detected_error_o    (              )
+    .clk_i                                 ,
+    .rst_ni                                ,
+    .req_i               ( sampled_req_in ),
+    .local_i             ( local_rx       ),
+    .root_i              ( root_rx        ),
+    .error_overflow_rx_i ( overflow_rx    ),
+    .error_overflow_tx_i ( overflow_tx    ),
+    .local_empty_o       ( local_empty    ),
+    .local_rsp_o         ( local_rsp      ),
+    .local_pop_i         ( local_pop      ),
+    .remote_empty_o      ( remote_empty   ),
+    .remote_req_o        ( remote_req     ),
+    .remote_pop_i        ( remote_pop     ),
+    .detected_error_o    (                )
   );
+
+/*******************************************************/
+/**                  Control Core End                 **/
+/*******************************************************/
 
 endmodule: fractal_sync_1d

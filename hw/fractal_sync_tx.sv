@@ -86,8 +86,6 @@ module fractal_sync_tx
 
   fsync_rsp_in_t  sampled_rsp;
   fsync_rsp_out_t sampled_out_rsp;
-  fsync_rsp_out_t en_fifo_out_rsp;
-  fsync_rsp_out_t ws_fifo_out_rsp;
 
   logic en_push_q;
   logic ws_push_q;
@@ -106,15 +104,15 @@ module fractal_sync_tx
   assign sampled_out_rsp.dst   = sampled_rsp.dst >> 2;
   assign sampled_out_rsp.error = sampled_rsp.error;
 
-  assign en_error_overflow_o = en_push_q & en_full_fifo;
-  assign ws_error_overflow_o = ws_push_q & ws_full_fifo;
-
 /*******************************************************/
 /**               Hardwired Signals End               **/
 /*******************************************************/
-/**            RSP/Push Sampling Beginning            **/
+/**                 TX Logic Beginning                **/
 /*******************************************************/
 
+  assign en_error_overflow_o = en_full_fifo & en_push_q & ~en_pop_i;
+  assign ws_error_overflow_o = ws_full_fifo & ws_push_q & ~ws_pop_i;
+  
   assign en_push_d = rsp_i.dst[0] & rsp_i.wake;
   assign ws_push_d = rsp_i.dst[1] & rsp_i.wake;
   
@@ -134,7 +132,7 @@ module fractal_sync_tx
   end
 
 /*******************************************************/
-/**               RSP/Push Sampling End               **/
+/**                    TX Logic End                   **/
 /*******************************************************/
 /**                RSP FIFOs Beginning                **/
 /*******************************************************/
@@ -149,11 +147,10 @@ module fractal_sync_tx
     .push_i    ( en_push_q       ),
     .element_i ( sampled_out_rsp ),
     .pop_i     ( en_pop_i        ),
-    .element_o ( en_fifo_out_rsp ),
+    .element_o ( en_rsp_o        ),
     .empty_o   ( en_empty_o      ),
     .full_o    ( en_full_fifo    )
   );
-  assign en_rsp_o = en_fifo_out_rsp;
   
   fractal_sync_fifo #(
     .FIFO_DEPTH ( FIFO_DEPTH      ),
@@ -165,11 +162,10 @@ module fractal_sync_tx
     .push_i    ( ws_push_q       ),
     .element_i ( sampled_out_rsp ),
     .pop_i     ( ws_pop_i        ),
-    .element_o ( ws_fifo_out_rsp ),
+    .element_o ( ws_rsp_o        ),
     .empty_o   ( ws_empty_o      ),
     .full_o    ( ws_full_fifo    )
   );
-  assign ws_rsp_o = ws_fifo_out_rsp;
 
 /*******************************************************/
 /**                   RSP FIFOs End                   **/

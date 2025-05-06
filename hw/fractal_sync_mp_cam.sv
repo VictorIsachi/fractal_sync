@@ -16,25 +16,37 @@
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * Fractal synchronization multi-port CAM line
+ * Fractal synchronization multi-port CAM line: synch. single-port write; asynch. multi-port present
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  SIG_WIDTH - Width of signature to be stored in CAM line
+ *  N_PORTS   - Number of ports
+ *
+ * Interface signals:
+ *  > we_i      - Write (synchronous) enable
+ *  > free_i    - Free line (synchronous): write has precedence over free
+ *  > idx_i     - Index of the port whose signature will be written
+ *  > sig_i     - Signature
+ *  < full_o    - Indicates that line is full
+ *  < present_o - Indicates which ports have the signature present in the CAM line (asynchronous)
  */
 
 module fractal_sync_mp_cam_line
   import fractal_sync_pkg::*;
 #(
-  parameter int unsigned  SIG_WIDTH    = 1,
-  parameter int unsigned  N_PORTS      = 2,
-  localparam int unsigned W_IDX_WIDTH  = $clog2(N_PORTS)
+  parameter int unsigned  SIG_WIDTH   = 1,
+  parameter int unsigned  N_PORTS     = 2,
+  localparam int unsigned W_IDX_WIDTH = $clog2(N_PORTS)
 )(
   input  logic                  clk_i,
   input  logic                  rst_ni,
 
   input  logic                  we_i,
-  input  logic[W_IDX_WIDTH-1:0] w_idx_i,
-  input  logic                  full_i,
+  input  logic                  free_i,
+  input  logic[W_IDX_WIDTH-1:0] idx_i,
   input  logic[SIG_WIDTH-1:0]   sig_i[N_PORTS],
-  output logic                  free_o,
+  output logic                  full_o,
   output logic                  present_o[N_PORTS]
 );
 
@@ -42,12 +54,9 @@ module fractal_sync_mp_cam_line
 /**             Internal Signals Beginning            **/
 /*******************************************************/
 
-  logic full;
-
   logic[SIG_WIDTH-1:0] sig;
   logic[SIG_WIDTH-1:0] sig_bit_eql[N_PORTS];
   logic                sig_eql[N_PORTS];
-  logic                present[N_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -56,21 +65,22 @@ module fractal_sync_mp_cam_line
 /*******************************************************/
 
   always_ff @(posedge clk_i, negedge rst_ni) begin: full_reg
-    if (!rst_ni) full <= 1'b0;
-    else         full <= full_i;
+    if (!rst_ni)       full_o <= 1'b0;
+    else begin
+      if      (we_i)   full_o <= 1'b1;
+      else if (free_i) full_o <= 1'b0;
+    end
   end
-  assign free_o = ~full;
  
   always_ff @(posedge clk_i, negedge rst_ni) begin: sig_regs
     if      (!rst_ni) sig <= '0;
-    else if (we_i)    sig <= sig_i[w_idx_i];
+    else if (we_i)    sig <= sig_i[idx_i];
   end
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_present_logic
     assign sig_bit_eql[i] = sig ~^ sig_i[i];
     assign sig_eql[i]     = &sig_bit_eql[i];
-    assign present[i]     = sig_eql[i] & full;
-    assign present_o[i]   = present[i];
+    assign present_o[i]   = sig_eql[i] & full_o;
   end
 
 /*******************************************************/
@@ -97,22 +107,34 @@ endmodule: fractal_sync_mp_cam_line
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * Fractal synchronization multi-port CAM
+ * Fractal synchronization multi-port CAM: synch. check; asynch. present
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  N_LINES   - Number of CAM lines in the register file
+ *  SIG_WIDTH - Width of the signature
+ *  N_PORTS   - Number of ports
+ *
+ * Interface signals:
+ *  > check_i     - Check (synchronous) the signature (function of level and barrier id) and update CAM accordingly (present AND valid => clear; NOT(present) AND valid => set)
+ *  > sig_i       - Signature
+ *  > sig_valid_i - Indicates that the signature is valid
+ *  < present_o   - Indicates whether signature is present (asynchronous)
  */
 
 module fractal_sync_mp_cam
   import fractal_sync_pkg::*;
 #(
-  parameter int unsigned SIG_WIDTH  = 1,
-  parameter int unsigned N_PORTS    = 2,
-  parameter int unsigned N_LINES    = 1
+  parameter int unsigned N_LINES   = 1,
+  parameter int unsigned SIG_WIDTH = 1,
+  parameter int unsigned N_PORTS   = 2
 )(
   input  logic                clk_i,
   input  logic                rst_ni,
 
+  input  logic                check_i[N_PORTS],
   input  logic[SIG_WIDTH-1:0] sig_i[N_PORTS],
-  input  logic                sig_write_i[N_PORTS],
+  input  logic                sig_valid_i[N_PORTS],
   output logic                present_o[N_PORTS]
 );
 
@@ -120,7 +142,7 @@ module fractal_sync_mp_cam
 /**                Assertions Beginning               **/
 /*******************************************************/
 
-  initial FRACTAL_SYNC_MP_CAM: assert (N_LINES >= N_PORTS/2) else $fatal("N_LINES must be able >= N_PORTS/2");
+  initial FRACTAL_SYNC_MP_CAM: assert (N_LINES >= N_PORTS/2) else $fatal("N_LINES must be >= N_PORTS/2");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -136,18 +158,14 @@ module fractal_sync_mp_cam
 /**             Internal Signals Beginning            **/
 /*******************************************************/
   
-  logic[N_LINES-1:0] full_line;
-  logic[N_LINES-1:0] free_line;
-  logic[N_LINES-1:0] hit_line;
+  logic                  write_line[N_LINES];
+  logic                  free_line[N_LINES];
+  logic[W_IDX_WIDTH-1:0] line_idx[N_LINES];
 
-  logic[N_LINES-1:0]                  write_line;
-  logic[N_LINES-1:0][W_IDX_WIDTH-1:0] write_line_idx;
-  logic[N_LINES-1:0]                  write_line_free;
+  logic line_full[N_LINES];
+  logic line_present[N_LINES][N_PORTS];
 
-  logic                           present_line_unpack[N_LINES][N_PORTS];
-  logic[N_LINES-1:0][N_PORTS-1:0] present_line;
-  logic[N_PORTS-1:0]              present;
-  logic[N_PORTS-1:0]              store;
+  logic check[N_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -160,54 +178,46 @@ module fractal_sync_mp_cam
       .SIG_WIDTH ( SIG_WIDTH ),
       .N_PORTS   ( N_PORTS   )
     ) i_fractal_sync_mp_cam_line (
-      .clk_i                               ,
-      .rst_ni                              ,
-      .we_i      ( write_line[i]          ),
-      .w_idx_i   ( write_line_idx[i]      ),
-      .full_i    ( full_line[i]           ),
-      .sig_i                               ,
-      .free_o    ( free_line[i]           ),
-      .present_o ( present_line_unpack[i] )
+      .clk_i                        ,
+      .rst_ni                       ,
+      .we_i      ( write_line[i]   ),
+      .free_i    ( free_line[i]    ),
+      .idx_i     ( line_idx[i]     ),
+      .sig_i                        ,
+      .full_o    ( line_full[i]    ),
+      .present_o ( line_present[i] )
     );
   end
-  always_comb begin: pack_present_line
-    for (int unsigned i = 0; i < N_LINES; i++) begin
-      for (int unsigned j = 0; j < N_PORTS; j++) begin
-        present_line[i][j] = present_line_unpack[i][j];
-      end
-    end
-  end
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_present_store_logic
-    always_comb begin
-      present[i] = 1'b0;
-      for (int unsigned j = 0; j < N_LINES; j++) begin
-        if (present_line[j][i]) present[i] = 1'b1;
-      end
-      present_o[i] = present[i];
-    end
-    assign store[i] = ~present[i] & sig_write_i[i];
-  end
-
-  always_comb begin: write_logic
-    write_line      = '0;
-    write_line_idx  = '0;
-    write_line_free = free_line;
+  always_comb begin: present_free_check_logic
+    present_o = '{default: 1'b0};
+    free_line = '{default: 1'b0};
+    check     = check_i;
     for (int unsigned i = 0; i < N_PORTS; i++) begin
       for (int unsigned j = 0; j < N_LINES; j++) begin
-        if (store[i] & write_line_free[j]) begin
-          write_line[j]      = 1'b1;
-          write_line_idx[j]  = i;
-          write_line_free[j] = 1'b0;
-          break;
+        if (line_present[j][i] & sig_valid_i[i]) 
+          present_o[i] = 1'b1;
+        if (present_o[i] & check_i[i]) begin
+          free_line[j] = 1'b1;
+          check[i]     = 1'b0;
+          break; 
         end
       end
     end
   end
 
-  for (genvar i = 0; i < N_LINES; i++) begin: gen_hit_full_logic
-    assign hit_line[i]  = |present_line[i];
-    assign full_line[i] = hit_line[i] | ~free_line[i] | write_line[i];
+  always_comb begin: write_line_logic
+    write_line = '{default: 1'b0};
+    line_idx   = '{default: '0};
+    for (int unsigned i = 0; i < N_LINES; i++) begin
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        if (check[j] & sig_valid_i[j] & (~line_full[i] | free_line[i])) begin
+          write_line[i] = 1'b1;
+          line_idx[i]   = j;
+          break;
+        end
+      end
+    end
   end
 
 /*******************************************************/

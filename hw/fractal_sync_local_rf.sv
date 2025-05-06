@@ -18,13 +18,26 @@
  *
  * Fractal synchronization 1D local register file
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  ID_WIDTH - Width needed to represent the possible barrier ids
+ *  N_REGS   - Number of registers
+ *  N_PORTS  - Number of ports
+ *
+ * Interface signals:
+ *  > id_i      - Id of synchronization request
+ *  > check_i   - Check RF for synch. req.
+ *  < present_o - Indicates that synch. req. is present in RF
+ *  < id_err_o  - Indicates that RF detected an incorrect barrier id
+ *  < bypass_o  - Indicates that current RF req. should be bypassed (detected 2 req. to the same barrier)
+ *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
  */
 
 module fractal_sync_1d_local_rf 
   import fractal_sync_pkg::*; 
 #(
-  parameter int unsigned  N_REGS   = 1,
   parameter int unsigned  ID_WIDTH = 1,
+  parameter int unsigned  N_REGS   = 1,
   parameter int unsigned  N_PORTS  = 2
 )(
   input  logic               clk_i,
@@ -52,7 +65,8 @@ module fractal_sync_1d_local_rf
 /**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  localparam int unsigned MAX_ID = 2**ID_WIDTH - 1;
+  localparam int unsigned LOCAL_ID_WIDTH = ID_WIDTH-1;
+  localparam int unsigned MAX_ID         = N_REGS-1;
   
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -60,11 +74,10 @@ module fractal_sync_1d_local_rf
 /**             Internal Signals Beginning            **/
 /*******************************************************/
   
+  logic[LOCAL_ID_WIDTH-1:0] local_id[N_PORTS];
+
   logic valid_idx[N_PORTS];
-  logic bypass[N_PORTS];
-  logic ignore[N_PORTS];
-  logic d[N_PORTS];
-  logic q[N_PORTS];
+  logic check_rf[N_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -73,45 +86,43 @@ module fractal_sync_1d_local_rf
 /*******************************************************/
   
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_id_err
-    assign valid_idx[i] = (id_i[i] <= MAX_ID) ? 1'b1 : 1'b0;
+    assign local_id[i]  = id_i[i][ID_WIDTH-1:1];
+    assign valid_idx[i] = (local_id[i] <= MAX_ID) ? 1'b1 : 1'b0;
     assign id_err_o[i]  = ~valid_idx[i];
   end
 
   always_comb begin: bypass_ignore_logic
-    bypass = '{default: 1'b0};
-    ignore = '{default: 1'b0};
+    bypass_o = '{default: 1'b0};
+    ignore_o = '{default: 1'b0};
     for (int unsigned i = 0; i < N_PORTS-1; i++) begin
-      if (ignore[i]) continue;
+      if (~check_i[i] | ignore_o[i]) continue;
       else begin
-        for (int unsigned j = i; j < N_PORTS; j++) begin
-          if (id_i[i] == id_i[j]) begin
-            bypass[i] = 1'b1;
-            ignore[j] = 1'b1;
+        for (int unsigned j = i+1; j < N_PORTS; j++) begin
+          if ((local_id[i] == local_id[j]) && check_i[j]) begin
+            bypass_o[i] = 1'b1;
+            ignore_o[j] = 1'b1;
             break;
           end
         end
       end
     end
   end
-  assign bypass_o = bypass;
-  assign ignore_o = ignore;
 
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_d_q
-    assign d[i]         = ~(bypass[i] | ignore[i]) & (check_i[i] ^ q[i]);
-    assign present_o[i] = q[i];
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_check
+    assign check_rf[i] = ~(bypass_o[i] | ignore_o[i]) & check_i[i];
   end
 
   fractal_sync_mp_rf #(
-    .N_REGS    ( N_REGS   ),
-    .IDX_WIDTH ( ID_WIDTH ),
-    .N_PORTS   ( N_PORTS  )
+    .N_REGS    ( N_REGS         ),
+    .IDX_WIDTH ( LOCAL_ID_WIDTH ),
+    .N_PORTS   ( N_PORTS        )
   ) i_mp_rf (
     .clk_i                    ,
     .rst_ni                   ,
-    .data_i      ( d         ),
-    .idx_i       ( id_i      ),
+    .check_i     ( check_rf  ),
+    .idx_i       ( local_id  ),
     .idx_valid_i ( valid_idx ),
-    .data_o      ( q         )
+    .present_o   ( present_o )
   );
 
 /*******************************************************/
@@ -138,13 +149,26 @@ endmodule: fractal_sync_1d_local_rf
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * Fractal synchronization 2D local register file
+ * Fractal synchronization 2D (H - horizontal; V - vertical) local register file
  * Asynchronous valid low reset
+ *
+ * Parameters:
+ *  ID_WIDTH - Width needed to represent the possible barrier ids
+ *  N_REGS   - Number of registers
+ *  N_PORTS  - Number of ports
+ *
+ * Interface signals:
+ *  > id_i      - Id of synchronization request
+ *  > check_i   - Check RF for synch. req.
+ *  < present_o - Indicates that synch. req. is present in RF
+ *  < id_err_o  - Indicates that RF detected an incorrect barrier id
+ *  < bypass_o  - Indicates that current RF req. should be bypassed (detected 2 req. to the same barrier)
+ *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
  */
 
 module fractal_sync_2d_local_rf #(
-  parameter int unsigned N_REGS    = 2,
   parameter int unsigned ID_WIDTH  = 1,
+  parameter int unsigned N_REGS    = 2,
   parameter int unsigned N_H_PORTS = 2,
   parameter int unsigned N_V_PORTS = 2
 )(
