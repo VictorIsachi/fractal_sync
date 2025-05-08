@@ -27,7 +27,7 @@ export_include_dirs:
 
 sources:
   files:
-    - hw/fractal_sync_pkg.svh
+    - hw/fractal_sync_pkg.sv
     - hw/fractal_sync_if.sv
     - hw/fractal_sync_fifo.sv
     - hw/fractal_sync_arbiter.sv
