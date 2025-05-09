@@ -174,7 +174,7 @@ module fractal_sync_2x2
   localparam int unsigned N_1D_H_NODES = N_1D_H_PORTS/2;
   localparam int unsigned N_1D_V_NODES = N_1D_V_PORTS/2;
 
-  localparam int unsigned ITL_AGGR_WIDTH = AGGREGATE_WIDTH-1;
+  localparam int unsigned ITL_AGGR_WIDTH = AGGREGATE_WIDTH-1 > 0 ? AGGREGATE_WIDTH-1 : 1;
   localparam int unsigned ITL_ID_WIDTH   = ID_WIDTH;
   localparam int unsigned ITL_SD_WIDTH   = SD_WIDTH+2;
 

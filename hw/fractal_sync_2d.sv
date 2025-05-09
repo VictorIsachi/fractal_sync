@@ -151,22 +151,26 @@ module fractal_sync_2d
   logic          h_en_pop_rsp_arb[H_RSP_ARB_PORTS];
   logic          h_en_empty_rsp_arb[H_RSP_ARB_PORTS];
   fsync_rsp_in_t h_en_rsp_arb_in[H_RSP_ARB_PORTS];
-  fsync_rsp_in_t h_en_rsp_arb_out[H_RSP_ARB_PORTS];
+  fsync_rsp_in_t h_en_rsp_arb_out[H_EN_IN_PORTS];
   logic          h_ws_pop_rsp_arb[H_RSP_ARB_PORTS];
   logic          h_ws_empty_rsp_arb[H_RSP_ARB_PORTS];
   fsync_rsp_in_t h_ws_rsp_arb_in[H_RSP_ARB_PORTS];
-  fsync_rsp_in_t h_ws_rsp_arb_out[H_RSP_ARB_PORTS];
+  fsync_rsp_in_t h_ws_rsp_arb_out[H_WS_IN_PORTS];
 
   logic          v_en_pop_rsp_arb[V_RSP_ARB_PORTS];
   logic          v_en_empty_rsp_arb[V_RSP_ARB_PORTS];
   fsync_rsp_in_t v_en_rsp_arb_in[V_RSP_ARB_PORTS];
-  fsync_rsp_in_t v_en_rsp_arb_out[V_RSP_ARB_PORTS];
+  fsync_rsp_in_t v_en_rsp_arb_out[V_EN_IN_PORTS];
   logic          v_ws_pop_rsp_arb[V_RSP_ARB_PORTS];
   logic          v_ws_empty_rsp_arb[V_RSP_ARB_PORTS];
   fsync_rsp_in_t v_ws_rsp_arb_in[V_RSP_ARB_PORTS];
-  fsync_rsp_in_t v_ws_rsp_arb_out[V_RSP_ARB_PORTS];
+  fsync_rsp_in_t v_ws_rsp_arb_out[V_WS_IN_PORTS];
 
   fsync_req_in_t sampled_req_in[IN_PORTS];
+  logic          local_rx[IN_PORTS];
+  logic          root_rx[IN_PORTS];
+  logic          overflow_rx[IN_PORTS];
+  logic          overflow_tx[IN_PORTS];
   
   logic           remote_empty[IN_PORTS];
   fsync_req_out_t remote_req[IN_PORTS];
@@ -422,6 +426,10 @@ module fractal_sync_2d
 
   for (genvar i = 0; i < IN_H_PORTS; i++) begin
     assign sampled_req_in[2*i] = h_sampled_req_in[i];
+    assign local_rx[2*i]       = h_local_rx[i];
+    assign root_rx[2*i]        = h_root_rx[i];
+    assign overflow_rx[2*i]    = h_overflow_rx[i];
+    assign overflow_tx[2*i]    = h_overflow_tx[i];
     
     assign remote_pop[2*i]    = h_pop_req_arb[i];
     assign h_empty_req_arb[i] = remote_empty[2*i];
@@ -444,6 +452,10 @@ module fractal_sync_2d
 
   for (genvar i = 0; i < IN_V_PORTS; i++) begin
     assign sampled_req_in[2*i+1] = v_sampled_req_in[i];
+    assign local_rx[2*i+1]       = v_local_rx[i];
+    assign root_rx[2*i+1]        = v_root_rx[i];
+    assign overflow_rx[2*i+1]    = v_overflow_rx[i];
+    assign overflow_tx[2*i+1]    = v_overflow_tx[i];
     
     assign remote_pop[2*i+1]  = v_pop_req_arb[i];
     assign v_empty_req_arb[i] = remote_empty[2*i+1];
@@ -478,20 +490,20 @@ module fractal_sync_2d
     .N_TX_PORTS      ( OUT_PORTS       ),
     .FIFO_DEPTH      ( FIFO_DEPTH      )
   ) i_cc (
-    .clk_i                               ,
-    .rst_ni                              ,
-    .req_i               ( req_in_i     ),
-    .local_i             ( local_rx     ),
-    .root_i              ( root_rx      ),
-    .error_overflow_rx_i ( overflow_rx  ),
-    .error_overflow_tx_i ( overflow_tx  ),
-    .local_empty_o       ( local_empty  ),
-    .local_rsp_o         ( local_rsp    ),
-    .local_pop_i         ( local_pop    ),
-    .remote_empty_o      ( remote_empty ),
-    .remote_req_o        ( remote_req   ),
-    .remote_pop_i        ( remote_pop   ),
-    .detected_error_o    (              )
+    .clk_i                                 ,
+    .rst_ni                                ,
+    .req_i               ( sampled_req_in ),
+    .local_i             ( local_rx       ),
+    .root_i              ( root_rx        ),
+    .error_overflow_rx_i ( overflow_rx    ),
+    .error_overflow_tx_i ( overflow_tx    ),
+    .local_empty_o       ( local_empty    ),
+    .local_rsp_o         ( local_rsp      ),
+    .local_pop_i         ( local_pop      ),
+    .remote_empty_o      ( remote_empty   ),
+    .remote_req_o        ( remote_req     ),
+    .remote_pop_i        ( remote_pop     ),
+    .detected_error_o    (                )
   );
 
 /*******************************************************/
