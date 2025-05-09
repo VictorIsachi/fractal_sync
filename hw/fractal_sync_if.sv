@@ -35,9 +35,9 @@
 
 interface fractal_sync_if
 #(
-  parameter int unsigned  AGGR_WIDTH = 0,
-  parameter int unsigned  ID_WIDTH   = 0,
-  localparam int unsigned SD_WIDTH   = 2
+  parameter int unsigned AGGR_WIDTH = 0,
+  parameter int unsigned ID_WIDTH   = 0,
+  parameter int unsigned SD_WIDTH   = 2
 )(
 );
 
