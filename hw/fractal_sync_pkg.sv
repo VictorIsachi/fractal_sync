@@ -20,8 +20,8 @@
 
 package fractal_sync_pkg;
 
-  `include "include/typedef.svh"
-  `include "include/assign.svh"
+  `include "include/fractal_sync/typedef.svh"
+  `include "include/fractal_sync/assign.svh"
 
   // Source-Destination mask
   typedef enum logic[1:0] { 

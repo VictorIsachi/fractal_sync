@@ -28,8 +28,8 @@ module tb_bfm
 )(
 );
   
-  `include "../hw/include/typedef.svh"
-  `include "../hw/include/assign.svh"
+  `include "../hw/include/fractal_sync/typedef.svh"
+  `include "../hw/include/fractal_sync/assign.svh"
   
   localparam int unsigned N_TESTS = 10;
 
