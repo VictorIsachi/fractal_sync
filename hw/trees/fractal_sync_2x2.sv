@@ -73,10 +73,6 @@ package fractal_sync_2x2_pkg;
   localparam int unsigned                  N_LINKS_ITL       = 1;
   localparam int unsigned                  N_LINKS_OUT       = 1;
 
-  localparam int unsigned                  AGGREGATE_WIDTH   = 2;
-  localparam int unsigned                  ID_WIDTH          = 1;
-  localparam int unsigned                  SD_WIDTH          = 2;
-
   localparam int unsigned                  N_1D_H_PORTS      = 4;
   localparam int unsigned                  N_1D_V_PORTS      = 4;
   localparam int unsigned                  N_NBR_H_PORTS     = 4;
@@ -84,11 +80,16 @@ package fractal_sync_2x2_pkg;
   localparam int unsigned                  N_2D_H_PORTS      = 1;
   localparam int unsigned                  N_2D_V_PORTS      = 1;
 
+  localparam int unsigned                  OUT_AGGR_WIDTH    = 1;
+  
+  localparam int unsigned                  AGGREGATE_WIDTH   = OUT_AGGR_WIDTH+2;
+  localparam int unsigned                  ID_WIDTH          = 1;
+  localparam int unsigned                  SD_WIDTH          = 2;
+
   localparam int unsigned                  NBR_AGGR_WIDTH    = 1;
   localparam int unsigned                  NBR_ID_WIDTH      = 1;
   localparam int unsigned                  NBR_SD_WIDTH      = 2;
   
-  localparam int unsigned                  OUT_AGGR_WIDTH    = (AGGREGATE_WIDTH-2 > 0) ? AGGREGATE_WIDTH-2 : 1;
   localparam int unsigned                  OUT_ID_WIDTH      = ID_WIDTH;
   localparam int unsigned                  OUT_SD_WIDTH      = SD_WIDTH+4;
 
