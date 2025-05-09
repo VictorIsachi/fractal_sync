@@ -71,7 +71,7 @@ package fractal_sync_2x2_pkg;
   localparam int unsigned                  N_LOCAL_REGS_2D   = 2;
   localparam int unsigned                  N_REMOTE_LINES_2D = 2;
   localparam int unsigned                  N_LINKS_ITL       = 1;
-  localparam int unsigned                  N_LINKS_OUT       = 2;
+  localparam int unsigned                  N_LINKS_OUT       = 1;
 
   localparam int unsigned                  AGGREGATE_WIDTH   = 2;
   localparam int unsigned                  ID_WIDTH          = 1;
@@ -84,12 +84,16 @@ package fractal_sync_2x2_pkg;
   localparam int unsigned                  N_2D_H_PORTS      = 1;
   localparam int unsigned                  N_2D_V_PORTS      = 1;
 
+  localparam int unsigned                  NBR_AGGR_WIDTH    = 1;
+  localparam int unsigned                  NBR_ID_WIDTH      = 1;
+  localparam int unsigned                  NBR_SD_WIDTH      = 2;
+  
   localparam int unsigned                  OUT_AGGR_WIDTH    = (AGGREGATE_WIDTH-2 > 0) ? AGGREGATE_WIDTH-2 : 1;
   localparam int unsigned                  OUT_ID_WIDTH      = ID_WIDTH;
   localparam int unsigned                  OUT_SD_WIDTH      = SD_WIDTH+4;
 
   `FSYNC_TYPEDEF_ALL(fsync_1d, logic[AGGREGATE_WIDTH-1:0], logic[ID_WIDTH-1:0], logic[SD_WIDTH-1:0], logic[SD_WIDTH-1:0])
-  `FSYNC_TYPEDEF_ALL(fsync_nbr, logic[AGGREGATE_WIDTH-1:0], logic[ID_WIDTH-1:0], logic[SD_WIDTH-1:0], logic[SD_WIDTH-1:0])
+  `FSYNC_TYPEDEF_ALL(fsync_nbr, logic[NBR_AGGR_WIDTH-1:0], logic[NBR_ID_WIDTH-1:0], logic[NBR_SD_WIDTH-1:0], logic[NBR_SD_WIDTH-1:0])
   `FSYNC_TYPEDEF_ALL(fsync_2d, logic[OUT_AGGR_WIDTH-1:0], logic[OUT_ID_WIDTH-1:0], logic[OUT_SD_WIDTH-1:0], logic[OUT_SD_WIDTH-1:0])
 
 endpackage: fractal_sync_2x2_pkg
