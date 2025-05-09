@@ -158,9 +158,9 @@ module fractal_sync_2x2
   initial FRACTAL_SYNC_2x2_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
   initial FRACTAL_SYNC_2x2_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
   initial FRACTAL_SYNC_2x2_SD_W: assert (SD_WIDTH > 0) else $fatal("SD_WIDTH must be >= 2");
-  initial FRACTAL_SYNC_2x2_SYNC_REQ_AGGR: assert ($bits(h_1d_fsync_req_i[0][0].sig.aggr) == $bits(h_2d_fsync_req_o[0][0].sig.aggr)+1) else $fatal("Output aggr must be 1 less than input");
-  initial FRACTAL_SYNC_2x2_SYNC_REQ_SRC: assert ($bits(h_1d_fsync_req_i[0][0].src) == $bits(h_2d_fsync_req_o[0][0].src)-2) else $fatal("Output src must be 2 more than input");
-  initial FRACTAL_SYNC_2x2_SYNC_RSP_DST: assert ($bits(h_1d_fsync_rsp_o[0][0].dst) == $bits(h_2d_fsync_rsp_i[0][0].dst)-2) else $fatal("Output dst must be 2 more than input");
+  initial FRACTAL_SYNC_2x2_SYNC_REQ_AGGR: assert ($bits(h_1d_fsync_req_i[0][0].sig.aggr) == $bits(h_2d_fsync_req_o[0][0].sig.aggr)+2) else $fatal("Output aggr must be 2 less than input");
+  initial FRACTAL_SYNC_2x2_SYNC_REQ_SRC: assert ($bits(h_1d_fsync_req_i[0][0].src) == $bits(h_2d_fsync_req_o[0][0].src)-4) else $fatal("Output src must be 4 more than input");
+  initial FRACTAL_SYNC_2x2_SYNC_RSP_DST: assert ($bits(h_1d_fsync_rsp_o[0][0].dst) == $bits(h_2d_fsync_rsp_i[0][0].dst)-4) else $fatal("Output dst must be 4 more than input");
   initial FRACTAL_SYNC_2x2_SYNC_AGGR: assert ($bits(h_1d_fsync_req_i[0][0].sig.aggr) == AGGREGATE_WIDTH) else $fatal("AGGREGATE_WIDTH must be coherent with fsync_req type");
   initial FRACTAL_SYNC_2x2_SYNC_ID: assert ($bits(h_1d_fsync_req_i[0][0].sig.id) == ID_WIDTH) else $fatal("ID_WIDTH must be coherent with fsync_req type");
   initial FRACTAL_SYNC_2x2_SYNC_SRC: assert ($bits(h_1d_fsync_req_i[0][0].src) == SD_WIDTH) else $fatal("SD_WIDTH must be coherent with fsync_req type");
