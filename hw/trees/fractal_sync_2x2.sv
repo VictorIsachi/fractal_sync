@@ -55,8 +55,8 @@
  *  > v_2d_fsync_rsp_i  - Top node vertical synchronization response
  */
 
-  `include "../include/typedef.svh"
-  `include "../include/assign.svh"
+  `include "../include/fractal_sync/typedef.svh"
+  `include "../include/fractal_sync/assign.svh"
 
 package fractal_sync_2x2_pkg;
 
