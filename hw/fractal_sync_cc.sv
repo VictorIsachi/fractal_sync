@@ -314,8 +314,8 @@ module fractal_sync_cc
       always_comb begin: state_and_output_logic
         n_state[2*i] = c_state[2*i];
 
-        h_check_local[i]  = 1'b0;
-        h_check_remote[i] = 1'b0;
+        check_local[2*i]  = 1'b0;
+        check_remote[2*i] = 1'b0;
         push_local[2*i]   = 1'b0;
         push_remote[2*i]  = 1'b0;
         unique case (c_state[2*i])
@@ -323,12 +323,12 @@ module fractal_sync_cc
             if (local_i[2*i]) begin
               n_state[2*i] = CHECK;
               if (!root_i[2*i]) begin
-                h_check_remote[i] = 1'b1;
-                if (!rf_error[2*i]) push_remote[2*i] = h_bypass_remote[i] | h_present_remote[i];
+                check_remote[2*i] = 1'b1;
+                if (!rf_error[2*i]) push_remote[2*i] = bypass_remote[2*i] | present_remote[2*i];
                 else                push_local[2*i]  = 1'b1;
               end else begin
-                h_check_local[i] = 1'b1;
-                push_local[2*i]  = h_bypass_local[i] | h_present_local[i] | rf_error[2*i];
+                check_local[2*i] = 1'b1;
+                push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | rf_error[2*i];
               end
             end
           end
@@ -347,21 +347,21 @@ module fractal_sync_cc
       always_comb begin: state_and_output_logic
         n_state[2*i+1] = c_state[2*i+1];
 
-        v_check_local[i]   = 1'b0;
-        v_check_remote[i]  = 1'b0;
-        push_local[2*i+1]  = 1'b0;
-        push_remote[2*i+1] = 1'b0;
+        check_local[2*i+1]  = 1'b0;
+        check_remote[2*i+1] = 1'b0;
+        push_local[2*i+1]   = 1'b0;
+        push_remote[2*i+1]  = 1'b0;
         unique case (c_state[2*i+1])
           IDLE: begin
             if (local_i[2*i+1]) begin
               n_state[2*i+1] = CHECK;
               if (!root_i[2*i+1]) begin
-                v_check_remote[i] = 1'b1;
-                if (!rf_error[2*i+1]) push_remote[2*i+1] = v_bypass_remote[i] | v_present_remote[i];
+                check_remote[2*i+1] = 1'b1;
+                if (!rf_error[2*i+1]) push_remote[2*i+1] = bypass_remote[2*i+1] | present_remote[2*i+1];
                 else                  push_local[2*i+1]  = 1'b1;
               end else begin
-                v_check_local[i]  = 1'b1;
-                push_local[2*i+1] = v_bypass_local[i] | v_present_local[i] | rf_error[2*i+1];
+                check_local[2*i+1] = 1'b1;
+                push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | rf_error[2*i+1];
               end
             end
           end
