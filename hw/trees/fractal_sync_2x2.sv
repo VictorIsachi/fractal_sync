@@ -83,12 +83,12 @@ package fractal_sync_2x2_pkg;
   localparam int unsigned                  OUT_AGGR_WIDTH    = 1;
   
   localparam int unsigned                  AGGREGATE_WIDTH   = OUT_AGGR_WIDTH+2;
-  localparam int unsigned                  ID_WIDTH          = 1;
+  localparam int unsigned                  ID_WIDTH          = 2;
   localparam int unsigned                  SD_WIDTH          = 2;
 
   localparam int unsigned                  NBR_AGGR_WIDTH    = 1;
   localparam int unsigned                  NBR_ID_WIDTH      = 1;
-  localparam int unsigned                  NBR_SD_WIDTH      = 2;
+  localparam int unsigned                  NBR_SD_WIDTH      = 1;
   
   localparam int unsigned                  OUT_ID_WIDTH      = ID_WIDTH;
   localparam int unsigned                  OUT_SD_WIDTH      = SD_WIDTH+4;
@@ -156,8 +156,8 @@ module fractal_sync_2x2
   initial FRACTAL_SYNC_2x2_ITL_LINKS: assert (N_LINKS_ITL > 0) else $fatal("N_LINKS_ITL must be > 0");
   initial FRACTAL_SYNC_2x2_OUT_LINKS: assert (N_LINKS_OUT > 0) else $fatal("N_LINKS_OUT must be > 0");
   initial FRACTAL_SYNC_2x2_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
-  initial FRACTAL_SYNC_2x2_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
-  initial FRACTAL_SYNC_2x2_SD_W: assert (SD_WIDTH > 0) else $fatal("SD_WIDTH must be >= 2");
+  initial FRACTAL_SYNC_2x2_ID_W: assert (ID_WIDTH >= 2) else $fatal("ID_WIDTH must be >= 2");
+  initial FRACTAL_SYNC_2x2_SD_W: assert (SD_WIDTH >= 2) else $fatal("SD_WIDTH must be >= 2");
   initial FRACTAL_SYNC_2x2_SYNC_REQ_AGGR: assert ($bits(h_1d_fsync_req_i[0][0].sig.aggr) == $bits(h_2d_fsync_req_o[0][0].sig.aggr)+2) else $fatal("Output aggr must be 2 less than input");
   initial FRACTAL_SYNC_2x2_SYNC_REQ_SRC: assert ($bits(h_1d_fsync_req_i[0][0].src) == $bits(h_2d_fsync_req_o[0][0].src)-4) else $fatal("Output src must be 4 more than input");
   initial FRACTAL_SYNC_2x2_SYNC_RSP_DST: assert ($bits(h_1d_fsync_rsp_o[0][0].dst) == $bits(h_2d_fsync_rsp_i[0][0].dst)-4) else $fatal("Output dst must be 4 more than input");
