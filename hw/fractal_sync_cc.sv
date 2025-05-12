@@ -441,7 +441,7 @@ module fractal_sync_cc
       .sd_h_local_i       ( h_src            ),
       .h_present_local_o  ( h_present_local  ),
       .h_present_remote_o ( h_present_remote ),
-      .h_sd_local_o       ( h_dst            )
+      .h_sd_local_o       ( h_dst            ),
       .h_id_err_o         ( h_id_error       ),
       .h_sig_err_o        ( h_sig_error      ),
       .h_bypass_local_o   ( h_bypass_local   ),
