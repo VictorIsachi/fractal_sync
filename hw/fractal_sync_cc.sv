@@ -455,7 +455,7 @@ module fractal_sync_cc
       .sd_v_local_i       ( v_src            ),
       .v_present_local_o  ( v_present_local  ),
       .v_present_remote_o ( v_present_remote ),
-      .v_sd_local_o       ( v_dst            )
+      .v_sd_local_o       ( v_dst            ),
       .v_id_err_o         ( v_id_error       ),
       .v_sig_err_o        ( v_sig_error      ),
       .v_bypass_local_o   ( v_bypass_local   ),
