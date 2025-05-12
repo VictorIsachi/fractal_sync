@@ -105,8 +105,8 @@ module fractal_sync_cc
   initial FRACTAL_SYNC_CC_REMOTE_LINES: assert (RF_TYPE == fractal_sync_pkg::CAM_RF -> N_REMOTE_LINES > 0) else $fatal("N_REMOTE_LINES must be > 0 for CAM Remote Register File");
   initial FRACTAL_SYNC_CC_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
   initial FRACTAL_SYNC_CC_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
-  initial FRACTAL_SYNC_CC_DST: assert ($bits(req_i[0].src) == $bits(remote_req_o[0].src)-2) else $fatal("Output sources width must be 2 bits more than input destination");
-  initial FRACTAL_SYNC_CC_SRC: assert ($bits(req_i[0].src) == $bits(local_rsp_o[0].dst)) else $fatal("Output destination width must be equal to input sources");
+  initial FRACTAL_SYNC_CC_SRC: assert ($bits(req_i[0].src) == $bits(remote_req_o[0].src)-2) else $fatal("Output sources width must be 2 bits more than input destination");
+  initial FRACTAL_SYNC_CC_DST: assert ($bits(req_i[0].src) == $bits(local_rsp_o[0].dst)) else $fatal("Output destination width must be equal to input sources");
   initial FRACTAL_SYNC_CC_RX_PORTS: assert (N_RX_PORTS > 0) else $fatal("N_RX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_TX_PORTS: assert (N_TX_PORTS > 0) else $fatal("N_TX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
@@ -145,9 +145,9 @@ module fractal_sync_cc
   logic[SD_WIDTH-1:0] src[N_RX_PORTS];
   logic[SD_WIDTH-1:0] h_src[N_1D_RX_PORTS];
   logic[SD_WIDTH-1:0] v_src[N_1D_RX_PORTS];
-  logic[SD_WIDTH-1:0] dst[N_RX_PORTS];
-  logic[SD_WIDTH-1:0] h_dst[N_1D_RX_PORTS];
-  logic[SD_WIDTH-1:0] v_dst[N_1D_RX_PORTS];
+  logic[SD_WIDTH-1:0] dst_rf[N_RX_PORTS];
+  logic[SD_WIDTH-1:0] h_dst_rf[N_1D_RX_PORTS];
+  logic[SD_WIDTH-1:0] v_dst_rf[N_1D_RX_PORTS];
 
   fsync_rsp_in_t  local_rsp[N_RX_PORTS];
   fsync_req_out_t remote_req[N_RX_PORTS];
@@ -216,8 +216,8 @@ module fractal_sync_cc
       assign h_src[i] = src[2*i];
       assign v_src[i] = src[2*i+1];
 
-      assign dst[2*i]   = h_dst[i];
-      assign dst[2*i+1] = v_dst[i];
+      assign dst_rf[2*i]   = h_dst_rf[i];
+      assign dst_rf[2*i+1] = v_dst_rf[i];
 
       assign h_check_local[i] = check_local[2*i];
       assign v_check_local[i] = check_local[2*i+1];
@@ -257,7 +257,7 @@ module fractal_sync_cc
 
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rsp
     assign local_rsp[i].wake  = 1'b1;
-    assign local_rsp[i].dst   = dst[i];
+    assign local_rsp[i].dst   = local_i[i] ? req_i[i].src : dst_rf[i];
     assign local_rsp[i].error = rf_error[i];
   end
 
@@ -413,7 +413,7 @@ module fractal_sync_cc
       .sd_local_i       ( src            ),
       .present_local_o  ( present_local  ),
       .present_remote_o ( present_remote ),
-      .sd_local_o       ( dst            ),
+      .sd_local_o       ( dst_rf         ),
       .id_err_o         ( id_error       ),
       .sig_err_o        ( sig_error      ),
       .bypass_local_o   ( bypass_local   ),
@@ -441,7 +441,7 @@ module fractal_sync_cc
       .sd_h_local_i       ( h_src            ),
       .h_present_local_o  ( h_present_local  ),
       .h_present_remote_o ( h_present_remote ),
-      .h_sd_local_o       ( h_dst            ),
+      .h_sd_local_o       ( h_dst_rf         ),
       .h_id_err_o         ( h_id_error       ),
       .h_sig_err_o        ( h_sig_error      ),
       .h_bypass_local_o   ( h_bypass_local   ),
@@ -455,7 +455,7 @@ module fractal_sync_cc
       .sd_v_local_i       ( v_src            ),
       .v_present_local_o  ( v_present_local  ),
       .v_present_remote_o ( v_present_remote ),
-      .v_sd_local_o       ( v_dst            ),
+      .v_sd_local_o       ( v_dst_rf         ),
       .v_id_err_o         ( v_id_error       ),
       .v_sig_err_o        ( v_sig_error      ),
       .v_bypass_local_o   ( v_bypass_local   ),
