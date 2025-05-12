@@ -26,6 +26,7 @@
  *  N_REMOTE_LINES  - Number of CAM lines in a CAM-based remote RF
  *  AGGREGATE_WIDTH - Width of the aggr field
  *  ID_WIDTH        - Width of the id field
+ *  SD_WIDTH        - Width of the src/dst fields
  *  fsync_req_in_t  - Input synchronization request type (RX -> CC)
  *  fsync_rsp_in_t  - Input synchronization response type (CC -> TX arb.)
  *  fsync_req_out_t - Output synchronization request type (CC -> RX arb.)
@@ -60,6 +61,7 @@ module fractal_sync_cc
   parameter int unsigned                  N_REMOTE_LINES  = 0,
   parameter int unsigned                  AGGREGATE_WIDTH = 1,
   parameter int unsigned                  ID_WIDTH        = 1,
+  parameter int unsigned                  SD_WIDTH        = 2,
   parameter type                          fsync_req_in_t  = logic,
   parameter type                          fsync_rsp_in_t  = logic,
   parameter type                          fsync_req_out_t = logic,
@@ -107,6 +109,7 @@ module fractal_sync_cc
   initial FRACTAL_SYNC_CC_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
   initial FRACTAL_SYNC_CC_SRC: assert ($bits(req_i[0].src) == $bits(remote_req_o[0].src)-2) else $fatal("Output sources width must be 2 bits more than input destination");
   initial FRACTAL_SYNC_CC_DST: assert ($bits(req_i[0].src) == $bits(local_rsp_o[0].dst)) else $fatal("Output destination width must be equal to input sources");
+  initial FRACTAL_SYNC_CC_SD_W: assert ($bits(req_i[0].src) == SD_WIDTH) else $fatal("SD_WIDTH must match req_i");
   initial FRACTAL_SYNC_CC_RX_PORTS: assert (N_RX_PORTS > 0) else $fatal("N_RX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_TX_PORTS: assert (N_TX_PORTS > 0) else $fatal("N_TX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
@@ -126,8 +129,6 @@ module fractal_sync_cc
     IDLE,
     CHECK
   } state_e;
-
-  localparam int unsigned SD_WIDTH = fractal_sync_pkg::SD_WIDTH;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -401,6 +402,7 @@ module fractal_sync_cc
       .N_LOCAL_REGS   ( N_LOCAL_REGS   ),
       .LEVEL_WIDTH    ( LEVEL_WIDTH    ),
       .ID_WIDTH       ( ID_WIDTH       ),
+      .SD_WIDTH       ( SD_WIDTH       ),
       .N_REMOTE_LINES ( N_REMOTE_LINES ),
       .N_PORTS        ( N_RX_PORTS     )
     ) i_rf (
@@ -428,6 +430,7 @@ module fractal_sync_cc
       .N_LOCAL_REGS   ( N_LOCAL_REGS   ),
       .LEVEL_WIDTH    ( LEVEL_WIDTH    ),
       .ID_WIDTH       ( ID_WIDTH       ),
+      .SD_WIDTH       ( SD_WIDTH       ),
       .N_REMOTE_LINES ( N_REMOTE_LINES ),
       .N_H_PORTS      ( N_1D_RX_PORTS  ),
       .N_V_PORTS      ( N_1D_RX_PORTS  )

@@ -25,6 +25,7 @@
  *  N_LOCAL_REGS   - Number of registers in the local RF
  *  LEVEL_WIDTH    - Width needed to represent the possible levels
  *  ID_WIDTH       - Width needed to represent the possible barrier ids
+ *  SD_WIDTH       - Width of the src/dst fields
  *  N_REMOTE_LINES - Number of CAM lines in a CAM-based remote RF
  *  N_PORTS        - Number of ports
  *
@@ -53,7 +54,7 @@ module fractal_sync_1d_rf
   parameter int unsigned                     N_LOCAL_REGS   = 1,
   parameter int unsigned                     LEVEL_WIDTH    = 1,
   parameter int unsigned                     ID_WIDTH       = 1,
-  localparam int unsigned                    SD_WIDTH       = fractal_sync_pkg::SD_WIDTH,
+  parameter int unsigned                     SD_WIDTH       = 2,
   parameter int unsigned                     N_REMOTE_LINES = 1,
   parameter int unsigned                     N_PORTS        = 2
 )(
@@ -81,8 +82,9 @@ module fractal_sync_1d_rf
 /*******************************************************/
 
   fractal_sync_1d_local_rf #(
-    .ID_WIDTH ( ID_WIDTH     ),
     .N_REGS   ( N_LOCAL_REGS ),
+    .ID_WIDTH ( ID_WIDTH     ),
+    .SD_WIDTH ( SD_WIDTH     ),
     .N_PORTS  ( N_PORTS      )
   ) i_local_rf (
     .clk_i                        ,
@@ -163,6 +165,7 @@ endmodule: fractal_sync_1d_rf
  *  N_LOCAL_REGS   - Number of registers in the local RF
  *  LEVEL_WIDTH    - Width needed to represent the possible number of levels
  *  ID_WIDTH       - Width needed to represent the possible barrier ids
+ *  SD_WIDTH       - Width of the src/dst fields
  *  N_REMOTE_LINES - Number of CAM lines in a CAM-based remote RF
  *  N_PORTS        - Number of ports
  *
@@ -191,7 +194,7 @@ module fractal_sync_2d_rf
   parameter int unsigned                     N_LOCAL_REGS   = 2,
   parameter int unsigned                     LEVEL_WIDTH    = 1,
   parameter int unsigned                     ID_WIDTH       = 1,
-  localparam int unsigned                    SD_WIDTH       = fractal_sync_pkg::SD_WIDTH,
+  parameter int unsigned                     SD_WIDTH       = 2,
   parameter int unsigned                     N_REMOTE_LINES = 2,
   parameter int unsigned                     N_H_PORTS      = 2,
   parameter int unsigned                     N_V_PORTS      = 2
@@ -235,8 +238,9 @@ module fractal_sync_2d_rf
 /*******************************************************/
 
   fractal_sync_2d_local_rf #(
-    .ID_WIDTH  ( ID_WIDTH     ),
     .N_REGS    ( N_LOCAL_REGS ),
+    .ID_WIDTH  ( ID_WIDTH     ),
+    .SD_WIDTH  ( SD_WIDTH     ),
     .N_H_PORTS ( N_H_PORTS    ),
     .N_V_PORTS ( N_V_PORTS    )
   ) i_local_rf (
