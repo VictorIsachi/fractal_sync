@@ -33,8 +33,10 @@
  *  > id_i             - Id of synch. req.
  *  > check_local_i    - Check local RF for synch. req.
  *  > check_remote_i   - Check remote RF for synch. req.
+ *  > sd_local_i       - Sources of the local RF synch. req.
  *  < present_local_o  - Indicates that synch. req. is present in local RF
  *  < present_remote_o - Indicates that synch. req. is present in remote RF
+ *  < sd_local_o       - Destinations of the local RF synch. req.
  *  < id_err_o         - Indicates that local RF detected an incorrect id
  *  < sig_err_o        - Indicates that remote RF detected an incorrect signature
  *  < bypass_local_o   - Indicates that current local RF req. should be bypassed and pushed to FIFO (detected 2 req. to the same barrier)
@@ -51,6 +53,7 @@ module fractal_sync_1d_rf
   parameter int unsigned                     N_LOCAL_REGS   = 1,
   parameter int unsigned                     LEVEL_WIDTH    = 1,
   parameter int unsigned                     ID_WIDTH       = 1,
+  localparam int unsigned                    SD_WIDTH       = fractal_sync_pkg::SD_WIDTH,
   parameter int unsigned                     N_REMOTE_LINES = 1,
   parameter int unsigned                     N_PORTS        = 2
 )(
@@ -61,8 +64,10 @@ module fractal_sync_1d_rf
   input  logic[ID_WIDTH-1:0]    id_i[N_PORTS],
   input  logic                  check_local_i[N_PORTS],
   input  logic                  check_remote_i[N_PORTS],
+  input  logic[SD_WIDTH-1:0]    sd_local_i[N_PORTS],
   output logic                  present_local_o[N_PORTS],
   output logic                  present_remote_o[N_PORTS],
+  output logic[SD_WIDTH-1:0]    sd_local_o[N_PORTS],
   output logic                  id_err_o[N_PORTS],
   output logic                  sig_err_o[N_PORTS],
   output logic                  bypass_local_o[N_PORTS],
@@ -84,7 +89,9 @@ module fractal_sync_1d_rf
     .rst_ni                       ,
     .id_i      ( id_i            ),
     .check_i   ( check_local_i   ),
+    .sd_i      ( sd_local_i      ),
     .present_o ( present_local_o ),
+    .sd_o      ( sd_local_o      ),
     .id_err_o  ( id_err_o        ),
     .bypass_o  ( bypass_local_o  ),
     .ignore_o  ( ignore_local_o  )
@@ -164,8 +171,10 @@ endmodule: fractal_sync_1d_rf
  *  > id_i             - Id of synch. req.
  *  > check_local_i    - Check local RF for synch. req.
  *  > check_remote_i   - Check remote RF for synch. req.
+ *  > sd_local_i       - Sources of the local RF synch. req.
  *  < present_local_o  - Indicates that synch. req. is present in local RF
  *  < present_remote_o - Indicates that synch. req. is present in remote RF
+ *  < sd_local_o       - Destinations of the local RF synch. req.
  *  < id_err_o         - Indicates that local RF detected an incorrect id
  *  < sig_err_o        - Indicates that remote RF detected an incorrect signature
  *  < bypass_local_o   - Indicates that current local RF req. should be bypassed and pushed to FIFO (detected 2 req. to the same barrier)
@@ -182,6 +191,7 @@ module fractal_sync_2d_rf
   parameter int unsigned                     N_LOCAL_REGS   = 2,
   parameter int unsigned                     LEVEL_WIDTH    = 1,
   parameter int unsigned                     ID_WIDTH       = 1,
+  localparam int unsigned                    SD_WIDTH       = fractal_sync_pkg::SD_WIDTH,
   parameter int unsigned                     N_REMOTE_LINES = 2,
   parameter int unsigned                     N_H_PORTS      = 2,
   parameter int unsigned                     N_V_PORTS      = 2
@@ -193,8 +203,10 @@ module fractal_sync_2d_rf
   input  logic[ID_WIDTH-1:0]    id_h_i[N_H_PORTS],
   input  logic                  check_h_local_i[N_H_PORTS],
   input  logic                  check_h_remote_i[N_H_PORTS],
+  input  logic[SD_WIDTH-1:0]    sd_h_local_i[N_PORTS],
   output logic                  h_present_local_o[N_H_PORTS],
   output logic                  h_present_remote_o[N_H_PORTS],
+  output logic[SD_WIDTH-1:0]    h_sd_local_o[N_PORTS],
   output logic                  h_id_err_o[N_H_PORTS],
   output logic                  h_sig_err_o[N_H_PORTS],
   output logic                  h_bypass_local_o[N_H_PORTS],
@@ -206,8 +218,10 @@ module fractal_sync_2d_rf
   input  logic[ID_WIDTH-1:0]    id_v_i[N_V_PORTS],
   input  logic                  check_v_local_i[N_V_PORTS],
   input  logic                  check_v_remote_i[N_V_PORTS],
+  input  logic[SD_WIDTH-1:0]    sd_v_local_i[N_PORTS],
   output logic                  v_present_local_o[N_V_PORTS],
   output logic                  v_present_remote_o[N_V_PORTS],
+  output logic[SD_WIDTH-1:0]    v_sd_local_o[N_PORTS],
   output logic                  v_id_err_o[N_V_PORTS],
   output logic                  v_sig_err_o[N_V_PORTS],
   output logic                  v_bypass_local_o[N_V_PORTS],
@@ -230,13 +244,17 @@ module fractal_sync_2d_rf
     .rst_ni                           ,
     .id_h_i      ( id_h_i            ),
     .check_h_i   ( check_h_local_i   ),
+    .sd_h_i      ( sd_h_local_i      ),
     .h_present_o ( h_present_local_o ),
+    .h_sd_o      ( h_sd_local_o      ),
     .h_id_err_o  ( h_id_err_o        ),
     .h_bypass_o  ( h_bypass_local_o  ),
     .h_ignore_o  ( h_ignore_local_o  ),
     .id_v_i      ( id_v_i            ),
     .check_v_i   ( check_v_local_i   ),
+    .sd_v_i      ( sd_v_local_i      ),
     .v_present_o ( v_present_local_o ),
+    .v_sd_o      ( v_sd_local_o      ),
     .v_id_err_o  ( v_id_err_o        ),
     .v_bypass_o  ( v_bypass_local_o  ),
     .v_ignore_o  ( v_ignore_local_o  )

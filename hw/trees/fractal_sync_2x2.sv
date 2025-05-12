@@ -84,7 +84,7 @@ package fractal_sync_2x2_pkg;
   
   localparam int unsigned                  AGGREGATE_WIDTH   = OUT_AGGR_WIDTH+2;
   localparam int unsigned                  ID_WIDTH          = 2;
-  localparam int unsigned                  SD_WIDTH          = 2;
+  localparam int unsigned                  SD_WIDTH          = fractal_sync_pkg::SD_WIDTH;
 
   localparam int unsigned                  NBR_AGGR_WIDTH    = 1;
   localparam int unsigned                  NBR_ID_WIDTH      = 1;
