@@ -143,7 +143,7 @@ module fractal_sync_1d_local_rf
   end
   
   always_comb begin: sd_reg_d_logic
-    sd_reg_d = '{default: '0};
+    sd_reg_d = sd_reg_q;
     for (int unsigned i = 0; i < N_PORTS; i++) begin
       if (check_rf[i] & valid_idx[i]) sd_reg_d[sd_reg_idx[i]] = sd_i[i];
     end
