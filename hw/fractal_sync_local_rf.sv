@@ -144,7 +144,7 @@ module fractal_sync_1d_local_rf
   
   always_comb begin: sd_reg_d_logic
     sd_reg_d = '{default: '0};
-    for (int unsigned i = 0; i < N_PORTS: i++) begin
+    for (int unsigned i = 0; i < N_PORTS; i++) begin
       if (check_rf[i] & valid_idx[i]) sd_reg_d[sd_reg_idx[i]] = sd_i[i];
     end
   end
@@ -215,18 +215,18 @@ module fractal_sync_2d_local_rf #(
 
   input  logic[ID_WIDTH-1:0] id_h_i[N_H_PORTS],
   input  logic               check_h_i[N_H_PORTS],
-  input  logic[SD_WIDTH-1:0] sd_h_i[N_PORTS],
+  input  logic[SD_WIDTH-1:0] sd_h_i[N_H_PORTS],
   output logic               h_present_o[N_H_PORTS],
-  output logic[SD_WIDTH-1:0] h_sd_o[N_PORTS],
+  output logic[SD_WIDTH-1:0] h_sd_o[N_H_PORTS],
   output logic               h_id_err_o[N_H_PORTS],
   output logic               h_bypass_o[N_H_PORTS],
   output logic               h_ignore_o[N_H_PORTS],
 
   input  logic[ID_WIDTH-1:0] id_v_i[N_V_PORTS],
   input  logic               check_v_i[N_V_PORTS],
-  input  logic[SD_WIDTH-1:0] sd_v_i[N_PORTS],
+  input  logic[SD_WIDTH-1:0] sd_v_i[N_V_PORTS],
   output logic               v_present_o[N_V_PORTS],
-  output logic[SD_WIDTH-1:0] v_sd_o[N_PORTS],
+  output logic[SD_WIDTH-1:0] v_sd_o[N_V_PORTS],
   output logic               v_id_err_o[N_V_PORTS],
   output logic               v_bypass_o[N_V_PORTS],
   output logic               v_ignore_o[N_V_PORTS]
