@@ -51,31 +51,31 @@
 module fractal_sync_cc 
   import fractal_sync_pkg::*; 
 #(
-  parameter fractal_sync_pkg::node_e         NODE_TYPE       = fractal_sync_pkg::HV_NODE,
-  localparam fractal_sync_pkg::rf_dim_e      RF_DIM          = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
-                                                               (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
-                                                               fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
-  parameter fractal_sync_pkg::remote_rf_e    RF_TYPE         = fractal_sync_pkg::CAM_RF,
-  parameter int unsigned                     N_LOCAL_REGS    = 0,
-  parameter int unsigned                     N_REMOTE_LINES  = 0,
-  parameter int unsigned                     AGGREGATE_WIDTH = 1,
-  parameter int unsigned                     ID_WIDTH        = 1,
-  parameter type                             fsync_req_in_t  = logic,
-  parameter type                             fsync_rsp_in_t  = logic,
-  parameter type                             fsync_req_out_t = logic,
+  parameter fractal_sync_pkg::node_e      NODE_TYPE       = fractal_sync_pkg::HV_NODE,
+  localparam fractal_sync_pkg::rf_dim_e   RF_DIM          = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
+                                                            (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
+                                                            fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE         = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  N_LOCAL_REGS    = 0,
+  parameter int unsigned                  N_REMOTE_LINES  = 0,
+  parameter int unsigned                  AGGREGATE_WIDTH = 1,
+  parameter int unsigned                  ID_WIDTH        = 1,
+  parameter type                          fsync_req_in_t  = logic,
+  parameter type                          fsync_rsp_in_t  = logic,
+  parameter type                          fsync_req_out_t = logic,
   // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
-  parameter int unsigned                     N_RX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
-                                                               (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
-                                                               0,
+  parameter int unsigned                  N_RX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
+                                                            (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
+                                                            0,
   // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
-  parameter int unsigned                     N_TX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
-                                                               (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
-                                                               0,
+  parameter int unsigned                  N_TX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
+                                                            (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
+                                                            0,
   // Total number of ports: lower indexes represent RX ports; higher indexes represent TX ports
-  localparam int unsigned                    N_PORTS         = N_RX_PORTS + N_TX_PORTS,
+  localparam int unsigned                 N_PORTS         = N_RX_PORTS + N_TX_PORTS,
   // 2D CC: even indexed FIFOs -> horizontal channel; odd indexed FIFOs -> vertical channel
-  localparam int unsigned                    N_FIFOS         = N_RX_PORTS, 
-  parameter int unsigned                     FIFO_DEPTH      = 1
+  localparam int unsigned                 N_FIFOS         = N_RX_PORTS, 
+  parameter int unsigned                  FIFO_DEPTH      = 1
 )(
   input  logic           clk_i,
   input  logic           rst_ni,
@@ -127,6 +127,8 @@ module fractal_sync_cc
     CHECK
   } state_e;
 
+  localparam int unsigned SD_WIDTH = fractal_sync_pkg::SD_WIDTH;
+
 /*******************************************************/
 /**           Parameters and Definitions End          **/
 /*******************************************************/
@@ -139,6 +141,13 @@ module fractal_sync_cc
   logic[ID_WIDTH-1:0]    id[N_RX_PORTS];
   logic[ID_WIDTH-1:0]    h_id[N_1D_RX_PORTS];
   logic[ID_WIDTH-1:0]    v_id[N_1D_RX_PORTS];
+
+  logic[SD_WIDTH-1:0] src[N_RX_PORTS];
+  logic[SD_WIDTH-1:0] h_src[N_1D_RX_PORTS];
+  logic[SD_WIDTH-1:0] v_src[N_1D_RX_PORTS];
+  logic[SD_WIDTH-1:0] dst[N_RX_PORTS];
+  logic[SD_WIDTH-1:0] h_dst[N_1D_RX_PORTS];
+  logic[SD_WIDTH-1:0] v_dst[N_1D_RX_PORTS];
 
   fsync_rsp_in_t  local_rsp[N_RX_PORTS];
   fsync_req_out_t remote_req[N_RX_PORTS];
@@ -204,6 +213,12 @@ module fractal_sync_cc
       assign h_id[i] = id[2*i];
       assign v_id[i] = id[2*i+1];
 
+      assign h_src[i] = src[2*i];
+      assign v_src[i] = src[2*i+1];
+
+      assign dst[2*i]   = h_dst[i];
+      assign dst[2*i+1] = v_dst[i];
+
       assign h_check_local[i] = check_local[2*i];
       assign v_check_local[i] = check_local[2*i+1];
 
@@ -224,8 +239,9 @@ module fractal_sync_cc
     end
   end
 
-  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_id
-    assign id[i] = req_i[i].sig.id;
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_id_src
+    assign id[i]  = req_i[i].sig.id;
+    assign src[i] = req_i[i].src;
   end
 
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rf_error
@@ -241,7 +257,7 @@ module fractal_sync_cc
 
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rsp
     assign local_rsp[i].wake  = 1'b1;
-    assign local_rsp[i].dst   = req_i[i].src;
+    assign local_rsp[i].dst   = dst[i];
     assign local_rsp[i].error = rf_error[i];
   end
 
@@ -394,8 +410,10 @@ module fractal_sync_cc
       .id_i             ( id             ),
       .check_local_i    ( check_local    ),
       .check_remote_i   ( check_remote   ),
+      .sd_local_i       ( src            ),
       .present_local_o  ( present_local  ),
       .present_remote_o ( present_remote ),
+      .sd_local_o       ( dst            ),
       .id_err_o         ( id_error       ),
       .sig_err_o        ( sig_error      ),
       .bypass_local_o   ( bypass_local   ),
@@ -420,8 +438,10 @@ module fractal_sync_cc
       .id_h_i             ( h_id             ),
       .check_h_local_i    ( h_check_local    ),
       .check_h_remote_i   ( h_check_remote   ),
+      .sd_h_local_i       ( h_src            ),
       .h_present_local_o  ( h_present_local  ),
       .h_present_remote_o ( h_present_remote ),
+      .h_sd_local_o       ( h_dst            )
       .h_id_err_o         ( h_id_error       ),
       .h_sig_err_o        ( h_sig_error      ),
       .h_bypass_local_o   ( h_bypass_local   ),
@@ -432,8 +452,10 @@ module fractal_sync_cc
       .id_v_i             ( v_id             ),
       .check_v_local_i    ( v_check_local    ),
       .check_v_remote_i   ( v_check_remote   ),
+      .sd_v_local_i       ( v_src            ),
       .v_present_local_o  ( v_present_local  ),
       .v_present_remote_o ( v_present_remote ),
+      .v_sd_local_o       ( v_dst            )
       .v_id_err_o         ( v_id_error       ),
       .v_sig_err_o        ( v_sig_error      ),
       .v_bypass_local_o   ( v_bypass_local   ),
