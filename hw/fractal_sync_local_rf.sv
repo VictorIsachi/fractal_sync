@@ -20,8 +20,9 @@
  * Asynchronous valid low reset
  *
  * Parameters:
- *  ID_WIDTH - Width needed to represent the possible barrier ids
  *  N_REGS   - Number of registers
+ *  ID_WIDTH - Width needed to represent the possible barrier ids
+ *  SD_WIDTH - Width of the src/dst fields
  *  N_PORTS  - Number of ports
  *
  * Interface signals:
@@ -38,10 +39,10 @@
 module fractal_sync_1d_local_rf 
   import fractal_sync_pkg::*; 
 #(
-  parameter int unsigned  ID_WIDTH = 1,
-  parameter int unsigned  N_REGS   = 1,
-  localparam int unsigned SD_WIDTH = fractal_sync_pkg::SD_WIDTH,
-  parameter int unsigned  N_PORTS  = 2
+  parameter int unsigned N_REGS   = 1,
+  parameter int unsigned ID_WIDTH = 1,
+  parameter int unsigned SD_WIDTH = 2,
+  parameter int unsigned N_PORTS  = 2
 )(
   input  logic               clk_i,
   input  logic               rst_ni,
@@ -62,6 +63,7 @@ module fractal_sync_1d_local_rf
 
   initial FRACTAL_SYNC_1D_LOCAL_RF_REGS: assert (N_REGS > 0) else $fatal("N_REGS must be > 0");
   initial FRACTAL_SYNC_1D_LOCAL_RF_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
+  initial FRACTAL_SYNC_1D_LOCAL_RF_SD_W: assert (SD_WIDTH >= 2) else $fatal("SD_WIDTH must be > 1");
   initial FRACTAL_SYNC_1D_LOCAL_RF_PORTS: assert (N_PORTS >= 2) else $fatal("N_PORTS must be > 1");
   initial FRACTAL_SYNC_1D_LOCAL_RF_LOCAL_ID_W: assert (2**LOCAL_ID_WIDTH >= N_REGS) else $fatal("LOCAL_ID_WIDTH must be able to index all N_REGS registers");
 
@@ -188,8 +190,9 @@ endmodule: fractal_sync_1d_local_rf
  * Asynchronous valid low reset
  *
  * Parameters:
- *  ID_WIDTH - Width needed to represent the possible barrier ids
  *  N_REGS   - Number of registers
+ *  ID_WIDTH - Width needed to represent the possible barrier ids
+ *  SD_WIDTH - Width of the src/dst fields
  *  N_PORTS  - Number of ports
  *
  * Interface signals:
@@ -204,11 +207,11 @@ endmodule: fractal_sync_1d_local_rf
  */
 
 module fractal_sync_2d_local_rf #(
-  parameter int unsigned  ID_WIDTH  = 1,
-  parameter int unsigned  N_REGS    = 2,
-  localparam int unsigned SD_WIDTH  = fractal_sync_pkg::SD_WIDTH,
-  parameter int unsigned  N_H_PORTS = 2,
-  parameter int unsigned  N_V_PORTS = 2
+  parameter int unsigned N_REGS    = 2,
+  parameter int unsigned ID_WIDTH  = 1,
+  parameter int unsigned SD_WIDTH  = 2,
+  parameter int unsigned N_H_PORTS = 2,
+  parameter int unsigned N_V_PORTS = 2
 )(
   input  logic               clk_i,
   input  logic               rst_ni,
@@ -256,6 +259,7 @@ module fractal_sync_2d_local_rf #(
   fractal_sync_1d_local_rf #(
     .N_REGS   ( N_H_REGS  ),
     .ID_WIDTH ( ID_WIDTH  ),
+    .SD_WIDTH ( SD_WIDTH  ),
     .N_PORTS  ( N_H_PORTS )
   ) i_rf_h (
     .clk_i                    ,
@@ -277,8 +281,9 @@ module fractal_sync_2d_local_rf #(
 /*******************************************************/
   
   fractal_sync_1d_local_rf #(
-    .N_REGS   ( N_V_REGS ),
-    .ID_WIDTH ( ID_WIDTH ),
+    .N_REGS   ( N_V_REGS  ),
+    .ID_WIDTH ( ID_WIDTH  ),
+    .SD_WIDTH ( SD_WIDTH  ),
     .N_PORTS  ( N_V_PORTS )
   ) i_rf_v (
     .clk_i                    ,
