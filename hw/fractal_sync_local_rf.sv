@@ -36,9 +36,9 @@
 module fractal_sync_1d_local_rf 
   import fractal_sync_pkg::*; 
 #(
-  parameter int unsigned  ID_WIDTH = 1,
-  parameter int unsigned  N_REGS   = 1,
-  parameter int unsigned  N_PORTS  = 2
+  parameter int unsigned N_REGS   = 1,
+  parameter int unsigned ID_WIDTH = 1,
+  parameter int unsigned N_PORTS  = 2
 )(
   input  logic               clk_i,
   input  logic               rst_ni,
@@ -167,8 +167,8 @@ endmodule: fractal_sync_1d_local_rf
  */
 
 module fractal_sync_2d_local_rf #(
-  parameter int unsigned ID_WIDTH  = 1,
   parameter int unsigned N_REGS    = 2,
+  parameter int unsigned ID_WIDTH  = 1,
   parameter int unsigned N_H_PORTS = 2,
   parameter int unsigned N_V_PORTS = 2
 )(

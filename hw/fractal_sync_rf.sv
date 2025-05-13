@@ -76,8 +76,8 @@ module fractal_sync_1d_rf
 /*******************************************************/
 
   fractal_sync_1d_local_rf #(
-    .ID_WIDTH ( ID_WIDTH     ),
     .N_REGS   ( N_LOCAL_REGS ),
+    .ID_WIDTH ( ID_WIDTH     ),
     .N_PORTS  ( N_PORTS      )
   ) i_local_rf (
     .clk_i                        ,
@@ -221,8 +221,8 @@ module fractal_sync_2d_rf
 /*******************************************************/
 
   fractal_sync_2d_local_rf #(
-    .ID_WIDTH  ( ID_WIDTH     ),
     .N_REGS    ( N_LOCAL_REGS ),
+    .ID_WIDTH  ( ID_WIDTH     ),
     .N_H_PORTS ( N_H_PORTS    ),
     .N_V_PORTS ( N_V_PORTS    )
   ) i_local_rf (

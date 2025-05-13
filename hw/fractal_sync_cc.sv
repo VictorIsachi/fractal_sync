@@ -51,31 +51,31 @@
 module fractal_sync_cc 
   import fractal_sync_pkg::*; 
 #(
-  parameter fractal_sync_pkg::node_e         NODE_TYPE       = fractal_sync_pkg::HV_NODE,
-  localparam fractal_sync_pkg::rf_dim_e      RF_DIM          = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
-                                                               (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
-                                                               fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
-  parameter fractal_sync_pkg::remote_rf_e    RF_TYPE         = fractal_sync_pkg::CAM_RF,
-  parameter int unsigned                     N_LOCAL_REGS    = 0,
-  parameter int unsigned                     N_REMOTE_LINES  = 0,
-  parameter int unsigned                     AGGREGATE_WIDTH = 1,
-  parameter int unsigned                     ID_WIDTH        = 1,
-  parameter type                             fsync_req_in_t  = logic,
-  parameter type                             fsync_rsp_in_t  = logic,
-  parameter type                             fsync_req_out_t = logic,
+  parameter fractal_sync_pkg::node_e      NODE_TYPE       = fractal_sync_pkg::HV_NODE,
+  localparam fractal_sync_pkg::rf_dim_e   RF_DIM          = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
+                                                            (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
+                                                            fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE         = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  N_LOCAL_REGS    = 0,
+  parameter int unsigned                  N_REMOTE_LINES  = 0,
+  parameter int unsigned                  AGGREGATE_WIDTH = 1,
+  parameter int unsigned                  ID_WIDTH        = 1,
+  parameter type                          fsync_req_in_t  = logic,
+  parameter type                          fsync_rsp_in_t  = logic,
+  parameter type                          fsync_req_out_t = logic,
   // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
-  parameter int unsigned                     N_RX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
-                                                               (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
-                                                               0,
+  parameter int unsigned                  N_RX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
+                                                            (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
+                                                            0,
   // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
-  parameter int unsigned                     N_TX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
-                                                               (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
-                                                               0,
+  parameter int unsigned                  N_TX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
+                                                            (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
+                                                            0,
   // Total number of ports: lower indexes represent RX ports; higher indexes represent TX ports
-  localparam int unsigned                    N_PORTS         = N_RX_PORTS + N_TX_PORTS,
+  localparam int unsigned                 N_PORTS         = N_RX_PORTS + N_TX_PORTS,
   // 2D CC: even indexed FIFOs -> horizontal channel; odd indexed FIFOs -> vertical channel
-  localparam int unsigned                    N_FIFOS         = N_RX_PORTS, 
-  parameter int unsigned                     FIFO_DEPTH      = 1
+  localparam int unsigned                 N_FIFOS         = N_RX_PORTS, 
+  parameter int unsigned                  FIFO_DEPTH      = 1
 )(
   input  logic           clk_i,
   input  logic           rst_ni,
