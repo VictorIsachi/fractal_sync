@@ -36,10 +36,10 @@
 module fractal_sync_tx 
   import fractal_sync_pkg::*; 
 #(
-  parameter type         fsync_rsp_in_t  = logic,
-  parameter type         fsync_rsp_out_t = logic,
-  parameter bit          COMB_IN         = 1'b0,
-  parameter int unsigned FIFO_DEPTH      = 1
+  parameter type          fsync_rsp_in_t  = logic,
+  parameter type          fsync_rsp_out_t = logic,
+  parameter bit           COMB_IN         = 1'b0,
+  parameter int unsigned  FIFO_DEPTH      = 1
 )(
   // Response interface - in
   input  logic           clk_i,

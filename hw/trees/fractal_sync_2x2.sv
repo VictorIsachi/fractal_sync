@@ -84,7 +84,7 @@ package fractal_sync_2x2_pkg;
   
   localparam int unsigned                  AGGREGATE_WIDTH   = OUT_AGGR_WIDTH+2;
   localparam int unsigned                  ID_WIDTH          = 2;
-  localparam int unsigned                  SD_WIDTH          = fractal_sync_pkg::SD_WIDTH;
+  localparam int unsigned                  SD_WIDTH          = 2;
 
   localparam int unsigned                  NBR_AGGR_WIDTH    = 1;
   localparam int unsigned                  NBR_ID_WIDTH      = 1;
@@ -303,7 +303,6 @@ module fractal_sync_2x2
       .N_REMOTE_LINES  ( N_REMOTE_LINES_1D          ),
       .AGGREGATE_WIDTH ( AGGREGATE_WIDTH            ),
       .ID_WIDTH        ( ID_WIDTH                   ),
-      .SD_WIDTH        ( SD_WIDTH                   ),
       .fsync_req_in_t  ( fsync_1d_req_t             ),
       .fsync_rsp_in_t  ( fsync_1d_rsp_t             ),
       .fsync_req_out_t ( fsync_itl_req_t            ),
@@ -335,7 +334,6 @@ module fractal_sync_2x2
       .N_REMOTE_LINES  ( N_REMOTE_LINES_1D          ),
       .AGGREGATE_WIDTH ( AGGREGATE_WIDTH            ),
       .ID_WIDTH        ( ID_WIDTH                   ),
-      .SD_WIDTH        ( SD_WIDTH                   ),
       .fsync_req_in_t  ( fsync_1d_req_t             ),
       .fsync_rsp_in_t  ( fsync_1d_rsp_t             ),
       .fsync_req_out_t ( fsync_itl_req_t            ),
@@ -366,7 +364,6 @@ module fractal_sync_2x2
     .N_REMOTE_LINES  ( N_REMOTE_LINES_2D   ),
     .AGGREGATE_WIDTH ( ITL_AGGR_WIDTH      ),
     .ID_WIDTH        ( ITL_ID_WIDTH        ),
-    .SD_WIDTH        ( ITL_SD_WIDTH        ),
     .fsync_req_in_t  ( fsync_itl_req_t     ),
     .fsync_rsp_in_t  ( fsync_itl_rsp_t     ),
     .fsync_req_out_t ( fsync_2d_req_t      ),
