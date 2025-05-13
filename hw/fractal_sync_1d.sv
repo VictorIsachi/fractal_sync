@@ -26,7 +26,6 @@
  *  N_REMOTE_LINES  - Number of CAM lines in a CAM-based remote RF
  *  AGGREGATE_WIDTH - Width of the aggr field
  *  ID_WIDTH        - Width of the id field
- *  SD_WIDTH        - Width of the src/dst fields
  *  fsync_req_in_t  - Input synchronization request type (->RX)
  *  fsync_rsp_in_t  - Input synchronization response type (TX arb.->)
  *  fsync_req_out_t - Output synchronization request type (RX arb.->)
@@ -51,7 +50,6 @@ module fractal_sync_1d
   parameter int unsigned                  N_REMOTE_LINES  = 0,
   parameter int unsigned                  AGGREGATE_WIDTH = 1,
   parameter int unsigned                  ID_WIDTH        = 1,
-  parameter int unsigned                  SD_WIDTH        = 2,
   parameter type                          fsync_req_in_t  = logic,
   parameter type                          fsync_rsp_in_t  = logic,
   parameter type                          fsync_req_out_t = logic,
@@ -297,7 +295,6 @@ module fractal_sync_1d
     .N_REMOTE_LINES  ( N_REMOTE_LINES  ),
     .AGGREGATE_WIDTH ( AGGREGATE_WIDTH ),
     .ID_WIDTH        ( ID_WIDTH        ),
-    .SD_WIDTH        ( SD_WIDTH        ),
     .fsync_req_in_t  ( fsync_req_in_t  ),
     .fsync_rsp_in_t  ( fsync_rsp_in_t  ),
     .fsync_req_out_t ( fsync_req_out_t ),
