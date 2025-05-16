@@ -113,7 +113,7 @@ module fractal_sync_arbiter
           break;
         end
       end
-      if (out_en[i]) break;
+      if (out_en[i]) continue;
       else begin
         clear_mask = 1'b1;
         for (int unsigned j = 0; j < IN_PORTS; j++) begin
