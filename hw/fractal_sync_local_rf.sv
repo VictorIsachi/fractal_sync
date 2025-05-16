@@ -20,8 +20,8 @@
  * Asynchronous valid low reset
  *
  * Parameters:
- *  ID_WIDTH - Width needed to represent the possible barrier ids
  *  N_REGS   - Number of registers
+ *  ID_WIDTH - Width needed to represent the possible barrier ids
  *  N_PORTS  - Number of ports
  *
  * Interface signals:
@@ -117,12 +117,13 @@ module fractal_sync_1d_local_rf
     .IDX_WIDTH ( LOCAL_ID_WIDTH ),
     .N_PORTS   ( N_PORTS        )
   ) i_mp_rf (
-    .clk_i                    ,
-    .rst_ni                   ,
-    .check_i     ( check_rf  ),
-    .idx_i       ( local_id  ),
-    .idx_valid_i ( valid_idx ),
-    .present_o   ( present_o )
+    .clk_i                           ,
+    .rst_ni                          ,
+    .check_i     ( check_rf         ),
+    .set_i       ( '{default: 1'b0} ),
+    .idx_i       ( local_id         ),
+    .idx_valid_i ( valid_idx        ),
+    .present_o   ( present_o        )
   );
 
 /*******************************************************/
@@ -153,8 +154,8 @@ endmodule: fractal_sync_1d_local_rf
  * Asynchronous valid low reset
  *
  * Parameters:
- *  ID_WIDTH - Width needed to represent the possible barrier ids
  *  N_REGS   - Number of registers
+ *  ID_WIDTH - Width needed to represent the possible barrier ids
  *  N_PORTS  - Number of ports
  *
  * Interface signals:

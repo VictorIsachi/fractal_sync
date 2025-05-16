@@ -23,28 +23,27 @@
  *  fsync_req_in_t  - Type of the input request
  *  fsync_req_out_t - Type of the output request: aggregate width must be 1 less than input aggregate width; sources width must be 2 more than input sources width
  *  COMB_IN         - 1: Combinational datapath, 0: sample input
- *  SD_MASK         - Mask that indicates the source of synchronization request: 01 -> East-North; 10 -> West-South; 11 -> Both
  *  FIFO_DEPTH      - Depth of the request FIFO
  *
  * Interface signals:
- *  > req_i            - Synchronization request
- *  < sampled_req_o    - Sampled synchronization request
- *  < local_o          - Indicates that synchronization request should be managed locally (root or aggregate)
- *  < root_o           - Indicates the root of the synchronization request
- *  < error_overflow_o - Indicates error: fifo overflown
- *  < empty_o          - Indicates empty fifo
- *  < req_o            - Synchronization request propagated directly (without involvement of the control-core)
- *  > pop_i            - Pop current synchronization request
+ *  > req_i             - Synchronization request
+ *  < sampled_req_o     - Sampled synchronization request
+ *  < check_propagate_o - Inticates to RF to keep track of synch. req.
+ *  < local_o           - Indicates that synchronization request should be managed locally (root or aggregate)
+ *  < root_o            - Indicates the root of the synchronization request
+ *  < error_overflow_o  - Indicates error: fifo overflown
+ *  < empty_o           - Indicates empty fifo
+ *  < req_o             - Synchronization request propagated directly (without involvement of the control-core)
+ *  > pop_i             - Pop current synchronization request
  */
 
 module fractal_sync_rx 
   import fractal_sync_pkg::*; 
 #(
-  parameter type                   fsync_req_in_t  = logic,
-  parameter type                   fsync_req_out_t = logic,
-  parameter bit                    COMB_IN         = 1'b0,
-  parameter fractal_sync_pkg::sd_e SD_MASK         = fractal_sync_pkg::SD_BOTH,
-  parameter int unsigned           FIFO_DEPTH      = 1
+  parameter type         fsync_req_in_t  = logic,
+  parameter type         fsync_req_out_t = logic,
+  parameter bit          COMB_IN         = 1'b0,
+  parameter int unsigned FIFO_DEPTH      = 1
 )(
   // Request interface - in
   input  logic           clk_i,
@@ -52,6 +51,7 @@ module fractal_sync_rx
   input  fsync_req_in_t  req_i,
   output fsync_req_in_t  sampled_req_o,
   // Status
+  output logic           check_propagate_o,
   output logic           local_o,
   output logic           root_o,
   output logic           error_overflow_o,
@@ -67,7 +67,6 @@ module fractal_sync_rx
 
   initial FRACTAL_SYNC_RX_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
   initial FRACTAL_SYNC_RX_AGGR: assert ($bits(req_i.sig.aggr) == $bits(req_o.sig.aggr)+1) else $fatal("Output aggregate width must be 1 bit less than input aggregate");
-  initial FRACTAL_SYNC_RX_SRC: assert ($bits(req_i.src) == $bits(req_o.src)-2) else $fatal("Output sources width must be 2 bits more than input sources");
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -124,13 +123,13 @@ module fractal_sync_rx
   assign sampled_out_req.sync     = sampled_req_o.sync;
   assign sampled_out_req.sig.aggr = sampled_req_o.sig.aggr >> 1;
   assign sampled_out_req.sig.id   = sampled_req_o.sig.id;
-  assign sampled_out_req.src      = {sampled_req_o.src, SD_MASK};
 
   assign push = sampled_sync & propagate;
 
-  assign local_o          = sampled_sync & ~propagate;
-  assign root_o           = (sampled_req_o.sig.aggr == 1) ? 1'b1 : 1'b0;
-  assign error_overflow_o = full_fifo & push & ~pop_i;
+  assign check_propagate_o = sampled_sync;
+  assign local_o           = check_propagate_o & ~propagate;
+  assign root_o            = (sampled_req_o.sig.aggr == 1) ? 1'b1 : 1'b0;
+  assign error_overflow_o  = full_fifo & push & ~pop_i;
 
 /*******************************************************/
 /**                    RX Logic End                   **/

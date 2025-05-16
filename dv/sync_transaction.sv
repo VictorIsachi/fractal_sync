@@ -46,6 +46,12 @@ class sync_transaction;
     this.transaction_id  = src.transaction_id;
   endfunction: scp
 
+  function automatic void set(int unsigned lvl, bit[31:0] aggr, int unsigned id);
+    this.sync_level      = lvl;
+    this.sync_aggregate  = aggr;
+    this.sync_barrier_id = id;
+  endfunction: set
+
   function automatic void print();
     $display("-------------------------");
     $display("FractalSync transaction:");
