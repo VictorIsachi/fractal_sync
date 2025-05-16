@@ -22,32 +22,38 @@
 `ifndef FSYNC_ASSIGN_SVH_
 `define FSYNC_ASSIGN_SVH_
 
-`define FSYNC_ASSIGN_I2S_SIG(fractal_sync_if, sig_s) \
-  assign sig_s.aggr = fractal_sync_if.aggr;          \
-  assign sig_s.id   = fractal_sync_if.id;
+`define FSYNC_ASSIGN_I2S_REQ_SIG(fractal_sync_if, req_sig_s) \
+  assign req_sig_s.aggr = fractal_sync_if.aggr;              \
+  assign req_sig_s.id   = fractal_sync_if.id_req;
 
-`define FSYNC_ASSIGN_I2S_REQ(fractal_sync_if, req_s) \
-  assign req_s.sync = fractal_sync_if.sync;          \
-  `FSYNC_ASSIGN_I2S_SIG(fractal_sync_if, req_s.sig)  \
-  assign req_s.src  = fractal_sync_if.src;
+`define FSYNC_ASSIGN_I2S_REQ(fractal_sync_if, req_s)    \
+  assign req_s.sync = fractal_sync_if.sync;             \
+  `FSYNC_ASSIGN_I2S_REQ_SIG(fractal_sync_if, req_s.sig)
 
-`define FSYNC_ASSIGN_I2S_RSP(fractal_sync_if, rsp_s) \
-  assign rsp_s.wake  = fractal_sync_if.wake;         \
-  assign rsp_s.dst   = fractal_sync_if.dst;          \
+`define FSYNC_ASSIGN_I2S_RSP_SIG(fractal_sync_if, rsp_sig_s) \
+  assign rsp_sig_s.lvl = fractal_sync_if.lvl;                \
+  assign rsp_sig_s.id  = fractal_sync_if.id_req;
+
+`define FSYNC_ASSIGN_I2S_RSP(fractal_sync_if, rsp_s)    \
+  assign rsp_s.wake  = fractal_sync_if.wake;            \
+  `FSYNC_ASSIGN_I2S_RSP_SIG(fractal_sync_if, rsp_s.sig) \
   assign rsp_s.error = fractal_sync_if.error;
 
-`define FSYNC_ASSIGN_S2I_SIG(sig_s, fractal_sync_if) \
-  assign fractal_sync_if.aggr = sig_s.aggr;          \
-  assign fractal_sync_if.id   = sig_s.id;
+`define FSYNC_ASSIGN_S2I_REQ_SIG(req_sig_s, fractal_sync_if) \
+  assign fractal_sync_if.aggr   = req_sig_s.aggr;            \
+  assign fractal_sync_if.id_req = req_sig_s.id;
 
-`define FSYNC_ASSIGN_S2I_REQ(req_s, fractal_sync_if) \
-  assign fractal_sync_if.sync = req_s.sync;          \
-  `FSYNC_ASSIGN_S2I_SIG(req_s.sig, fractal_sync_if)  \
-  assign fractal_sync_if.src  = req_s.src;
+`define FSYNC_ASSIGN_S2I_REQ(req_s, fractal_sync_if)    \
+  assign fractal_sync_if.sync = req_s.sync;             \
+  `FSYNC_ASSIGN_S2I_REQ_SIG(req_s.sig, fractal_sync_if)
 
-`define FSYNC_ASSIGN_S2I_RSP(rsp_s, fractal_sync_if) \
-  assign fractal_sync_if.wake  = rsp_s.wake;         \
-  assign fractal_sync_if.dst   = rsp_s.dst;          \
+`define FSYNC_ASSIGN_S2I_RSP_SIG(rsp_sig_s, fractal_sync_if) \
+  assign fractal_sync_if.lvl    = rsp_sig_s.lvl;             \
+  assign fractal_sync_if.id_rsp = rsp_sig_s.id;
+
+`define FSYNC_ASSIGN_S2I_RSP(rsp_s, fractal_sync_if)    \
+  assign fractal_sync_if.wake  = rsp_s.wake;            \
+  `FSYNC_ASSIGN_S2I_RSP_SIG(rsp_s.sig, fractal_sync_if) \
   assign fractal_sync_if.error = rsp_s.error;
 
 `endif /* FSYNC_ASSIGN_SVH_ */

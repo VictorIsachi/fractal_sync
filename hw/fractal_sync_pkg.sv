@@ -23,9 +23,11 @@ package fractal_sync_pkg;
   `include "include/fractal_sync/typedef.svh"
   `include "include/fractal_sync/assign.svh"
 
+  localparam int unsigned SD_WIDTH = 2;
+
   // Source-Destination mask
-  typedef enum logic[1:0] { 
-    SD_EST_NORTH  = 2'b01,
+  typedef enum logic[SD_WIDTH-1:0] { 
+    SD_EAST_NORTH = 2'b01,
     SD_WEST_SOUTH = 2'b10,
     SD_BOTH       = 2'b11
   } sd_e;

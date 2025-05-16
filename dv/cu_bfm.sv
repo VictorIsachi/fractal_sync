@@ -23,41 +23,41 @@ import fractal_dv_pkg::*;
 
 class cu_bfm #(
   parameter int unsigned AGGR_WIDTH = 0,
+  parameter int unsigned LVL_WIDTH  = 0,
   parameter int unsigned ID_WIDTH   = 0
 );
 
   string instance_name;
   
-  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(AGGR_WIDTH), .ID_WIDTH(ID_WIDTH)) vif_master;
+  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(AGGR_WIDTH), .LVL_WIDTH(LVL_WIDTH), .ID_WIDTH(ID_WIDTH)) vif_master;
 
-  function new(string instance_name, virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(AGGR_WIDTH), .ID_WIDTH(ID_WIDTH)) vif_master);
+  function new(string instance_name, virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(AGGR_WIDTH), .LVL_WIDTH(LVL_WIDTH), .ID_WIDTH(ID_WIDTH)) vif_master);
     this.instance_name = instance_name;
     this.vif_master    = vif_master;
   endfunction: new
 
   task automatic init();
-    vif_master.sync = 1'b0;
-    vif_master.aggr = '0;
-    vif_master.id   = '0;
-    vif_master.src  = '0;
+    vif_master.sync   = 1'b0;
+    vif_master.aggr   = '0;
+    vif_master.id_req = '0;
   endtask: init
   
   task automatic sync_req(sync_transaction fsync, int unsigned comp_cycles, int unsigned max_rand_cycles, const ref logic clk);
     int unsigned rand_cycles = $urandom_range(0, max_rand_cycles);
     repeat (comp_cycles + rand_cycles) @(negedge clk);
     @(negedge clk);
-    vif_master.aggr = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
-    vif_master.id   = fsync.sync_barrier_id;
-    vif_master.sync = 1'b1;
+    vif_master.aggr   = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+    vif_master.id_req = fsync.sync_barrier_id;
+    vif_master.sync   = 1'b1;
     @(negedge clk);
-    vif_master.sync = 1'b0;
+    vif_master.sync   = 1'b0;
   endtask: sync_req
 
-  task automatic sync_rsp(sync_transaction fsync_req, ref sync_transaction fsync_rsp, const ref logic clk);
-    fsync_rsp.scp(fsync_req);
+  task automatic sync_rsp(ref sync_transaction fsync_rsp, const ref logic clk);
     do
       @(negedge clk);
     while (!vif_master.wake);
+    fsync_rsp.set(vif_master.lvl, 0, vif_master.id_rsp);
   endtask: sync_rsp
 
   task automatic sync(input sync_transaction fsync_req, ref sync_transaction fsync_rsp, input int unsigned comp_cycles, input int unsigned max_rand_cycles, const ref logic clk);
@@ -67,7 +67,7 @@ class cu_bfm #(
         fsync_req.print();
         sync_req(fsync_req, comp_cycles, max_rand_cycles, clk);
       end begin
-        sync_rsp(fsync_req, fsync_rsp, clk);
+        sync_rsp(fsync_rsp, clk);
         $display("BFM instance [%s]: synchronization response", instance_name);
         fsync_rsp.print();
       end

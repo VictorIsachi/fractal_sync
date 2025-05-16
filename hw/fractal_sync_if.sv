@@ -20,53 +20,53 @@
  *
  * Parameters:
  *  AGGR_WIDTH - Width of aggr, representing the the levels of the tree where aggregation ought to occur; leading 1 represent the root level of the synchronization request
+ *  LVL_WIDTH  - Width of lvl, indicating the root level of the synchronization request
  *  ID_WIDTH   - Width of the id indicator of the barrier, each id is local to the specific synchronization node: distinct nodes have overlapping ids
- *  SD_WIDTH   - Width of src/dst: used for back-routing
  *
  * Interface signals:
  *  sync               - Indicates request for synchronization
  *  aggr (aggregate)   - Indicates the levels of the tree where synchronization requests should be aggregated, leading 1 indicates level of synchronization request
- *  id                 - Indicates the id of the barrier of the synchronization request (local to specific synchronization node)
- *  src (sources)      - Indicates the sources of the synchronization request (01 => East-North; 10 => West-South; 11 => Both)
+ *  id_req             - Indicates the id of the barrier of the synchronization request (local to specific synchronization node)
  *  wake               - Indicates granted synchronization
- *  dst (destinations) - Indicates the destinations of the synchronization response (01 => East-North; 10 => West-South; 11 => Both)
+ *  lvl (level)        - Indicates the level of origin of synchronization response
+ *  id_rsp             - Indicated the id of the barrier of the synchronization response
  *  error              - Indicates error
  */
 
 interface fractal_sync_if
 #(
   parameter int unsigned AGGR_WIDTH = 0,
-  parameter int unsigned ID_WIDTH   = 0,
-  parameter int unsigned SD_WIDTH   = 2
+  parameter int unsigned LVL_WIDTH  = 0,
+  parameter int unsigned ID_WIDTH   = 0
 )(
 );
 
   logic                 sync;
   logic[AGGR_WIDTH-1:0] aggr;
-  logic[ID_WIDTH-1:0]   id;
-  logic[SD_WIDTH-1:0]   src;
+  logic[ID_WIDTH-1:0]   id_req;
 
   logic                 wake;
-  logic[SD_WIDTH-1:0]   dst;
+  logic[LVL_WIDTH-1:0]  lvl;
+  logic[ID_WIDTH-1:0]   id_rsp;
   logic                 error;
 
   modport mst_port (
     output sync,
     output aggr,
-    output id,
-    output src,
+    output id_req,
     input  wake,
-    input  dst,
+    input  lvl,
+    input  id_rsp,
     input  error
   );
 
   modport slv_port (
     input  sync,
     input  aggr,
-    input  id,
-    input  src,
+    input  id_req,
     output wake,
-    output dst,
+    output lvl,
+    output id_rsp,
     output error
   );
 

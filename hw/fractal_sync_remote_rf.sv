@@ -27,10 +27,13 @@
  *  N_PORTS     - Number of ports
  *
  * Interface signals:
- *  > level_i   - Level of synchronization requests
- *  > id_i      - Id of synch. req.
- *  > check_i   - Check RF for synch. req.
- *  < present_o - Indicates that synch. req. is present in RF
+ *  > level_i   - Level of synchronization requests/responses
+ *  > id_i      - Id of synch. req./rsp.
+ *  > sd_i      - Source/destinatin of synch. req./rsp. for back-routing
+ *  > check_i   - Check RF for synch. rsp.
+ *  > set_i     - Set RF for synch. req.
+ *  < present_o - Indicates that synch. req./rsp. is present in RF
+ *  < sd_o      - Indicates the synch. req./rsp. destinations for back-routing
  *  < sig_err_o - Indicates that RF detected an incorrect signature
  *  < bypass_o  - Indicates that current RF req. should be bypassed (detected 2 req. to the same barrier)
  *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
@@ -43,6 +46,7 @@ module fractal_sync_1d_remote_rf
   parameter int unsigned                  LEVEL_WIDTH = 1,
   parameter int unsigned                  ID_WIDTH    = 1,
   parameter int unsigned                  N_CAM_LINES = 1,
+  localparam int unsigned                 SD_WIDTH    = fractal_sync_pkg::SD_WIDTH,
   parameter int unsigned                  N_PORTS     = 2
 )(
   input  logic                  clk_i,
@@ -50,8 +54,11 @@ module fractal_sync_1d_remote_rf
 
   input  logic[LEVEL_WIDTH-1:0] level_i[N_PORTS],
   input  logic[ID_WIDTH-1:0]    id_i[N_PORTS],
+  input  logic[SD_WIDTH-1:0]    sd_i[N_PORTS],
   input  logic                  check_i[N_PORTS],
+  input  logic                  set_i[N_PORTS],
   output logic                  present_o[N_PORTS],
+  output logic[SD_WIDTH-1:0]    sd_o[N_PORTS],
   output logic                  sig_err_o[N_PORTS],
   output logic                  bypass_o[N_PORTS],
   output logic                  ignore_o[N_PORTS]
@@ -110,6 +117,7 @@ module fractal_sync_1d_remote_rf
 
   logic valid_sig[N_PORTS];
   logic check_rf[N_PORTS];
+  logic set_rf[N_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -154,10 +162,11 @@ module fractal_sync_1d_remote_rf
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_check
     assign check_rf[i] = ~(bypass_o[i] | ignore_o[i]) & check_i[i];
+    assign set_rf[i]   = ~(bypass_o[i] | ignore_o[i]) & set_i[i];
   end
   
   if (RF_TYPE == fractal_sync_pkg::DM_RF) begin: gen_dm_rf
-    fractal_sync_mp_rf #(
+    fractal_sync_mp_rf_br #(
       .N_REGS    ( N_DM_REGS ),
       .IDX_WIDTH ( SIG_WIDTH ),
       .N_PORTS   ( N_PORTS   )
@@ -165,12 +174,15 @@ module fractal_sync_1d_remote_rf
       .clk_i                    ,
       .rst_ni                   ,
       .check_i     ( check_rf  ),
+      .set_i       ( set_rf    ),
+      .sd_i        ( sd_i      ),
       .idx_i       ( local_sig ),
       .idx_valid_i ( valid_sig ),
-      .present_o   ( present_o )
+      .present_o   ( present_o ),
+      .sd_o        ( sd_o      )
     );
   end else if (RF_TYPE == fractal_sync_pkg::CAM_RF) begin: gen_cam_rf
-    fractal_sync_mp_cam #(
+    fractal_sync_mp_cam_br #(
       .N_LINES   ( N_CAM_LINES ),
       .SIG_WIDTH ( SIG_WIDTH   ),
       .N_PORTS   ( N_PORTS     )
@@ -178,9 +190,12 @@ module fractal_sync_1d_remote_rf
       .clk_i                    ,
       .rst_ni                   ,
       .check_i     ( check_rf  ),
+      .set_i       ( set_rf    ),
+      .sd_i        ( sd_i      ),
       .sig_i       ( local_sig ),
       .sig_valid_i ( valid_sig ),
-      .present_o   ( present_o )
+      .present_o   ( present_o ),
+      .sd_o        ( sd_o      )
     );
   end else $fatal("Unsupported Remote Register File Type");
 
@@ -219,10 +234,13 @@ endmodule: fractal_sync_1d_remote_rf
  *  N_PORTS     - Number of ports
  *
  * Interface signals:
- *  > level_i   - Level of synchronization requests
- *  > id_i      - Id of synch. req.
- *  > check_i   - Check RF for synch. req.
- *  < present_o - Indicates that synch. req. is present in RF
+ *  > level_i   - Level of synchronization requests/responses
+ *  > id_i      - Id of synch. req./rsp.
+ *  > sd_i      - Source/destinatin of synch. req./rsp. for back-routing
+ *  > check_i   - Check RF for synch. rsp.
+ *  > set_i     - Set RF for synch. req.
+ *  < present_o - Indicates that synch. req./rsp is present in RF
+ *  < sd_o      - Indicates the synch. req./rsp. destinations for back-routing
  *  < sig_err_o - Indicates that RF detected an incorrect signature
  *  < bypass_o  - Indicates that current RF req. should be bypassed (detected 2 req. to the same barrier)
  *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
@@ -233,6 +251,7 @@ module fractal_sync_2d_remote_rf #(
   parameter int unsigned                  LEVEL_WIDTH = 1,
   parameter int unsigned                  ID_WIDTH    = 1,
   parameter int unsigned                  N_CAM_LINES = 2,
+  localparam int unsigned                 SD_WIDTH    = fractal_sync_pkg::SD_WIDTH,
   parameter int unsigned                  N_H_PORTS   = 2,
   parameter int unsigned                  N_V_PORTS   = 2
 )(
@@ -241,16 +260,22 @@ module fractal_sync_2d_remote_rf #(
 
   input  logic[LEVEL_WIDTH-1:0] level_h_i[N_H_PORTS],
   input  logic[ID_WIDTH-1:0]    id_h_i[N_H_PORTS],
+  input  logic[SD_WIDTH-1:0]    sd_h_i[N_H_PORTS],
   input  logic                  check_h_i[N_H_PORTS],
+  input  logic                  set_h_i[N_H_PORTS],
   output logic                  h_present_o[N_H_PORTS],
+  output logic[SD_WIDTH-1:0]    h_sd_o[N_H_PORTS],
   output logic                  h_sig_err_o[N_H_PORTS],
   output logic                  h_bypass_o[N_H_PORTS],
   output logic                  h_ignore_o[N_H_PORTS],
 
   input  logic[LEVEL_WIDTH-1:0] level_v_i[N_V_PORTS],
   input  logic[ID_WIDTH-1:0]    id_v_i[N_V_PORTS],
+  input  logic[SD_WIDTH-1:0]    sd_v_i[N_V_PORTS],
   input  logic                  check_v_i[N_V_PORTS],
+  input  logic                  set_v_i[N_V_PORTS],
   output logic                  v_present_o[N_V_PORTS],
+  output logic[SD_WIDTH-1:0]    v_sd_o[N_V_PORTS],
   output logic                  v_sig_err_o[N_V_PORTS],
   output logic                  v_bypass_o[N_V_PORTS],
   output logic                  v_ignore_o[N_V_PORTS]
@@ -288,8 +313,11 @@ module fractal_sync_2d_remote_rf #(
     .rst_ni                   ,
     .level_i   ( level_h_i   ),
     .id_i      ( id_h_i      ),
+    .sd_i      ( sd_h_i      ),
     .check_i   ( check_h_i   ),
+    .set_i     ( set_h_i     ),
     .present_o ( h_present_o ),
+    .sd_o      ( h_sd_o      ),
     .sig_err_o ( h_sig_err_o ),
     .bypass_o  ( h_bypass_o  ),
     .ignore_o  ( h_ignore_o  )
@@ -312,8 +340,11 @@ module fractal_sync_2d_remote_rf #(
     .rst_ni                   ,
     .level_i   ( level_v_i   ),
     .id_i      ( id_v_i      ),
+    .sd_i      ( sd_v_i      ),
     .check_i   ( check_v_i   ),
+    .set_i     ( set_v_i     ),
     .present_o ( v_present_o ),
+    .sd_o      ( v_sd_o      ),
     .sig_err_o ( v_sig_err_o ),
     .bypass_o  ( v_bypass_o  ),
     .ignore_o  ( v_ignore_o  )
