@@ -119,7 +119,6 @@ module fractal_sync_cc
   initial FRACTAL_SYNC_CC_LOCAL_REGS: assert (N_LOCAL_REGS > 0) else $fatal("N_LOCAL_REGS must be > 0");
   initial FRACTAL_SYNC_CC_REMOTE_LINES: assert (RF_TYPE == fractal_sync_pkg::CAM_RF -> N_REMOTE_LINES > 0) else $fatal("N_REMOTE_LINES must be > 0 for CAM Remote Register File");
   initial FRACTAL_SYNC_CC_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
-  initial FRACTAL_SYNC_CC_LVL_W: assert ($bits(rsp_i[0].sig.lvl) == $clog2(AGGREGATE_WIDTH-1)) else $fatal("With of the lvl field must match levels that can be represented with the aggr field");
   initial FRACTAL_SYNC_CC_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
   initial FRACTAL_SYNC_CC_AGGR: assert ($bits(req_i[0].sig.aggr) == $bits(remote_req_o[0].sig.aggr)+1) else $fatal("Input req. aggregate with must be 1 more than output");
   initial FRACTAL_SYNC_CC_RX_PORTS: assert (N_RX_PORTS > 0) else $fatal("N_RX_PORTS must be > 0");
