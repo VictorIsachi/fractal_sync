@@ -159,7 +159,7 @@ module fractal_sync_2x2
   initial FRACTAL_SYNC_2x2_SYNC_RSP_ID: assert ($bits(h_1d_fsync_rsp_o[0][0].sig.id) == $bits(h_2d_fsync_rsp_i[0][0].sig.id)) else $fatal("Output response id width must be same as input");
   initial FRACTAL_SYNC_2x2_SYNC_AGGR: assert ($bits(h_1d_fsync_req_i[0][0].sig.aggr) == AGGREGATE_WIDTH) else $fatal("AGGREGATE_WIDTH must be coherent with fsync_req type");
   initial FRACTAL_SYNC_2x2_SYNC_ID: assert ($bits(h_1d_fsync_req_i[0][0].sig.id) == ID_WIDTH) else $fatal("ID_WIDTH must be coherent with fsync_req type");
-  initial FRACTAL_SYNC_2x2_SYNC_REQ_RSP_ID: assert ($bits(h_1d_fsync_req_i[0][0].sig.id) == h_1d_fsync_rsp_o[0][0].sig.id) else $fatal("Request id width must be coherent with request id width");
+  initial FRACTAL_SYNC_2x2_SYNC_REQ_RSP_ID: assert ($bits(h_1d_fsync_req_i[0][0].sig.id) == $bits(h_1d_fsync_rsp_o[0][0].sig.id)) else $fatal("Request id width must be coherent with request id width");
 
 /*******************************************************/
 /**                   Assertions End                  **/
