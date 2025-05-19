@@ -270,10 +270,10 @@ module fractal_sync_2x2
         assign v_1d_fsync_rsp[i+1][j-1]    = v_tr_1d_fsync_rsp[i][j];
         assign v_1d_fsync_rsp[i][j]        = v_tr_1d_fsync_rsp[i+1][j-1];
       end else begin
-        assign v_tr_1d_fsync_req[i][j]   = v_1d_fsync_req[i][j];
-        assign v_tr_1d_fsync_req[i+1][j] = v_1d_fsync_req[i+1][j];
-        assign v_1d_fsync_rsp[i][j]      = v_tr_1d_fsync_rsp[i][j];
-        assign v_1d_fsync_rsp[i+1][j]    = v_tr_1d_fsync_rsp[i+1][j];
+        assign v_tr_1d_fsync_req[i][j]     = v_1d_fsync_req[i][j];
+        assign v_tr_1d_fsync_req[i+1][j+1] = v_1d_fsync_req[i+1][j+1];
+        assign v_1d_fsync_rsp[i][j]        = v_tr_1d_fsync_rsp[i][j];
+        assign v_1d_fsync_rsp[i+1][j+1]    = v_tr_1d_fsync_rsp[i+1][j+1];
       end
     end
   end
