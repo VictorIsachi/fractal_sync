@@ -77,6 +77,7 @@ module fractal_sync_1d_local_rf
   logic[LOCAL_ID_WIDTH-1:0] local_id[N_PORTS];
 
   logic valid_idx[N_PORTS];
+  
   logic check_rf[N_PORTS];
 
 /*******************************************************/
