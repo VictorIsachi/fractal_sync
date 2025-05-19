@@ -397,16 +397,16 @@ module fractal_sync_cc
         ws_br_o[i]                 = 1'b0;
         unique case (c_state[i+N_RX_PORTS])
           IDLE:
-            if (check_br_i[i+N_RX_PORTS]) begin
+            if (check_br_i[i]) begin
               n_state[i+N_RX_PORTS]      = CHECK;
               check_remote[i+N_RX_PORTS] = 1'b1;
-              {en_br_o[i], ws_br_o[i]}   = rf_error[i] ? '0 : sd_out[i+N_RX_PORTS];
+              {en_br_o[i], ws_br_o[i]}   = rf_error[i+N_RX_PORTS] ? '0 : sd_out[i+N_RX_PORTS];
             end
           CHECK: 
-            if (check_br_i[i+N_RX_PORTS]) begin
+            if (check_br_i[i]) begin
               n_state[i+N_RX_PORTS]      = CHECK;
               check_remote[i+N_RX_PORTS] = 1'b1;
-              {en_br_o[i], ws_br_o[i]}   = rf_error[i] ? '0 : sd_out[i+N_RX_PORTS];
+              {en_br_o[i], ws_br_o[i]}   = rf_error[i+N_RX_PORTS] ? '0 : sd_out[i+N_RX_PORTS];
           end else n_state[i+N_RX_PORTS] = IDLE;
         endcase
       end
@@ -489,16 +489,16 @@ module fractal_sync_cc
         ws_br_o[2*i]                 = 1'b0;
         unique case (c_state[2*i+N_RX_PORTS])
           IDLE:
-            if (check_br_i[2*i+N_RX_PORTS]) begin
+            if (check_br_i[2*i]) begin
               n_state[2*i+N_RX_PORTS]      = CHECK;
               check_remote[2*i+N_RX_PORTS] = 1'b1;
-              {en_br_o[2*i], ws_br_o[2*i]} = rf_error[2*i] ? '0 : sd_out[2*i+N_RX_PORTS];
+              {en_br_o[2*i], ws_br_o[2*i]} = rf_error[2*i+N_RX_PORTS] ? '0 : sd_out[2*i+N_RX_PORTS];
             end
           CHECK: 
-            if (check_br_i[2*i+N_RX_PORTS]) begin
+            if (check_br_i[2*i]) begin
               n_state[2*i+N_RX_PORTS]      = CHECK;
               check_remote[2*i+N_RX_PORTS] = 1'b1;
-              {en_br_o[2*i], ws_br_o[2*i]} = rf_error[2*i] ? '0 : sd_out[2*i+N_RX_PORTS];
+              {en_br_o[2*i], ws_br_o[2*i]} = rf_error[2*i+N_RX_PORTS] ? '0 : sd_out[2*i+N_RX_PORTS];
           end else n_state[2*i+N_RX_PORTS] = IDLE;
         endcase
       end
@@ -580,16 +580,16 @@ module fractal_sync_cc
         ws_br_o[2*i+1]                 = 1'b0;
         unique case (c_state[2*i+1+N_RX_PORTS])
           IDLE:
-            if (check_br_i[2*i+1+N_RX_PORTS]) begin
+            if (check_br_i[2*i+1]) begin
               n_state[2*i+1+N_RX_PORTS]        = CHECK;
               check_remote[2*i+1+N_RX_PORTS]   = 1'b1;
-              {en_br_o[2*i+1], ws_br_o[2*i+1]} = rf_error[2*i+1] ? '0 : sd_out[2*i+1+N_RX_PORTS];
+              {en_br_o[2*i+1], ws_br_o[2*i+1]} = rf_error[2*i+1+N_RX_PORTS] ? '0 : sd_out[2*i+1+N_RX_PORTS];
             end
           CHECK: 
-            if (check_br_i[2*i+1+N_RX_PORTS]) begin
+            if (check_br_i[2*i+1]) begin
               n_state[2*i+1+N_RX_PORTS]        = CHECK;
               check_remote[2*i+1+N_RX_PORTS]   = 1'b1;
-              {en_br_o[2*i+1], ws_br_o[2*i+1]} = rf_error[2*i+1] ? '0 : sd_out[2*i+1+N_RX_PORTS];
+              {en_br_o[2*i+1], ws_br_o[2*i+1]} = rf_error[2*i+1+N_RX_PORTS] ? '0 : sd_out[2*i+1+N_RX_PORTS];
           end else n_state[2*i+1+N_RX_PORTS] = IDLE;
         endcase
       end
