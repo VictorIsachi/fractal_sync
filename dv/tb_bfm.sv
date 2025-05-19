@@ -46,9 +46,9 @@ module tb_bfm
   `FSYNC_TYPEDEF_ALL(cu_fsync_in, logic[CU_AGGR_W-1:0], logic[CU_LVL_W-1:0], logic[CU_ID_W-1:0])
   `FSYNC_TYPEDEF_REQ_ALL(cu_fsync_out, logic[CU_AGGR_W-2:0], logic[CU_ID_W-1:0])
 
-  localparam int unsigned MIN_COMP_CYCLES = 10;
-  localparam int unsigned MAX_COMP_CYCLES = 100;
-  localparam int unsigned MAX_RAND_CYCLES = 10;
+  localparam int unsigned MIN_COMP_CYCLES = 0;
+  localparam int unsigned MAX_COMP_CYCLES = 0;
+  localparam int unsigned MAX_RAND_CYCLES = 0;
 
   logic clk, rstn;
 
@@ -127,7 +127,7 @@ module tb_bfm
       sync_req.set_uid();
       for (int i = 0; i < CU_IN_PORTS; i++)
         sync_rsp[i] = new();
-      assert(sync_req.randomize() with { this.sync_level inside {1}; this.sync_aggregate inside {0}; this.sync_barrier_id inside {0}; }) else $error("Sync randomization failed");
+      assert(sync_req.randomize() with { this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0}; }) else $error("Sync randomization failed");
       for (int i = 0; i < CU_IN_PORTS; i++) begin
         comp_cycles[i]     = $urandom_range(MIN_COMP_CYCLES, MAX_COMP_CYCLES);
         max_rand_cycles[i] = MAX_RAND_CYCLES;

@@ -116,8 +116,11 @@ module fractal_sync_1d_remote_rf
   logic[SIG_WIDTH-1:0] local_sig[N_PORTS];
 
   logic valid_sig[N_PORTS];
+
   logic check_rf[N_PORTS];
   logic set_rf[N_PORTS];
+
+  logic[SD_WIDTH-1:0] sd_rf[N_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -143,16 +146,18 @@ module fractal_sync_1d_remote_rf
     assign sig_err_o[i] = ~valid_sig[i];
   end
 
- always_comb begin: bypass_ignore_logic
+ always_comb begin: bypass_ignore_sd_logic
     bypass_o = '{default: 1'b0};
     ignore_o = '{default: 1'b0};
     for (int unsigned i = 0; i < N_PORTS-1; i++) begin
-      if (~check_i[i] | ignore_o[i]) continue;
+      sd_rf[i] = sd_i[i];
+      if (~(check_i[i] | set_i[i]) | ignore_o[i]) continue;
       else begin
         for (int unsigned j = i+1; j < N_PORTS; j++) begin
-          if ((local_id[i] == local_id[j]) && check_i[j]) begin
+          if ((local_id[i] == local_id[j]) && (check_i[j] | set_i[j])) begin
             bypass_o[i] = 1'b1;
             ignore_o[j] = 1'b1;
+            sd_rf[i]    = sd_i[i] | sd_i[j];
             break;
           end
         end
@@ -162,7 +167,7 @@ module fractal_sync_1d_remote_rf
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_check
     assign check_rf[i] = ~(bypass_o[i] | ignore_o[i]) & check_i[i];
-    assign set_rf[i]   = ~(bypass_o[i] | ignore_o[i]) & set_i[i];
+    assign set_rf[i]   = ~ignore_o[i] & set_i[i];
   end
   
   if (RF_TYPE == fractal_sync_pkg::DM_RF) begin: gen_dm_rf
@@ -175,7 +180,7 @@ module fractal_sync_1d_remote_rf
       .rst_ni                   ,
       .check_i     ( check_rf  ),
       .set_i       ( set_rf    ),
-      .sd_i        ( sd_i      ),
+      .sd_i        ( sd_rf     ),
       .idx_i       ( local_sig ),
       .idx_valid_i ( valid_sig ),
       .present_o   ( present_o ),
@@ -191,7 +196,7 @@ module fractal_sync_1d_remote_rf
       .rst_ni                   ,
       .check_i     ( check_rf  ),
       .set_i       ( set_rf    ),
-      .sd_i        ( sd_i      ),
+      .sd_i        ( sd_rf     ),
       .sig_i       ( local_sig ),
       .sig_valid_i ( valid_sig ),
       .present_o   ( present_o ),
