@@ -265,11 +265,15 @@ module fractal_sync_2x2
   for (genvar i = 0; i < N_1D_V_NODES/2; i++) begin: gen_v_1d_fsync_req_rsp_transpose
     for (genvar j = 0; j < N_1D_NODE_IN_PORTS; j++) begin
       if (j%2) begin
-        assign v_tr_1d_fsync_req[i][j]  = v_1d_fsync_req[i+1][j-1];
-        assign v_1d_fsync_rsp[i+1][j-1] = v_tr_1d_fsync_rsp[i][j];
+        assign v_tr_1d_fsync_req[i][j]     = v_1d_fsync_req[i+1][j-1];
+        assign v_tr_1d_fsync_req[i+1][j-1] = v_1d_fsync_req[i][j];
+        assign v_1d_fsync_rsp[i+1][j-1]    = v_tr_1d_fsync_rsp[i][j];
+        assign v_1d_fsync_rsp[i][j]        = v_tr_1d_fsync_rsp[i+1][j-1];
       end else begin
-        assign v_tr_1d_fsync_req[i][j] = v_1d_fsync_req[i][j];
-        assign v_1d_fsync_rsp[i][j]    = v_tr_1d_fsync_rsp[i][j];
+        assign v_tr_1d_fsync_req[i][j]   = v_1d_fsync_req[i][j];
+        assign v_tr_1d_fsync_req[i+1][j] = v_1d_fsync_req[i+1][j];
+        assign v_1d_fsync_rsp[i][j]      = v_tr_1d_fsync_rsp[i][j];
+        assign v_1d_fsync_rsp[i+1][j]    = v_tr_1d_fsync_rsp[i+1][j];
       end
     end
   end
