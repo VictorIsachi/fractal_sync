@@ -32,7 +32,7 @@
  *  N_LINKS_OUT       - Number of output links of the 2D network links (2D node-Out)
  *  AGGREGATE_WIDTH   - Width of the aggr field (CU-1D interface)
  *  ID_WIDTH          - Width of the id field (CU-1D interface)
- *  LVL_OFFSET        - Level offset of 1D nodes
+ *  LVL_OFFSET        - Level offset of 1D nodes (CU-1D interface)
  *  fsync_in_req_t    - CU-1D (horizontal/vertical) synchronization request type (see hw/include/typedef.svh for a template)
  *  fsync_out_req_t   - Top node output synchronization request type  (see hw/include/typedef.svh for a template)
  *  fsync_rsp_t       - 1D/top node synchronization response type (see hw/include/typedef.svh for a template)
@@ -64,10 +64,10 @@ package fractal_sync_2x2_pkg;
   localparam fractal_sync_pkg::node_e      TOP_NODE_TYPE     = fractal_sync_pkg::HV_NODE;
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_1D        = fractal_sync_pkg::CAM_RF;
   localparam int unsigned                  N_LOCAL_REGS_1D   = 1;
-  localparam int unsigned                  N_REMOTE_LINES_1D = 1;
+  localparam int unsigned                  N_REMOTE_LINES_1D = 2;
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_2D        = fractal_sync_pkg::CAM_RF;
   localparam int unsigned                  N_LOCAL_REGS_2D   = 2;
-  localparam int unsigned                  N_REMOTE_LINES_2D = 2;
+  localparam int unsigned                  N_REMOTE_LINES_2D = 4;
   localparam int unsigned                  N_LINKS_IN        = 1;
   localparam int unsigned                  N_LINKS_ITL       = 1;
   localparam int unsigned                  N_LINKS_OUT       = 1;
@@ -81,8 +81,8 @@ package fractal_sync_2x2_pkg;
 
   localparam int unsigned                  OUT_AGGR_WIDTH    = 1;
   localparam int unsigned                  IN_AGGR_WIDTH     = OUT_AGGR_WIDTH+2;
-  localparam int unsigned                  LVL_WIDTH         = 1;
-  localparam int unsigned                  ID_WIDTH          = 2;
+  localparam int unsigned                  LVL_WIDTH         = $clog2(IN_AGGR_WIDTH-1);
+  localparam int unsigned                  ID_WIDTH          = $clog2(2**(IN_AGGR_WIDTH-1));
   localparam int unsigned                  IN_LVL_OFFSET     = 0;
 
   localparam int unsigned                  NBR_AGGR_WIDTH    = 1;
@@ -96,7 +96,7 @@ package fractal_sync_2x2_pkg;
 
 endpackage: fractal_sync_2x2_pkg
 
-module fractal_sync_2x2 
+module fractal_sync_2x2_core 
   import fractal_sync_2x2_pkg::*;
 #(
   parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE     = fractal_sync_2x2_pkg::TOP_NODE_TYPE,
@@ -119,8 +119,6 @@ module fractal_sync_2x2
   parameter type                          fsync_nbr_rsp_t   = fractal_sync_2x2_pkg::fsync_nbr_rsp_t,
   localparam int unsigned                 N_1D_H_PORTS      = fractal_sync_2x2_pkg::N_1D_H_PORTS,
   localparam int unsigned                 N_1D_V_PORTS      = fractal_sync_2x2_pkg::N_1D_V_PORTS,
-  localparam int unsigned                 N_NBR_H_PORTS     = fractal_sync_2x2_pkg::N_NBR_H_PORTS,
-  localparam int unsigned                 N_NBR_V_PORTS     = fractal_sync_2x2_pkg::N_NBR_V_PORTS,
   localparam int unsigned                 N_2D_H_PORTS      = fractal_sync_2x2_pkg::N_2D_H_PORTS,
   localparam int unsigned                 N_2D_V_PORTS      = fractal_sync_2x2_pkg::N_2D_V_PORTS
 )(
@@ -131,11 +129,6 @@ module fractal_sync_2x2
   output fsync_rsp_t    h_1d_fsync_rsp_o[N_1D_H_PORTS][N_LINKS_IN],
   input  fsync_in_req_t v_1d_fsync_req_i[N_1D_V_PORTS][N_LINKS_IN],
   output fsync_rsp_t    v_1d_fsync_rsp_o[N_1D_V_PORTS][N_LINKS_IN],
-
-  input  fsync_nbr_req_t h_nbr_fsycn_req_i[N_NBR_H_PORTS],
-  output fsync_nbr_rsp_t h_nbr_fsycn_rsp_o[N_NBR_H_PORTS],
-  input  fsync_nbr_req_t v_nbr_fsycn_req_i[N_NBR_V_PORTS],
-  output fsync_nbr_rsp_t v_nbr_fsycn_rsp_o[N_NBR_V_PORTS],
 
   output fsync_out_req_t h_2d_fsync_req_o[N_2D_H_PORTS][N_LINKS_OUT],
   input  fsync_rsp_t     h_2d_fsync_rsp_i[N_2D_H_PORTS][N_LINKS_OUT],
@@ -229,20 +222,6 @@ module fractal_sync_2x2
 /*******************************************************/
 /**            Hardwired Signals Beginning            **/
 /*******************************************************/
-
-  for (genvar i = 0; i < N_NBR_H_PORTS; i++) begin: gen_h_nbr_rsp
-    assign h_nbr_fsycn_rsp_o[i].wake    = 1'b0;
-    assign h_nbr_fsycn_rsp_o[i].sig.lvl = '0;
-    assign h_nbr_fsycn_rsp_o[i].sig.id  = '0;
-    assign h_nbr_fsycn_rsp_o[i].error   = 1'b0;
-  end
-
-  for (genvar i = 0; i < N_NBR_H_PORTS; i++) begin: gen_v_nbr_rsp
-    assign v_nbr_fsycn_rsp_o[i].wake    = 1'b0;
-    assign v_nbr_fsycn_rsp_o[i].sig.lvl = '0;
-    assign v_nbr_fsycn_rsp_o[i].sig.id  = '0;
-    assign v_nbr_fsycn_rsp_o[i].error   = 1'b0;
-  end
 
   for (genvar i = 0; i < N_1D_H_NODES; i++) begin: gen_h_1d_fsync_req_rsp
     for (genvar j = 0; j < N_LINKS_IN; j++) begin
@@ -403,6 +382,85 @@ module fractal_sync_2x2
 
 /*******************************************************/
 /**                 Top (2D) Node End                 **/
+/*******************************************************/
+
+endmodule: fractal_sync_2x2_core
+
+module fractal_sync_2x2
+  import fractal_sync_2x2_pkg::*;
+#(
+  parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE     = fractal_sync_2x2_pkg::TOP_NODE_TYPE,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_1D        = fractal_sync_2x2_pkg::RF_TYPE_1D,
+  parameter int unsigned                  N_LOCAL_REGS_1D   = fractal_sync_2x2_pkg::N_LOCAL_REGS_1D,
+  parameter int unsigned                  N_REMOTE_LINES_1D = fractal_sync_2x2_pkg::N_REMOTE_LINES_1D,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_2D        = fractal_sync_2x2_pkg::RF_TYPE_2D,
+  parameter int unsigned                  N_LOCAL_REGS_2D   = fractal_sync_2x2_pkg::N_LOCAL_REGS_2D,
+  parameter int unsigned                  N_REMOTE_LINES_2D = fractal_sync_2x2_pkg::N_REMOTE_LINES_2D,
+  parameter int unsigned                  N_LINKS_IN        = fractal_sync_2x2_pkg::N_LINKS_IN,
+  parameter int unsigned                  N_LINKS_ITL       = fractal_sync_2x2_pkg::N_LINKS_ITL,
+  parameter int unsigned                  N_LINKS_OUT       = fractal_sync_2x2_pkg::N_LINKS_OUT,
+  parameter int unsigned                  AGGREGATE_WIDTH   = fractal_sync_2x2_pkg::IN_AGGR_WIDTH,
+  parameter int unsigned                  ID_WIDTH          = fractal_sync_2x2_pkg::ID_WIDTH,
+  parameter int unsigned                  LVL_OFFSET        = fractal_sync_2x2_pkg::IN_LVL_OFFSET,
+  parameter type                          fsync_in_req_t    = fractal_sync_2x2_pkg::fsync_in_req_t,
+  parameter type                          fsync_out_req_t   = fractal_sync_2x2_pkg::fsync_out_req_t,
+  parameter type                          fsync_rsp_t       = fractal_sync_2x2_pkg::fsync_rsp_t,
+  parameter type                          fsync_nbr_req_t   = fractal_sync_2x2_pkg::fsync_nbr_req_t,
+  parameter type                          fsync_nbr_rsp_t   = fractal_sync_2x2_pkg::fsync_nbr_rsp_t,
+  localparam int unsigned                 N_1D_H_PORTS      = fractal_sync_2x2_pkg::N_1D_H_PORTS,
+  localparam int unsigned                 N_1D_V_PORTS      = fractal_sync_2x2_pkg::N_1D_V_PORTS,
+  localparam int unsigned                 N_NBR_H_PORTS     = fractal_sync_2x2_pkg::N_NBR_H_PORTS,
+  localparam int unsigned                 N_NBR_V_PORTS     = fractal_sync_2x2_pkg::N_NBR_V_PORTS,
+  localparam int unsigned                 N_2D_H_PORTS      = fractal_sync_2x2_pkg::N_2D_H_PORTS,
+  localparam int unsigned                 N_2D_V_PORTS      = fractal_sync_2x2_pkg::N_2D_V_PORTS
+)(
+  input  logic           clk_i,
+  input  logic           rst_ni,
+
+  input  fsync_in_req_t h_1d_fsync_req_i[N_1D_H_PORTS][N_LINKS_IN],
+  output fsync_rsp_t    h_1d_fsync_rsp_o[N_1D_H_PORTS][N_LINKS_IN],
+  input  fsync_in_req_t v_1d_fsync_req_i[N_1D_V_PORTS][N_LINKS_IN],
+  output fsync_rsp_t    v_1d_fsync_rsp_o[N_1D_V_PORTS][N_LINKS_IN],
+
+  input  fsync_nbr_req_t h_nbr_fsycn_req_i[N_NBR_H_PORTS],
+  output fsync_nbr_rsp_t h_nbr_fsycn_rsp_o[N_NBR_H_PORTS],
+  input  fsync_nbr_req_t v_nbr_fsycn_req_i[N_NBR_V_PORTS],
+  output fsync_nbr_rsp_t v_nbr_fsycn_rsp_o[N_NBR_V_PORTS],
+
+  output fsync_out_req_t h_2d_fsync_req_o[N_2D_H_PORTS][N_LINKS_OUT],
+  input  fsync_rsp_t     h_2d_fsync_rsp_i[N_2D_H_PORTS][N_LINKS_OUT],
+  output fsync_out_req_t v_2d_fsync_req_o[N_2D_V_PORTS][N_LINKS_OUT],
+  input  fsync_rsp_t     v_2d_fsync_rsp_i[N_2D_V_PORTS][N_LINKS_OUT]
+);
+
+/*******************************************************/
+/**            Hardwired Signals Beginning            **/
+/*******************************************************/
+
+  for (genvar i = 0; i < N_NBR_H_PORTS; i++) begin: gen_h_nbr_rsp
+    assign h_nbr_fsycn_rsp_o[i].wake    = 1'b0;
+    assign h_nbr_fsycn_rsp_o[i].sig.lvl = '0;
+    assign h_nbr_fsycn_rsp_o[i].sig.id  = '0;
+    assign h_nbr_fsycn_rsp_o[i].error   = 1'b0;
+  end
+
+  for (genvar i = 0; i < N_NBR_V_PORTS; i++) begin: gen_v_nbr_rsp
+    assign v_nbr_fsycn_rsp_o[i].wake    = 1'b0;
+    assign v_nbr_fsycn_rsp_o[i].sig.lvl = '0;
+    assign v_nbr_fsycn_rsp_o[i].sig.id  = '0;
+    assign v_nbr_fsycn_rsp_o[i].error   = 1'b0;
+  end
+
+/*******************************************************/
+/**               Hardwired Signals End               **/
+/*******************************************************/
+/**         Synchronization Network Beginning         **/
+/*******************************************************/
+
+  fractal_sync_2x2_core i_fractal_sync_2x2 (.*);
+
+/*******************************************************/
+/**            Synchronization Network End            **/
 /*******************************************************/
 
 endmodule: fractal_sync_2x2
