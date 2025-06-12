@@ -185,7 +185,7 @@ module fractal_sync_4x4_core
   localparam int unsigned ROOT_LVL_OFFSET        = LEAF_LVL_OFFSET+2;
 
   localparam int unsigned ITL_RSP_AGGR_WIDTH = ROOT_AGGREGATE_WIDTH;
-  `FSYNC_TYPEDEF_REQ_ALL(fsync_itl, logic[ITL_RSP_AGGR_WIDTH-1], logic[ID_WIDTH-1:0])
+  `FSYNC_TYPEDEF_REQ_ALL(fsync_itl, logic[ITL_RSP_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
 
   localparam int unsigned N_1D_H_LEAF_PORTS = N_1D_H_PORTS/N_LEAF_FSYNC_NETWORKS;
   localparam int unsigned N_1D_V_LEAF_PORTS = N_1D_V_PORTS/N_LEAF_FSYNC_NETWORKS;
