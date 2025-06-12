@@ -632,6 +632,8 @@ module fractal_sync_4x4
 /*******************************************************/
 
   fractal_sync_4x4_core i_fractal_sync_4x4 (
+    .clk_i                                ,
+    .rst_ni                               ,
     .h_1d_fsync_req_i                     ,
     .h_1d_fsync_rsp_o                     ,
     .v_1d_fsync_req_i                     ,

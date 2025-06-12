@@ -170,8 +170,8 @@ module fractal_sync_2x2_core
 
   `FSYNC_TYPEDEF_REQ_ALL(fsync_itl, logic[ITL_AGGR_WIDTH-1:0], logic[ITL_ID_WIDTH-1:0])
 
-  localparam int unsigned FIFO_DEPTH_1D = N_LINKS_ITL/N_LINKS_IN;
-  localparam int unsigned FIFO_DEPTH_2D = N_LINKS_OUT/N_LINKS_ITL;
+  localparam int unsigned FIFO_DEPTH_1D = (N_LINKS_ITL/N_LINKS_IN  > 0) ? N_LINKS_ITL/N_LINKS_IN  : 1;
+  localparam int unsigned FIFO_DEPTH_2D = (N_LINKS_OUT/N_LINKS_ITL > 0) ? N_LINKS_OUT/N_LINKS_ITL : 1;
 
   localparam int unsigned N_1D_NODE_IN_PORTS  = N_LINKS_IN*2;
   localparam int unsigned N_1D_NODE_OUT_PORTS = N_LINKS_ITL;
