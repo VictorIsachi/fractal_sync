@@ -91,7 +91,7 @@ package fractal_sync_4x4_pkg;
   localparam int unsigned                  OUT_AGGR_WIDTH                     = 1;
   localparam int unsigned                  IN_AGGR_WIDTH                      = OUT_AGGR_WIDTH+N_ITL_LEVELS+1;
   localparam int unsigned                  LVL_WIDTH                          = $clog2(IN_AGGR_WIDTH-1);
-  localparam int unsigned                  ID_WIDTH                           = $clog2(2**(IN_AGGR_WIDTH-1));
+  localparam int unsigned                  ID_WIDTH                           = N_ITL_LEVELS;
   localparam int unsigned                  IN_LVL_OFFSET                      = 0;
 
   localparam int unsigned                  NBR_AGGR_WIDTH                     = 1;
