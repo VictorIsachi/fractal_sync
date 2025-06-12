@@ -515,6 +515,11 @@ module fractal_sync_4x4
 /**            Hardwired Signals Beginning            **/
 /*******************************************************/
 
+  // Horizontal neighbor mapping: neighbor node i -> tile nodes [4*i+1, 4*i+2]
+  // 0 -> [1,  2]
+  // 1 -> [5,  6]
+  // 2 -> [9,  10]
+  // 3 -> [13, 14]
   assign h_nbr_fsycn_req[0] = h_nbr_fsycn_req_i[1];
   assign h_nbr_fsycn_req[1] = h_nbr_fsycn_req_i[2];
   assign h_nbr_fsycn_req[2] = h_nbr_fsycn_req_i[5];
@@ -565,6 +570,11 @@ module fractal_sync_4x4
   assign h_nbr_fsycn_rsp_o[15].sig.id  = '0;
   assign h_nbr_fsycn_rsp_o[15].error   = 1'b0;
 
+  // Vertical neighbor mapping: neighbor node i -> tile nodes [4+i, 8+i]
+  // 0 -> [4, 8]
+  // 1 -> [5, 9]
+  // 2 -> [6, 10]
+  // 3 -> [7, 11]
   assign v_nbr_fsycn_req[0] = v_nbr_fsycn_req_i[4];
   assign v_nbr_fsycn_req[1] = v_nbr_fsycn_req_i[8];
   assign v_nbr_fsycn_req[2] = v_nbr_fsycn_req_i[5];
