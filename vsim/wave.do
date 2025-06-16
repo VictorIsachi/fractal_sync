@@ -6,6 +6,7 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_du
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/N_REMOTE_LINES
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/AGGREGATE_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/ID_WIDTH
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/LVL_OFFSET
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/FIFO_DEPTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/IN_PORTS
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/OUT_PORTS
@@ -15,11 +16,12 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_du
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/RSP_ARB_PORTS
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/clk_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/rst_ni
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/req_in_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/rsp_in_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/req_out_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/rsp_out_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d -expand -subitemconfig {{/tb_bfm/i_dut_fractal_sync_1d/req_in_i[0]} -expand {/tb_bfm/i_dut_fractal_sync_1d/req_in_i[1]} -expand} /tb_bfm/i_dut_fractal_sync_1d/req_in_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d -expand -subitemconfig {{/tb_bfm/i_dut_fractal_sync_1d/rsp_in_o[0]} -expand {/tb_bfm/i_dut_fractal_sync_1d/rsp_in_o[1]} -expand} /tb_bfm/i_dut_fractal_sync_1d/rsp_in_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d -expand -subitemconfig {{/tb_bfm/i_dut_fractal_sync_1d/req_out_o[0]} -expand} /tb_bfm/i_dut_fractal_sync_1d/req_out_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d -expand -subitemconfig {{/tb_bfm/i_dut_fractal_sync_1d/rsp_out_i[0]} -expand} /tb_bfm/i_dut_fractal_sync_1d/rsp_out_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/sampled_req_in
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/check_rx
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/local_rx
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/root_rx
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/overflow_rx
@@ -29,6 +31,10 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_du
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/pop_req_arb
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/empty_req_arb
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/req_arb
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/sampled_rsp_out
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/check_tx
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/en_propagate_tx
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/ws_propagate_tx
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/en_overflow_tx
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/ws_overflow_tx
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/overflow_tx
@@ -55,13 +61,13 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_du
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/local_pop_q
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d /tb_bfm/i_dut_fractal_sync_1d/local_pop_d
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/COMB_IN}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/SD_MASK}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/FIFO_DEPTH}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/FIFO_COMB_OUT}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/clk_i}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/rst_ni}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/req_i}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} -expand {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/req_i}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/sampled_req_o}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/check_propagate_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/local_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/root_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/error_overflow_o}
@@ -75,13 +81,13 @@ add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/full_fifo}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[0]/i_rx/sampled_out_req}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/COMB_IN}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/SD_MASK}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/FIFO_DEPTH}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/FIFO_COMB_OUT}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/clk_i}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/rst_ni}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/req_i}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} -expand {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/req_i}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/sampled_req_o}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/check_propagate_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/local_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/root_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/error_overflow_o}
@@ -94,29 +100,33 @@ add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/push}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/full_fifo}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx} {/tb_bfm/i_dut_fractal_sync_1d/gen_rx[1]/i_rx/sampled_out_req}
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/IN_PORTS
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/OUT_PORTS
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/SEL_IDX_W
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/clk_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/rst_ni
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/pop_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/empty_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/element_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/element_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/req_arb
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/gnt_arb
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/pending_req
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/c_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/n_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/clear_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/out_en
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_rx_arb /tb_bfm/i_dut_fractal_sync_1d/i_rx_arb/sel_idx
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/IN_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/OUT_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/SEL_IDX_W
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/clk_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/rst_ni
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/pop_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/empty_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/element_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/element_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/req_arb
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/gnt_arb
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/pending_req
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/c_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/n_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/clear_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/out_en
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_req_arb /tb_bfm/i_dut_fractal_sync_1d/i_req_arb/sel_idx
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/COMB_IN}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/FIFO_DEPTH}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/FIFO_COMB_OUT}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/clk_i}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/rst_ni}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/rsp_i}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} -expand {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/rsp_i}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/sampled_rsp_o}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/check_propagate_o}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_propagate_i}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_propagate_i}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_error_overflow_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_error_overflow_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_empty_o}
@@ -126,48 +136,45 @@ add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_rsp_o}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_pop_i}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_sample}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/sampled_wake}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_push}
+add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_push}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_full_fifo}
 add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_full_fifo}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/sampled_rsp}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/sampled_out_rsp}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_push_q}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_push_q}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/en_push_d}
-add wave -noupdate -expand -group {sim:/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx} {/tb_bfm/i_dut_fractal_sync_1d/gen_tx[0]/i_tx/ws_push_d}
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/IN_PORTS
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/OUT_PORTS
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/SEL_IDX_W
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/clk_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/rst_ni
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/pop_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/empty_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/element_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/element_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/req_arb
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/gnt_arb
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/pending_req
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/c_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/n_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/clear_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/out_en
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_tx_arb/sel_idx
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/IN_PORTS
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/OUT_PORTS
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/SEL_IDX_W
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/clk_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/rst_ni
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/pop_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/empty_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/element_i
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/element_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/req_arb
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/gnt_arb
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/pending_req
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/c_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/n_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/clear_mask
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/out_en
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_tx_arb/sel_idx
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/IN_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/OUT_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/SEL_IDX_W
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/clk_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/rst_ni
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/pop_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/empty_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/element_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/element_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/req_arb
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/gnt_arb
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/pending_req
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/c_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/n_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/clear_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/out_en
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_en_rsp_arb/sel_idx
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/IN_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/OUT_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/SEL_IDX_W
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/clk_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/rst_ni
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/pop_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/empty_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/element_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/element_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/req_arb
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/gnt_arb
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/pending_req
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/c_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/n_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/clear_mask
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/out_en
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb /tb_bfm/i_dut_fractal_sync_1d/i_ws_rsp_arb/sel_idx
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/NODE_TYPE
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/RF_DIM
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/RF_TYPE
@@ -175,6 +182,7 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/N_REMOTE_LINES
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/AGGREGATE_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/ID_WIDTH
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/LVL_OFFSET
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/N_RX_PORTS
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/N_TX_PORTS
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/N_PORTS
@@ -182,14 +190,21 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/FIFO_DEPTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/EN_REMOTE_RF
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/LEVEL_WIDTH
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/SD_MASK
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/N_1D_RX_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/N_1D_TX_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/N_1D_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/SD_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/clk_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/rst_ni
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/req_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/check_rf_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/local_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/root_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/error_overflow_rx_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/rsp_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/check_br_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/en_br_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/ws_br_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/error_overflow_tx_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/local_empty_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/local_rsp_o
@@ -204,6 +219,15 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/id
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/h_id
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/v_id
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/local_id
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/local_h_id
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/local_v_id
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/sd_in
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/h_sd_in
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/v_sd_in
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/sd_out
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/h_sd_out
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/v_sd_out
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/local_rsp
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/remote_req
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/id_error
@@ -224,6 +248,9 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/check_remote
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/h_check_remote
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/v_check_remote
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/set_remote
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/h_set_remote
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/v_set_remote
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/bypass_local
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/h_bypass_local
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc /tb_bfm/i_dut_fractal_sync_1d/i_cc/v_bypass_local
@@ -248,23 +275,29 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/LEVEL_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/ID_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/N_REMOTE_LINES
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/N_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/SD_WIDTH
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/N_LOCAL_PORTS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/N_REMOTE_PORTS
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/clk_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/rst_ni
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/level_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/id_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/sd_remote_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/check_local_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/check_remote_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/set_remote_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/present_local_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/present_remote_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/sd_remote_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/id_err_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/sig_err_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/bypass_local_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/bypass_remote_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/ignore_local_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/ignore_remote_o
-add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf/ID_WIDTH
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/local_id
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf/N_REGS
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf/ID_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf/N_PORTS
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf/LOCAL_ID_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/i_local_rf/MAX_ID
@@ -283,6 +316,7 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/LEVEL_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/ID_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/N_CAM_LINES
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/SD_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/N_PORTS
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/LOCAL_ID_WIDTH
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/N_DM_REGS
@@ -296,8 +330,11 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/rst_ni
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/level_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/id_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/sd_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/check_i
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/set_i
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/present_o
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/sd_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/sig_err_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/bypass_o
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/ignore_o
@@ -307,10 +344,11 @@ add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/local_sig
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/valid_sig
 add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/check_rf
+add wave -noupdate -expand -group sim:/tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf /tb_bfm/i_dut_fractal_sync_1d/i_cc/gen_1d_rf/i_rf/gen_1d_remote_rf/i_remote_rf/set_rf
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {32 ns} 0}
+WaveRestoreCursors {{Cursor 1} {890 ns} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 160
+configure wave -namecolwidth 208
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
@@ -324,4 +362,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ns} {996 ns}
+WaveRestoreZoom {0 ns} {987 ns}

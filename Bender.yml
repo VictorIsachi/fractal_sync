@@ -51,7 +51,7 @@ sources:
 
     - target: dv
       files:
-        - dv/fractal_dv_pkg.svh
+        - dv/fractal_dv_pkg.sv
         - dv/sync_transaction.sv
         - dv/cu_bfm.sv
         - dv/tb_bfm.sv
