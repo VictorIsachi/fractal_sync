@@ -20,7 +20,8 @@ compile_script:
 
 start_sim:
 	$(QUESTA) vsim -do "source ${compile_script}" \
-	-do "vsim work.$(tb_top) -voptargs=+acc"
+	-do "vsim work.$(tb_top) -voptargs=+acc"      \
+	-do "source vsim/wave.do"
 
 clear:
 	rm -fr ${compile_script} \
