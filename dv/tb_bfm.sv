@@ -16,7 +16,7 @@
  *
  * Authors: Victor Isachi <victor.isachi@unibo.it>
  *
- * TB for stand-alone fractal synchronization module
+ * TB for FractalSync networks
  *
  * WARRNING: Error injection testing must be performed
  */
@@ -31,89 +31,133 @@ module tb_bfm
   `include "../hw/include/fractal_sync/typedef.svh"
   `include "../hw/include/fractal_sync/assign.svh"
   
-  localparam int unsigned N_TESTS = 1;
+  // Testbench parameters
+  parameter int unsigned N_TESTS = 1;
 
-  localparam int unsigned CU_L_REGS     = 1;
-  localparam int unsigned CU_R_LINES    = 1;
-  localparam int unsigned CU_AGGR_W     = 6;
-  localparam int unsigned CU_LVL_W      = 3;
-  localparam int unsigned CU_LVL_OFFSET = 0;
-  localparam int unsigned CU_ID_W       = 5;
-  localparam int unsigned CU_FIFO_D     = 1;
-  localparam int unsigned CU_IN_PORTS   = 2;
-  localparam int unsigned CU_OUT_PORTS  = CU_IN_PORTS/2;
+  parameter int unsigned N_CU_Y = 2;
+  parameter int unsigned N_CU_X = 2;
 
-  `FSYNC_TYPEDEF_ALL(cu_fsync_in, logic[CU_AGGR_W-1:0], logic[CU_LVL_W-1:0], logic[CU_ID_W-1:0])
-  `FSYNC_TYPEDEF_REQ_ALL(cu_fsync_out, logic[CU_AGGR_W-2:0], logic[CU_ID_W-1:0])
+  parameter int unsigned MIN_COMP_CYCLES = 0;
+  parameter int unsigned MAX_COMP_CYCLES = 0;
+  parameter int unsigned MAX_RAND_CYCLES = 0;
 
-  localparam int unsigned MIN_COMP_CYCLES = 0;
-  localparam int unsigned MAX_COMP_CYCLES = 0;
-  localparam int unsigned MAX_RAND_CYCLES = 0;
+  // Testbench localparams - DO NOT CHANGE
+  localparam int unsigned N_CU  = N_CU_Y*N_CU_X;
+  localparam int unsigned N_LVL = $clog2(N_CU);
 
+  localparam int unsigned ROOT_AGGR_W = 1;
+  localparam int unsigned CU_AGGR_W   = ROOT_AGGR_W+N_LVL;
+  localparam int unsigned CU_LVL_W    = $clog2(CU_AGGR_W-1);
+  localparam int unsigned CU_ID_W     = N_LVL-1 >= 2 ? N_LVL-1 : 2;
+  localparam int unsigned ROOT_LVL_W  = CU_LVL_W;
+  localparam int unsigned ROOT_ID_W   = CU_ID_W;
+  localparam int unsigned NBR_AGGR_W  = 1;
+  localparam int unsigned NBR_LVL_W   = 1;
+  localparam int unsigned NBR_ID_W    = 1;
+
+  // Testbench type definitions
+  `FSYNC_TYPEDEF_ALL(ht_cu_fsync,  logic[CU_AGGR_W-1:0],   logic[CU_LVL_W-1:0],   logic[CU_ID_W-1:0])
+  `FSYNC_TYPEDEF_ALL(vt_cu_fsync,  logic[CU_AGGR_W-1:0],   logic[CU_LVL_W-1:0],   logic[CU_ID_W-1:0])
+  `FSYNC_TYPEDEF_ALL(hn_cu_fsync,  logic[NBR_AGGR_W-1:0],  logic[NBR_LVL_W-1:0],  logic[NBR_ID_W-1:0])
+  `FSYNC_TYPEDEF_ALL(vn_cu_fsync,  logic[NBR_AGGR_W-1:0],  logic[NBR_LVL_W-1:0],  logic[NBR_ID_W-1:0])
+  `FSYNC_TYPEDEF_ALL(h_root_fsync, logic[ROOT_AGGR_W-1:0], logic[ROOT_LVL_W-1:0], logic[ROOT_ID_W-1:0])
+  `FSYNC_TYPEDEF_ALL(v_root_fsync, logic[ROOT_AGGR_W-1:0], logic[ROOT_LVL_W-1:0], logic[ROOT_ID_W-1:0])
+
+  // Testbench internal signals
   logic clk, rstn;
 
-  int unsigned comp_cycles[CU_IN_PORTS];
-  int unsigned max_rand_cycles[CU_IN_PORTS];
+  int unsigned comp_cycles[N_CU];
+  int unsigned max_rand_cycles[N_CU];
 
-  sync_transaction sync_req;
-  sync_transaction sync_rsp[CU_IN_PORTS];
+  sync_transaction sync_req[N_CU];
+  sync_transaction sync_rsp[N_CU];
 
-  cu_fsync_in_req_t  in_req[CU_IN_PORTS];
-  cu_fsync_in_rsp_t  in_rsp[CU_IN_PORTS];
-  cu_fsync_out_req_t out_req[CU_OUT_PORTS];
-  cu_fsync_in_rsp_t  out_rsp[CU_OUT_PORTS];
+  ht_cu_fsync_req_t  ht_cu_fsync_req[N_CU][1]; // Single link CU-FSync interface
+  ht_cu_fsync_rsp_t  ht_cu_fsync_rsp[N_CU][1]; // Single link CU-FSync interface
+  vt_cu_fsync_req_t  vt_cu_fsync_req[N_CU][1]; // Single link CU-FSync interface
+  vt_cu_fsync_rsp_t  vt_cu_fsync_rsp[N_CU][1]; // Single link CU-FSync interface
+  hn_cu_fsync_req_t  hn_cu_fsync_req[N_CU];
+  hn_cu_fsync_rsp_t  hn_cu_fsync_rsp[N_CU];
+  vn_cu_fsync_req_t  vn_cu_fsync_req[N_CU];
+  vn_cu_fsync_rsp_t  vn_cu_fsync_rsp[N_CU];
+  h_root_fsync_req_t h_root_fsync_req[1][1]; // Single node, single link root node out interface
+  h_root_fsync_rsp_t h_root_fsync_rsp[1][1]; // Single node, single link root node out interface
+  v_root_fsync_req_t v_root_fsync_req[1][1]; // Single node, single link root node out interface
+  v_root_fsync_rsp_t v_root_fsync_rsp[1][1]; // Single node, single link root node out interface
 
-  fractal_sync_if #(.AGGR_WIDTH(CU_AGGR_W), .LVL_WIDTH(CU_LVL_W), .ID_WIDTH(CU_ID_W)) if_cu[CU_IN_PORTS]();
+  // CU-FractalSync network interfaces
+  fractal_sync_if #(.AGGR_WIDTH(CU_AGGR_W),  .LVL_WIDTH(CU_LVL_W),  .ID_WIDTH(CU_ID_W))  if_cu_h_tree[N_CU]();
+  fractal_sync_if #(.AGGR_WIDTH(CU_AGGR_W),  .LVL_WIDTH(CU_LVL_W),  .ID_WIDTH(CU_ID_W))  if_cu_v_tree[N_CU]();
+  fractal_sync_if #(.AGGR_WIDTH(NBR_AGGR_W), .LVL_WIDTH(NBR_LVL_W), .ID_WIDTH(NBR_ID_W)) if_cu_h_nbr[N_CU]();
+  fractal_sync_if #(.AGGR_WIDTH(NBR_AGGR_W), .LVL_WIDTH(NBR_LVL_W), .ID_WIDTH(NBR_ID_W)) if_cu_v_nbr[N_CU]();
 
-  cu_bfm #(.AGGR_WIDTH(CU_AGGR_W), .LVL_WIDTH(CU_LVL_W), .ID_WIDTH(CU_ID_W)) cu_bfms[CU_IN_PORTS];
+  // Interface - Req/Rsp conversion
+  for (genvar i = 0; i < N_CU; i++) begin
+    `FSYNC_ASSIGN_I2S_REQ(if_cu_h_tree[i],       ht_cu_fsync_req[i][0])
+    `FSYNC_ASSIGN_S2I_RSP(ht_cu_fsync_rsp[i][0], if_cu_h_tree[i])
+    `FSYNC_ASSIGN_I2S_REQ(if_cu_v_tree[i],       vt_cu_fsync_req[i][0])
+    `FSYNC_ASSIGN_S2I_RSP(vt_cu_fsync_rsp[i][0], if_cu_v_tree[i])
+    `FSYNC_ASSIGN_I2S_REQ(if_cu_h_nbr[i],        hn_cu_fsync_req[i])
+    `FSYNC_ASSIGN_S2I_RSP(hn_cu_fsync_rsp[i],    if_cu_h_nbr[i])
+    `FSYNC_ASSIGN_I2S_REQ(if_cu_v_nbr[i],        vn_cu_fsync_req[i])
+    `FSYNC_ASSIGN_S2I_RSP(vn_cu_fsync_rsp[i],    if_cu_v_nbr[i])
+  end
+
+  // Hardwired synchronization tree root signals
+  assign h_root_fsync_rsp[0][0].wake    = 1'b0;
+  assign h_root_fsync_rsp[0][0].sig.lvl = '0;
+  assign h_root_fsync_rsp[0][0].sig.id  = '0;
+  assign h_root_fsync_rsp[0][0].error   = 1'b0;
+  assign v_root_fsync_rsp[0][0].wake    = 1'b0;
+  assign v_root_fsync_rsp[0][0].sig.lvl = '0;
+  assign v_root_fsync_rsp[0][0].sig.id  = '0;
+  assign v_root_fsync_rsp[0][0].error   = 1'b0;
+
+  // BFMs of CUs
+  cu_bfm #(.FSYNC_TREE_AGGR_WIDTH(CU_AGGR_W), .FSYNC_TREE_LVL_WIDTH(CU_LVL_W), .FSYNC_TREE_ID_WIDTH(CU_ID_W),
+           .FSYNC_NBR_AGGR_WIDTH(NBR_AGGR_W), .FSYNC_NBR_LVL_WIDTH(NBR_LVL_W), .FSYNC_NBR_ID_WIDTH(NBR_ID_W)) cu_bfms[N_CU];
   
-  for (genvar i = 0; i < CU_IN_PORTS; i++) begin: gen_cu_bfm
-    initial begin
-      cu_bfms[i] = new(.instance_name($sformatf("cu_bfm_%0d", i)), .vif_master(if_cu[i]));
-      cu_bfms[i].init();
+  // Create and initialize CU BFMs
+  for (genvar y = 0; y < N_CU_Y; y++) begin: gen_y_cu_bfm
+    for (genvar x = 0; x < N_CU_X; x++) begin: gen_x_cu_bfm
+      initial begin
+        cu_bfms[y*N_CU_X+x] = new(.instance_name($sformatf("cu_bfm_%0d[%0d,%0d]", y*N_CU_X+x, y, x)),
+                                  .vif_master_h_tree(if_cu_h_tree[y*N_CU_X+x]),
+                                  .vif_master_v_tree(if_cu_v_tree[y*N_CU_X+x]),
+                                  .vif_master_h_nbr(if_cu_h_nbr[y*N_CU_X+x]),
+                                  .vif_master_v_nbr(if_cu_v_nbr[y*N_CU_X+x]));
+        cu_bfms[y*N_CU_X+x].init();
+      end
     end
   end
 
-  fractal_sync_1d #(
-    .NODE_TYPE       ( fractal_sync_pkg::HOR_NODE ),
-    .RF_TYPE         ( fractal_sync_pkg::CAM_RF   ),
-    .N_LOCAL_REGS    ( CU_L_REGS                  ),
-    .N_REMOTE_LINES  ( CU_R_LINES                 ),
-    .AGGREGATE_WIDTH ( CU_AGGR_W                  ),
-    .ID_WIDTH        ( CU_ID_W                    ),
-    .LVL_OFFSET      ( CU_LVL_OFFSET              ),
-    .fsync_req_in_t  ( cu_fsync_in_req_t          ),
-    .fsync_req_out_t ( cu_fsync_out_req_t         ),
-    .fsync_rsp_t     ( cu_fsync_in_rsp_t          ),
-    .FIFO_DEPTH      ( CU_FIFO_D                  ),
-    .IN_PORTS        ( CU_IN_PORTS                ),
-    .OUT_PORTS       ( CU_OUT_PORTS               )
-  ) i_dut_fractal_sync_1d (
-    .clk_i     ( clk     ),
-    .rst_ni    ( rstn    ),
-    .req_in_i  ( in_req  ),
-    .rsp_in_o  ( in_rsp  ),
-    .req_out_o ( out_req ),
-    .rsp_out_i ( out_rsp )
-  );
+  // Testbench subroutines
+  function automatic set_req_timing();
+    for (int i = 0; i < N_CU; i++) begin
+      comp_cycles[i]     = $urandom_range(MIN_COMP_CYCLES, MAX_COMP_CYCLES);
+      max_rand_cycles[i] = MAX_RAND_CYCLES;
+    end
+  endfunction: set_req_timing
 
-  for (genvar i = 0; i < CU_IN_PORTS; i++) begin
-    `FSYNC_ASSIGN_I2S_REQ(if_cu[i], in_req[i])
-    `FSYNC_ASSIGN_S2I_RSP(in_rsp[i], if_cu[i])
-  end
-
-  for (genvar i = 0; i < CU_OUT_PORTS; i++) begin
-    assign out_rsp[i].wake    = 1'b0;
-    assign out_rsp[i].sig.lvl = '0;
-    assign out_rsp[i].sig.id  = '0;
-    assign out_rsp[i].error   = 1'b0;
-  end
+  task automatic run_test();
+    fork begin
+      for (int i = 0; i < N_CU; i++) begin
+        fork
+          automatic int j = i;
+          cu_bfms[j].sync(sync_req[j], sync_rsp[j], comp_cycles[j], max_rand_cycles[j], clk);
+        join_none
+      end
+      wait fork;
+    end join
+  endtask: run_test
   
+  // Clock
   always begin
     #5 clk = ~clk;
   end
 
-  initial begin    
+  // Reset and clock init
+  initial begin
     clk = 1'b0;
 
     @(negedge clk);
@@ -121,26 +165,113 @@ module tb_bfm
 
     repeat(4) @(negedge clk);
     rstn = 1'b1;
+  end
+
+  // DUT
+  if ((N_CU_Y == 2) && (N_CU_X == 2)) begin: gen_dut_2x2
+    fractal_sync_2x2 i_sync_network_dut (
+      .clk_i             ( clk              ),
+      .rst_ni            ( rstn             ),
+      .h_1d_fsync_req_i  ( ht_cu_fsync_req  ),
+      .h_1d_fsync_rsp_o  ( ht_cu_fsync_rsp  ),
+      .v_1d_fsync_req_i  ( vt_cu_fsync_req  ),
+      .v_1d_fsync_rsp_o  ( vt_cu_fsync_rsp  ),
+      .h_nbr_fsycn_req_i ( hn_cu_fsync_req  ),
+      .h_nbr_fsycn_rsp_o ( hn_cu_fsync_rsp  ),
+      .v_nbr_fsycn_req_i ( vn_cu_fsync_req  ),
+      .v_nbr_fsycn_rsp_o ( vn_cu_fsync_rsp  ),
+      .h_2d_fsync_req_o  ( h_root_fsync_req ),
+      .h_2d_fsync_rsp_i  ( h_root_fsync_rsp ),
+      .v_2d_fsync_req_o  ( v_root_fsync_req ),
+      .v_2d_fsync_rsp_i  ( v_root_fsync_rsp )
+    );
+  end else if ((N_CU_Y == 4) && (N_CU_X == 4)) begin: gen_dut_4x4
+    fractal_sync_4x4 i_sync_network_dut (
+      .clk_i             ( clk              ),
+      .rst_ni            ( rstn             ),
+      .h_1d_fsync_req_i  ( ht_cu_fsync_req  ),
+      .h_1d_fsync_rsp_o  ( ht_cu_fsync_rsp  ),
+      .v_1d_fsync_req_i  ( vt_cu_fsync_req  ),
+      .v_1d_fsync_rsp_o  ( vt_cu_fsync_rsp  ),
+      .h_nbr_fsycn_req_i ( hn_cu_fsync_req  ),
+      .h_nbr_fsycn_rsp_o ( hn_cu_fsync_rsp  ),
+      .v_nbr_fsycn_req_i ( vn_cu_fsync_req  ),
+      .v_nbr_fsycn_rsp_o ( vn_cu_fsync_rsp  ),
+      .h_2d_fsync_req_o  ( h_root_fsync_req ),
+      .h_2d_fsync_rsp_i  ( h_root_fsync_rsp ),
+      .v_2d_fsync_req_o  ( v_root_fsync_req ),
+      .v_2d_fsync_rsp_i  ( v_root_fsync_rsp )
+    );
+  end else $fatal("Detected unsupported synchronization network configuration!!!");
+  
+  // Tests
+  task automatic same_rand_sync();
+    sync_req[0] = new();
+    sync_req[0].set_uid();
+    assert(sync_req[0].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+    sync_rsp[0] = new();
+    for (int i = 1; i < N_CU; i++) begin
+      sync_req[i].scp(sync_req[0]);
+      sync_rsp[i] = new();
+    end
+  endtask: same_rand_sync
+
+  task automatic distinct_2x2_sync();
+    for (int i = 0; i < N_CU; i++) begin
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      sync_rsp[i] = new();
+      case (i)
+        0:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        1:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        2:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        3:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+      endcase
+    end
+  endtask: distinct_2x2_sync
+  
+  task automatic distinct_4x4_sync();
+    for (int i = 0; i < N_CU; i++) begin
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      sync_rsp[i] = new();
+      case (i)
+        0:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        1:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        2:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        3:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        4:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        5:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        6:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        7:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        8:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        9:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        10: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        11: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        12: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        13: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        14: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        15: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+      endcase
+    end
+  endtask: distinct_4x4_sync
+  
+  // Run test
+  initial begin    
+    // Wait for reset
+    repeat(10) @(negedge clk);
 
     for (int t = 0; t < N_TESTS; t++) begin
-      sync_req = new();
-      sync_req.set_uid();
-      for (int i = 0; i < CU_IN_PORTS; i++)
-        sync_rsp[i] = new();
-      assert(sync_req.randomize() with { this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0}; }) else $error("Sync randomization failed");
-      for (int i = 0; i < CU_IN_PORTS; i++) begin
-        comp_cycles[i]     = $urandom_range(MIN_COMP_CYCLES, MAX_COMP_CYCLES);
-        max_rand_cycles[i] = MAX_RAND_CYCLES;
-      end
-      fork begin
-        for (int i = 0; i < CU_IN_PORTS; i++) begin
-          fork
-            automatic int j = i;
-            cu_bfms[j].sync(sync_req, sync_rsp[j], comp_cycles[j], max_rand_cycles[j], clk);
-          join_none
-        end
-        wait fork;
-      end join
+      // Generate synchronization requests
+      //same_rand_sync();
+      //distinct_4x4_sync();
+      distinct_2x2_sync();
+
+      // Set random synchronization request delay
+      set_req_timing();
+
+      // Send synchronization requests and wait for responses
+      run_test();
     end
 
     repeat(4) @(negedge clk);
