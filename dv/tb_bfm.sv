@@ -264,8 +264,8 @@ module tb_bfm
     for (int t = 0; t < N_TESTS; t++) begin
       // Generate synchronization requests
       //same_rand_sync();
-      //distinct_4x4_sync();
       distinct_2x2_sync();
+      //distinct_4x4_sync();
 
       // Set random synchronization request delay
       set_req_timing();

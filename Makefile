@@ -19,7 +19,8 @@ compile_script:
 	$(BENDER) script vsim $(bender_targs) > ${compile_script}
 
 start_sim:
-	$(QUESTA) vsim -do "source ${compile_script}" -do "vsim work.$(tb_top) -voptargs=+acc"
+	$(QUESTA) vsim -do "source ${compile_script}" \
+	-do "vsim work.$(tb_top) -voptargs=+acc"
 
 clear:
 	rm -fr ${compile_script} \
