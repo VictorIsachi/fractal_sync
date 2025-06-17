@@ -67,11 +67,11 @@ package fractal_sync_4x4_pkg;
 
   localparam fractal_sync_pkg::node_e      TOP_NODE_TYPE                      = fractal_sync_pkg::HV_NODE;
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_1D[N_1D_ITL_LEVELS]        = '{fractal_sync_pkg::CAM_RF,
-                                                                                  fractal_sync_pkg::CAM_RF};
+                                                                                  fractal_sync_pkg::DM_RF};
   localparam int unsigned                  N_LOCAL_REGS_1D[N_1D_ITL_LEVELS]   = '{1, 4};
   localparam int unsigned                  N_REMOTE_LINES_1D[N_1D_ITL_LEVELS] = '{2, 8};
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_2D[N_2D_ITL_LEVELS]        = '{fractal_sync_pkg::CAM_RF,
-                                                                                  fractal_sync_pkg::CAM_RF};
+                                                                                  fractal_sync_pkg::DM_RF};
   localparam int unsigned                  N_LOCAL_REGS_2D[N_2D_ITL_LEVELS]   = '{2, 8};
   localparam int unsigned                  N_REMOTE_LINES_2D[N_2D_ITL_LEVELS] = '{4, 16};
 
@@ -83,8 +83,8 @@ package fractal_sync_4x4_pkg;
   localparam int unsigned                  N_1D_V_PORTS                       = 16;
   localparam int unsigned                  N_NBR_H_PORTS                      = 16;
   localparam int unsigned                  N_NBR_V_PORTS                      = 16;
-  localparam int unsigned                  N_ACTIVE_NBR_H_PORTS               = $sqrt(N_NBR_H_PORTS);
-  localparam int unsigned                  N_ACTIVE_NBR_V_PORTS               = $sqrt(N_NBR_V_PORTS);
+  localparam int unsigned                  N_ACTIVE_NBR_H_PORTS               = 2*$sqrt(N_NBR_H_PORTS);
+  localparam int unsigned                  N_ACTIVE_NBR_V_PORTS               = 2*$sqrt(N_NBR_V_PORTS);
   localparam int unsigned                  N_2D_H_PORTS                       = 1;
   localparam int unsigned                  N_2D_V_PORTS                       = 1;
 
@@ -401,8 +401,8 @@ module fractal_sync_4x4_core
     .fsync_nbr_req_t   ( fsync_nbr_req_t        ),
     .fsync_nbr_rsp_t   ( fsync_nbr_rsp_t        )
   ) i_root_fsync_net (
-    .clk_i                 ,
-    .rst_ni                ,
+    .clk_i                                    ,
+    .rst_ni                                   ,
     .h_1d_fsync_req_i  ( root_h_1d_fsync_req ),
     .h_1d_fsync_rsp_o  ( root_h_1d_fsync_rsp ),
     .v_1d_fsync_req_i  ( root_v_1d_fsync_req ),

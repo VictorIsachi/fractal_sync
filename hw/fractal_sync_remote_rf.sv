@@ -143,13 +143,13 @@ module fractal_sync_1d_remote_rf
   
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_id_err
     assign valid_sig[i] = ((sig[i] <= MAX_SIG) && (sig[i] < LVL_SIG_LOOKUP[level_i[i]+1])) ? 1'b1 : 1'b0;
-    assign sig_err_o[i] = ~valid_sig[i];
+    assign sig_err_o[i] = (~valid_sig[i] & (check_i[i] | set_i[i]));
   end
 
  always_comb begin: bypass_ignore_sd_logic
     bypass_o = '{default: 1'b0};
     ignore_o = '{default: 1'b0};
-    for (int unsigned i = 0; i < N_PORTS-1; i++) begin
+    for (int unsigned i = 0; i < N_PORTS; i++) begin
       sd_rf[i] = sd_i[i];
       if (~(check_i[i] | set_i[i]) | ignore_o[i]) continue;
       else begin

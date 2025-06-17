@@ -118,19 +118,19 @@ class cu_bfm #(
     if (vif_master_h_tree.wake) begin
       if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_h_tree.lvl, 0, vif_master_h_tree.id_rsp);
+      fsync_rsp.set(vif_master_h_tree.lvl+1, 0, vif_master_h_tree.id_rsp);
     end else if (vif_master_v_tree.wake) begin
       if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_v_tree.lvl, 0, vif_master_v_tree.id_rsp);
+      fsync_rsp.set(vif_master_v_tree.lvl+1, 0, vif_master_v_tree.id_rsp);
     end else if (vif_master_h_nbr.wake) begin
       if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_h_nbr.lvl, 0, vif_master_h_nbr.id_rsp);
+      fsync_rsp.set(vif_master_h_nbr.lvl+1, 0, vif_master_h_nbr.id_rsp);
     end else if (vif_master_v_nbr.wake) begin
       if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_v_nbr.lvl, 0, vif_master_v_nbr.id_rsp);
+      fsync_rsp.set(vif_master_v_nbr.lvl+1, 0, vif_master_v_nbr.id_rsp);
     end else $fatal("Detected synchronization wake at unidentified interface!!!");
   endtask: sync_rsp
 
