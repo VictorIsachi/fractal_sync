@@ -217,6 +217,7 @@ module fractal_sync_mp_cam
           write_line[i]   = 1'b1;
           line_idx[i]     = j;
           store_masked[j] = 1'b0;
+          break;
         end
       end
     end
@@ -372,8 +373,10 @@ module fractal_sync_mp_cam_br
             line_idx[i]     = j;
             store_masked[j] = 1'b0;
             sd_reg_d[i]     = sd_i[j];
+            break;
           end else if (update_line[i] & line_present[i][j] & set_i[j]) begin
             sd_reg_d[i]     = sd_reg_q[i] | sd_i[j];
+            break;
           end
         end
       end

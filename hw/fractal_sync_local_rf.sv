@@ -89,7 +89,7 @@ module fractal_sync_1d_local_rf
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_id_err
     assign local_id[i]  = id_i[i][ID_WIDTH-1:1];
     assign valid_idx[i] = (local_id[i] <= MAX_ID) ? 1'b1 : 1'b0;
-    assign id_err_o[i]  = ~valid_idx[i];
+    assign id_err_o[i]  = (~valid_idx[i] & check_i[i]);
   end
 
   always_comb begin: bypass_ignore_logic

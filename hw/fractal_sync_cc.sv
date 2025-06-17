@@ -132,7 +132,7 @@ module fractal_sync_cc
 /*******************************************************/
 
   localparam fractal_sync_pkg::en_remote_rf_e EN_REMOTE_RF  = (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? fractal_sync_pkg::ENN_REMOTE_RF : fractal_sync_pkg::EN_REMOTE_RF;
-  localparam int unsigned                     LEVEL_WIDTH   = $clog2(AGGREGATE_WIDTH);
+  localparam int unsigned                     LEVEL_WIDTH   = $clog2(ID_WIDTH+1);
   localparam int unsigned                     N_1D_RX_PORTS = N_RX_PORTS/2;
   localparam int unsigned                     N_1D_TX_PORTS = N_TX_PORTS/2;
   localparam int unsigned                     N_1D_PORTS    = N_PORTS/2;

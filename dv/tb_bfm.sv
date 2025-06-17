@@ -34,8 +34,8 @@ module tb_bfm
   // Testbench parameters
   parameter int unsigned N_TESTS = 1;
 
-  parameter int unsigned N_CU_Y = 2;
-  parameter int unsigned N_CU_X = 2;
+  parameter int unsigned N_CU_Y = 4;
+  parameter int unsigned N_CU_X = 4;
 
   parameter int unsigned MIN_COMP_CYCLES = 0;
   parameter int unsigned MAX_COMP_CYCLES = 0;
@@ -121,7 +121,7 @@ module tb_bfm
   for (genvar y = 0; y < N_CU_Y; y++) begin: gen_y_cu_bfm
     for (genvar x = 0; x < N_CU_X; x++) begin: gen_x_cu_bfm
       initial begin
-        cu_bfms[y*N_CU_X+x] = new(.instance_name($sformatf("cu_bfm_%0d[%0d,%0d]", y*N_CU_X+x, y, x)),
+        cu_bfms[y*N_CU_X+x] = new(.instance_name($sformatf("cu_bfm_%0d(%0d,%0d)", y*N_CU_X+x, y, x)),
                                   .vif_master_h_tree(if_cu_h_tree[y*N_CU_X+x]),
                                   .vif_master_v_tree(if_cu_v_tree[y*N_CU_X+x]),
                                   .vif_master_h_nbr(if_cu_h_nbr[y*N_CU_X+x]),
@@ -208,7 +208,7 @@ module tb_bfm
   task automatic same_rand_sync();
     sync_req[0] = new();
     sync_req[0].set_uid();
-    assert(sync_req[0].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+    assert(sync_req[0].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {'b1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
     sync_rsp[0] = new();
     for (int i = 1; i < N_CU; i++) begin
       sync_req[i].scp(sync_req[0]);
@@ -222,10 +222,10 @@ module tb_bfm
       sync_req[i].set_uid();
       sync_rsp[i] = new();
       case (i)
-        0:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        1:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        2:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        3:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        0:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {'b1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        1:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {'b1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        2:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {'b1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        3:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {'b1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
       endcase
     end
   endtask: distinct_2x2_sync
@@ -236,22 +236,22 @@ module tb_bfm
       sync_req[i].set_uid();
       sync_rsp[i] = new();
       case (i)
-        0:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        1:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        2:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        3:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        4:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        5:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        6:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        7:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        8:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        9:  assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        10: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        11: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        12: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        13: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        14: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
-        15: assert(sync_req[i].randomize() with {this.sync_level inside {2}; this.sync_aggregate inside {1}; this.sync_barrier_id inside {0};}) else $error("Sync randomization failed");
+        0:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        1:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        2:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        3:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        4:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        5:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        6:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        7:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        8:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        9:  assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        10: assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        11: assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        12: assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        13: assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        14: assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
+        15: assert(sync_req[i].randomize() with {this.sync_level inside {4}; this.sync_aggregate inside {'b111}; this.sync_barrier_id inside {7};}) else $error("Sync randomization failed");
       endcase
     end
   endtask: distinct_4x4_sync
@@ -264,8 +264,8 @@ module tb_bfm
     for (int t = 0; t < N_TESTS; t++) begin
       // Generate synchronization requests
       //same_rand_sync();
-      distinct_2x2_sync();
-      //distinct_4x4_sync();
+      //distinct_2x2_sync();
+      distinct_4x4_sync();
 
       // Set random synchronization request delay
       set_req_timing();
