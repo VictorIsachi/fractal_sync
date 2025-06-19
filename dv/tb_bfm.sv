@@ -34,8 +34,8 @@ module tb_bfm
   // Testbench parameters
   parameter int unsigned N_TESTS = 7;
 
-  parameter int unsigned N_CU_Y = 16;
-  parameter int unsigned N_CU_X = 16;
+  parameter int unsigned N_CU_Y = 32;
+  parameter int unsigned N_CU_X = 32;
 
   parameter int unsigned MIN_COMP_CYCLES = 0;
   parameter int unsigned MAX_COMP_CYCLES = 0;
@@ -236,6 +236,23 @@ module tb_bfm
     );
   end else if ((N_CU_Y == 16) && (N_CU_X == 16)) begin: gen_dut_16x16
     fractal_sync_16x16 i_sync_network_dut (
+      .clk_i             ( clk              ),
+      .rst_ni            ( rstn             ),
+      .h_1d_fsync_req_i  ( ht_cu_fsync_req  ),
+      .h_1d_fsync_rsp_o  ( ht_cu_fsync_rsp  ),
+      .v_1d_fsync_req_i  ( vt_cu_fsync_req  ),
+      .v_1d_fsync_rsp_o  ( vt_cu_fsync_rsp  ),
+      .h_nbr_fsycn_req_i ( hn_cu_fsync_req  ),
+      .h_nbr_fsycn_rsp_o ( hn_cu_fsync_rsp  ),
+      .v_nbr_fsycn_req_i ( vn_cu_fsync_req  ),
+      .v_nbr_fsycn_rsp_o ( vn_cu_fsync_rsp  ),
+      .h_2d_fsync_req_o  ( h_root_fsync_req ),
+      .h_2d_fsync_rsp_i  ( h_root_fsync_rsp ),
+      .v_2d_fsync_req_o  ( v_root_fsync_req ),
+      .v_2d_fsync_rsp_i  ( v_root_fsync_rsp )
+    );
+  end else if ((N_CU_Y == 32) && (N_CU_X == 32)) begin: gen_dut_32x32
+    fractal_sync_32x32 i_sync_network_dut (
       .clk_i             ( clk              ),
       .rst_ni            ( rstn             ),
       .h_1d_fsync_req_i  ( ht_cu_fsync_req  ),
