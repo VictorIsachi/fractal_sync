@@ -32,10 +32,10 @@ module tb_bfm
   `include "../hw/include/fractal_sync/assign.svh"
   
   // Testbench parameters
-  parameter int unsigned N_TESTS = 1;
+  parameter int unsigned N_TESTS = 7;
 
-  parameter int unsigned N_CU_Y = 4;
-  parameter int unsigned N_CU_X = 4;
+  parameter int unsigned N_CU_Y = 8;
+  parameter int unsigned N_CU_X = 8;
 
   parameter int unsigned MIN_COMP_CYCLES = 0;
   parameter int unsigned MAX_COMP_CYCLES = 0;
@@ -53,7 +53,7 @@ module tb_bfm
   localparam int unsigned ROOT_ID_W   = CU_ID_W;
   localparam int unsigned NBR_AGGR_W  = 1;
   localparam int unsigned NBR_LVL_W   = 1;
-  localparam int unsigned NBR_ID_W    = 1;
+  localparam int unsigned NBR_ID_W    = 2;
 
   // Testbench type definitions
   `FSYNC_TYPEDEF_ALL(ht_cu_fsync,  logic[CU_AGGR_W-1:0],   logic[CU_LVL_W-1:0],   logic[CU_ID_W-1:0])
@@ -71,6 +71,9 @@ module tb_bfm
 
   sync_transaction sync_req[N_CU];
   sync_transaction sync_rsp[N_CU];
+
+  int unsigned detected_errors;
+  time         sync_time;
 
   ht_cu_fsync_req_t  ht_cu_fsync_req[N_CU][1]; // Single link CU-FSync interface
   ht_cu_fsync_rsp_t  ht_cu_fsync_rsp[N_CU][1]; // Single link CU-FSync interface
@@ -132,12 +135,24 @@ module tb_bfm
   end
 
   // Testbench subroutines
-  function automatic set_req_timing();
+  function automatic void set_req_timing();
     for (int i = 0; i < N_CU; i++) begin
       comp_cycles[i]     = $urandom_range(MIN_COMP_CYCLES, MAX_COMP_CYCLES);
       max_rand_cycles[i] = MAX_RAND_CYCLES;
     end
   endfunction: set_req_timing
+
+  function automatic void get_sync_time(int unsigned transaction_idx);
+    sync_time = cu_bfms[0].get_time(transaction_idx);
+    for (int i = 1; i < N_CU; i++)
+      if (cu_bfms[i].get_time(transaction_idx) > sync_time)
+        sync_time = cu_bfms[i].get_time(transaction_idx);
+  endfunction: get_sync_time
+
+  function automatic void get_errors();
+    detected_errors = 0;
+    for (int i = 0; i < N_CU; i++) detected_errors += cu_bfms[i].get_errors();
+  endfunction: get_errors
 
   task automatic run_test();
     fork begin
@@ -187,6 +202,23 @@ module tb_bfm
     );
   end else if ((N_CU_Y == 4) && (N_CU_X == 4)) begin: gen_dut_4x4
     fractal_sync_4x4 i_sync_network_dut (
+      .clk_i             ( clk              ),
+      .rst_ni            ( rstn             ),
+      .h_1d_fsync_req_i  ( ht_cu_fsync_req  ),
+      .h_1d_fsync_rsp_o  ( ht_cu_fsync_rsp  ),
+      .v_1d_fsync_req_i  ( vt_cu_fsync_req  ),
+      .v_1d_fsync_rsp_o  ( vt_cu_fsync_rsp  ),
+      .h_nbr_fsycn_req_i ( hn_cu_fsync_req  ),
+      .h_nbr_fsycn_rsp_o ( hn_cu_fsync_rsp  ),
+      .v_nbr_fsycn_req_i ( vn_cu_fsync_req  ),
+      .v_nbr_fsycn_rsp_o ( vn_cu_fsync_rsp  ),
+      .h_2d_fsync_req_o  ( h_root_fsync_req ),
+      .h_2d_fsync_rsp_i  ( h_root_fsync_rsp ),
+      .v_2d_fsync_req_o  ( v_root_fsync_req ),
+      .v_2d_fsync_rsp_i  ( v_root_fsync_rsp )
+    );
+  end else if ((N_CU_Y == 8) && (N_CU_X == 8)) begin: gen_dut_8x8
+    fractal_sync_8x8 i_sync_network_dut (
       .clk_i             ( clk              ),
       .rst_ni            ( rstn             ),
       .h_1d_fsync_req_i  ( ht_cu_fsync_req  ),
@@ -255,6 +287,104 @@ module tb_bfm
       endcase
     end
   endtask: distinct_4x4_sync
+
+  task automatic nbr_h_sync();
+    localparam int unsigned level     = 1;
+    localparam bit[31:0]    aggregate = 0;
+    localparam int unsigned id        = 0;
+    for (int i = 0; i < N_CU; i++) begin
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      assert(sync_req[i].randomize() with {this.sync_level inside {level}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id};}) else $error("Sync randomization failed");
+      sync_rsp[i] = new();
+    end
+  endtask: nbr_h_sync
+  
+  task automatic nbr_h_tor_sync();
+    localparam int unsigned level_h   = 1;
+    localparam bit[31:0]    aggregate = 0;
+    localparam int unsigned id_h      = 2;
+    for (int i = 0; i < N_CU; i++) begin
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      if (!(i%N_CU_X inside {0, N_CU_X-1})) begin
+        assert(sync_req[i].randomize() with {this.sync_level inside {level_h}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id_h};}) else $error("Sync randomization failed");
+      end else begin
+        int unsigned level = N_LVL-1;
+        int unsigned id    = 2*((i/N_CU_X)%(N_CU_Y/2));
+        assert(sync_req[i].randomize() with {this.sync_level inside {level}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id};}) else $error("Sync randomization failed");
+      end
+      sync_rsp[i] = new();
+    end
+  endtask: nbr_h_tor_sync
+
+  task automatic nbr_v_sync();
+    localparam int unsigned level     = 1;
+    localparam bit[31:0]    aggregate = 0;
+    localparam int unsigned id        = 1;
+    for (int i = 0; i < N_CU; i++) begin
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      assert(sync_req[i].randomize() with {this.sync_level inside {level}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id};}) else $error("Sync randomization failed");
+      sync_rsp[i] = new();
+    end
+  endtask: nbr_v_sync
+
+  task automatic nbr_v_tor_sync();
+    localparam int unsigned level_v   = 1;
+    localparam bit[31:0]    aggregate = 0;
+    localparam int unsigned id_v      = 3;
+    for (int i = 0; i < N_CU; i++) begin
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      if (!(i/N_CU_X inside {0, N_CU_Y-1})) begin
+        assert(sync_req[i].randomize() with {this.sync_level inside {level_v}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id_v};}) else $error("Sync randomization failed");
+      end else begin
+        int unsigned level = N_LVL-1;
+        int unsigned id    = 2*((i%N_CU_X)%(N_CU_X/2))+1;
+        assert(sync_req[i].randomize() with {this.sync_level inside {level}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id};}) else $error("Sync randomization failed");
+      end
+      sync_rsp[i] = new();
+    end
+  endtask: nbr_v_tor_sync
+  
+  task automatic row_sync();
+    localparam int unsigned level     = N_LVL-1;
+               bit[31:0]    aggregate = 0;
+    for (int i = 0; i < level/2; i++) aggregate += 2*i+1;
+    for (int i = 0; i < N_CU; i++) begin
+      int unsigned id = 2*((i/N_CU_X)%(N_CU_Y/2));
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      assert(sync_req[i].randomize() with {this.sync_level inside {level}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id};}) else $error("Sync randomization failed");
+      sync_rsp[i] = new();
+    end
+  endtask: row_sync
+
+  task automatic col_sync();
+    localparam int unsigned level     = N_LVL-1;
+               bit[31:0]    aggregate = 0;
+    for (int i = 0; i < level/2; i++) aggregate += 2*i+1;
+    for (int i = 0; i < N_CU; i++) begin
+      int unsigned id = 2*((i%N_CU_X)%(N_CU_X/2))+1;
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      assert(sync_req[i].randomize() with {this.sync_level inside {level}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id};}) else $error("Sync randomization failed");
+      sync_rsp[i] = new();
+    end
+  endtask: col_sync
+
+  task automatic global_sync();
+    localparam int unsigned level     = N_LVL;
+    localparam bit[31:0]    aggregate = {(N_LVL-1){1'b1}};
+    localparam int unsigned id        = 2**(N_LVL-1)-1;
+    for (int i = 0; i < N_CU; i++) begin
+      sync_req[i] = new();
+      sync_req[i].set_uid();
+      assert(sync_req[i].randomize() with {this.sync_level inside {level}; this.sync_aggregate inside {aggregate}; this.sync_barrier_id inside {id};}) else $error("Sync randomization failed");
+      sync_rsp[i] = new();
+    end
+  endtask: global_sync
   
   // Run test
   initial begin    
@@ -265,18 +395,30 @@ module tb_bfm
       // Generate synchronization requests
       //same_rand_sync();
       //distinct_2x2_sync();
-      distinct_4x4_sync();
+      //distinct_4x4_sync();
+      if (t == 0) begin nbr_h_sync();     $display("\n  --> STARTED TEST: %s", "nbr_h_sync");     end
+      if (t == 1) begin nbr_h_tor_sync(); $display("\n  --> STARTED TEST: %s", "nbr_h_tor_sync"); end
+      if (t == 2) begin nbr_v_sync();     $display("\n  --> STARTED TEST: %s", "nbr_v_sync");     end
+      if (t == 3) begin nbr_v_tor_sync(); $display("\n  --> STARTED TEST: %s", "nbr_v_tor_sync"); end
+      if (t == 4) begin row_sync();       $display("\n  --> STARTED TEST: %s", "row_sync");       end
+      if (t == 5) begin col_sync();       $display("\n  --> STARTED TEST: %s", "col_sync");       end
+      if (t == 6) begin global_sync();    $display("\n  --> STARTED TEST: %s", "global_sync");    end
 
       // Set random synchronization request delay
       set_req_timing();
 
       // Send synchronization requests and wait for responses
       run_test();
+
+      // Update synchronization time
+      get_sync_time(t);
+      $display("\n  <-- ENDED TEST: synchronization time %0tns", sync_time);
     end
+    get_errors();
 
     repeat(4) @(negedge clk);
     
-    $info("Test finished");
+    $info("Test finished with %0d errors: %s", detected_errors, detected_errors ? "[FAIL]" : "[PASS]");
 
     $stop;
   end
