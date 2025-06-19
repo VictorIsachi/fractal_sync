@@ -419,6 +419,7 @@ module fractal_sync_32x32
   localparam int unsigned N_V_NBR_NODES  = $sqrt(N_NBR_V_PORTS);
   localparam int unsigned LAST_H_NBR_IDX = N_H_NBR_NODES-1;
   localparam int unsigned LAST_V_NBR_IDX = N_V_NBR_NODES-1;
+  localparam int unsigned N_NBR_PORTS    = 2;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -434,15 +435,21 @@ module fractal_sync_32x32
       assign h_nbr_fsycn_rsp_o[i].sig.id  = '0;
       assign h_nbr_fsycn_rsp_o[i].error   = 1'b0;
     end else if (h_nbr_col_idx%2) begin
+      fsync_nbr_req_t h_nbr_req[N_NBR_PORTS];
+      fsync_nbr_rsp_t h_nbr_rsp[N_NBR_PORTS];
+      assign h_nbr_req[0]           = h_nbr_fsycn_req_i[i];
+      assign h_nbr_req[1]           = h_nbr_fsycn_req_i[i+1];
+      assign h_nbr_fsycn_rsp_o[i]   = h_nbr_rsp[0];
+      assign h_nbr_fsycn_rsp_o[i+1] = h_nbr_rsp[1];
       fractal_sync_neighbor #(
         .fsync_req_t ( fsync_nbr_req_t      ),
         .fsync_rsp_t ( fsync_nbr_rsp_t      ),
         .COMB        ( /*DO NOT OVERWRITE*/ ) 
       ) i_h_nbr_node (
-        .clk_i                                                     ,
-        .rst_ni                                                    ,
-        .req_i  ( '{h_nbr_fsycn_req_i[i], h_nbr_fsycn_req_i[i+1]} ),
-        .rsp_o  ( '{h_nbr_fsycn_rsp_o[i], h_nbr_fsycn_rsp_o[i+1]} )
+        .clk_i               ,
+        .rst_ni              ,
+        .req_i  ( h_nbr_req ),
+        .rsp_o  ( h_nbr_rsp )
       );
     end
   end
@@ -455,15 +462,21 @@ module fractal_sync_32x32
       assign v_nbr_fsycn_rsp_o[i].sig.id  = '0;
       assign v_nbr_fsycn_rsp_o[i].error   = 1'b0;
     end else if (v_nbr_row_idx%2) begin
+      fsync_nbr_req_t v_nbr_req[N_NBR_PORTS];
+      fsync_nbr_rsp_t v_nbr_rsp[N_NBR_PORTS];
+      assign v_nbr_req[0]                       = v_nbr_fsycn_req_i[i];
+      assign v_nbr_req[1]                       = v_nbr_fsycn_req_i[i+N_V_NBR_NODES];
+      assign v_nbr_fsycn_rsp_o[i]               = v_nbr_rsp[0];
+      assign v_nbr_fsycn_rsp_o[i+N_V_NBR_NODES] = v_nbr_rsp[1];
       fractal_sync_neighbor #(
         .fsync_req_t ( fsync_nbr_req_t      ),
         .fsync_rsp_t ( fsync_nbr_rsp_t      ),
         .COMB        ( /*DO NOT OVERWRITE*/ ) 
       ) i_h_nbr_node (
-        .clk_i                                                                 ,
-        .rst_ni                                                                ,
-        .req_i  ( '{v_nbr_fsycn_req_i[i], v_nbr_fsycn_req_i[i+N_V_NBR_NODES]} ),
-        .rsp_o  ( '{v_nbr_fsycn_rsp_o[i], v_nbr_fsycn_rsp_o[i+N_V_NBR_NODES]} )
+        .clk_i               ,
+        .rst_ni              ,
+        .req_i  ( v_nbr_req ),
+        .rsp_o  ( v_nbr_rsp )
       );
     end
   end
