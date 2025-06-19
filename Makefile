@@ -3,6 +3,7 @@ BENDER     ?= ./bender
 QUESTA     ?= questa-2023.4
 
 compile_script ?= compile_fsync.tcl
+compile_flags  += -suppress 13314 -suppress 2277
 
 bender_targs += -t dv
 
@@ -19,9 +20,10 @@ compile_script:
 	$(BENDER) script vsim $(bender_targs) > ${compile_script}
 
 start_sim:
-	$(QUESTA) vsim -do "source ${compile_script}" \
-	-do "vsim work.$(tb_top) -voptargs=+acc"      \
-	-do "source vsim/wave.do"
+	$(QUESTA) vsim -do "source ${compile_script}"             \
+	-do "vsim work.$(tb_top) -voptargs=+acc ${compile_flags}" \
+	-do "source vsim/wave.do"                                 \
+	-do "run -all"
 
 clear:
 	rm -fr ${compile_script} \

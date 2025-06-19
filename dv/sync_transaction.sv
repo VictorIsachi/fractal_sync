@@ -29,6 +29,7 @@ class sync_transaction;
 
          int unsigned transaction_id;
   static int unsigned global_id = 0;
+         time         transaction_time;
 
   constraint aggregate_range { 2**(sync_level-1) > sync_aggregate; }
 
@@ -55,13 +56,13 @@ class sync_transaction;
   function automatic void print();
     $display("-------------------------");
     $display("FractalSync transaction:");
-    $display("TIME: %0t", $time);
+    $display("TIME: %0t (Transaction time %0t)", $time, transaction_time);
     $display("ID: %0d (Global ID: %0d)", this.transaction_id, sync_transaction::global_id);
     $display("LEVEL: %0d", this.sync_level);
     $display("AGGREGATE: 0b%0b", this.sync_aggregate);
     $display("AGGR. Field: 0b%0b", 1'b1 << this.sync_level-1 | this.sync_aggregate);
     $display("ID Field: %0d", this.sync_barrier_id);
-    $display("-------------------------\n");
+    $display("-------------------------");
   endfunction: print
 
 endclass: sync_transaction

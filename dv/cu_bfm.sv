@@ -37,6 +37,9 @@ class cu_bfm #(
   virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .LVL_WIDTH(FSYNC_NBR_LVL_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_h_nbr;
   virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .LVL_WIDTH(FSYNC_NBR_LVL_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_v_nbr;
 
+  int unsigned detected_errors;
+  time         transaction_times[$];
+
   function new(string instance_name, 
                virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .LVL_WIDTH(FSYNC_TREE_LVL_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_h_tree,
                virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .LVL_WIDTH(FSYNC_TREE_LVL_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_v_tree,
@@ -50,6 +53,8 @@ class cu_bfm #(
   endfunction: new
 
   task automatic init();
+    detected_errors   = 0;
+    transaction_times = {};
     vif_master_h_tree.sync   = 1'b0;
     vif_master_h_tree.aggr   = '0;
     vif_master_h_tree.id_req = '0;
@@ -103,9 +108,11 @@ class cu_bfm #(
         vif_master_v_tree.sync   = 1'b1;
       end
     end else $fatal("Detected synchronization request at level 0!!!");
+    @(posedge clk);
+    fsync.transaction_time = $time;
     @(negedge clk);
-    vif_master_h_tree.sync  = 1'b0;
-    vif_master_v_tree.sync  = 1'b0;
+    vif_master_h_tree.sync = 1'b0;
+    vif_master_v_tree.sync = 1'b0;
     vif_master_h_nbr.sync = 1'b0;
     vif_master_v_nbr.sync = 1'b0;
   endtask: sync_req
@@ -113,8 +120,9 @@ class cu_bfm #(
   task automatic sync_rsp(ref sync_transaction fsync_rsp, const ref logic clk);
     bit detected_single_wake = 0;
     do
-      @(negedge clk);
+      @(posedge clk);
     while (!vif_master_h_tree.wake && !vif_master_v_tree.wake && !vif_master_h_nbr.wake && !vif_master_v_nbr.wake);
+    fsync_rsp.transaction_time = $time;
     if (vif_master_h_tree.wake) begin
       if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
@@ -126,26 +134,46 @@ class cu_bfm #(
     end else if (vif_master_h_nbr.wake) begin
       if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_h_nbr.lvl+1, 0, vif_master_h_nbr.id_rsp);
+      fsync_rsp.set(vif_master_h_nbr.lvl, 0, vif_master_h_nbr.id_rsp);
     end else if (vif_master_v_nbr.wake) begin
       if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_v_nbr.lvl+1, 0, vif_master_v_nbr.id_rsp);
+      fsync_rsp.set(vif_master_v_nbr.lvl, 0, vif_master_v_nbr.id_rsp);
     end else $fatal("Detected synchronization wake at unidentified interface!!!");
   endtask: sync_rsp
 
   task automatic sync(input sync_transaction fsync_req, ref sync_transaction fsync_rsp, input int unsigned comp_cycles, input int unsigned max_rand_cycles, const ref logic clk);
     fork
       begin
-        $display("BFM instance [%s]: synchronization request", instance_name);
-        fsync_req.print();
+        if (fractal_dv_pkg::VERBOSE > 0) begin
+          $display("\nBFM instance [%s]: synchronization request", instance_name);
+          fsync_req.print();
+        end
         sync_req(fsync_req, comp_cycles, max_rand_cycles, clk);
       end begin
         sync_rsp(fsync_rsp, clk);
-        $display("BFM instance [%s]: synchronization response", instance_name);
-        fsync_rsp.print();
+        if (fractal_dv_pkg::VERBOSE > 0) begin
+          $display("\nBFM instance [%s]: synchronization response", instance_name);
+          fsync_rsp.print();
+        end
       end
     join
+    transaction_times.push_back(fsync_rsp.transaction_time-fsync_req.transaction_time);
+    if (fractal_dv_pkg::VERBOSE > 1) begin
+      $display ("Synchronization transaction required %0tns (%0tns - %0tns)", transaction_times[transaction_times.size()-1], fsync_req.transaction_time, fsync_rsp.transaction_time);
+    end
+    if ((fsync_req.sync_level != fsync_rsp.sync_level) || (fsync_req.sync_barrier_id != fsync_rsp.sync_barrier_id)) begin
+      $error("[ERROR] Detected synchronization error: req and rsp do not match");
+      detected_errors++;
+    end
   endtask: sync
+
+  function automatic int unsigned get_errors();
+    return this.detected_errors;
+  endfunction: get_errors
+
+  function automatic time get_time(int unsigned transaction_idx);
+    return this.transaction_times[transaction_idx];
+  endfunction: get_time
   
 endclass: cu_bfm

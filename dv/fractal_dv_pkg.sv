@@ -21,6 +21,8 @@
 
 package fractal_dv_pkg;
   
+  localparam int unsigned VERBOSE = 0;
+  
   `include "sync_transaction.sv"
   `include "cu_bfm.sv"
 
