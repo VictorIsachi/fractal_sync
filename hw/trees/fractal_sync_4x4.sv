@@ -83,8 +83,6 @@ package fractal_sync_4x4_pkg;
   localparam int unsigned                  N_1D_V_PORTS                       = 16;
   localparam int unsigned                  N_NBR_H_PORTS                      = 16;
   localparam int unsigned                  N_NBR_V_PORTS                      = 16;
-  localparam int unsigned                  N_ACTIVE_NBR_H_PORTS               = 2*$sqrt(N_NBR_H_PORTS);
-  localparam int unsigned                  N_ACTIVE_NBR_V_PORTS               = 2*$sqrt(N_NBR_V_PORTS);
   localparam int unsigned                  N_2D_H_PORTS                       = 1;
   localparam int unsigned                  N_2D_V_PORTS                       = 1;
 
@@ -96,12 +94,12 @@ package fractal_sync_4x4_pkg;
 
   localparam int unsigned                  NBR_AGGR_WIDTH                     = 1;
   localparam int unsigned                  NBR_LVL_WIDTH                      = 1;
-  localparam int unsigned                  NBR_ID_WIDTH                       = 1;
+  localparam int unsigned                  NBR_ID_WIDTH                       = 2;
 
-  `FSYNC_TYPEDEF_REQ_ALL(fsync_in, logic[IN_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
+  `FSYNC_TYPEDEF_REQ_ALL(fsync_in,  logic[IN_AGGR_WIDTH-1:0],  logic[ID_WIDTH-1:0])
   `FSYNC_TYPEDEF_REQ_ALL(fsync_out, logic[OUT_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
-  `FSYNC_TYPEDEF_RSP_ALL(fsync, logic[LVL_WIDTH-1:0], logic[ID_WIDTH-1:0])
-  `FSYNC_TYPEDEF_ALL(fsync_nbr, logic[NBR_AGGR_WIDTH-1:0], logic[NBR_LVL_WIDTH-1:0], logic[NBR_ID_WIDTH-1:0])
+  `FSYNC_TYPEDEF_RSP_ALL(fsync,     logic[LVL_WIDTH-1:0],      logic[ID_WIDTH-1:0])
+  `FSYNC_TYPEDEF_ALL(    fsync_nbr, logic[NBR_AGGR_WIDTH-1:0], logic[NBR_LVL_WIDTH-1:0], logic[NBR_ID_WIDTH-1:0])
 
 endpackage: fractal_sync_4x4_pkg
 
@@ -124,12 +122,8 @@ module fractal_sync_4x4_core
   parameter type                          fsync_in_req_t                                           = fractal_sync_4x4_pkg::fsync_in_req_t,
   parameter type                          fsync_out_req_t                                          = fractal_sync_4x4_pkg::fsync_out_req_t,
   parameter type                          fsync_rsp_t                                              = fractal_sync_4x4_pkg::fsync_rsp_t,
-  parameter type                          fsync_nbr_req_t                                          = fractal_sync_4x4_pkg::fsync_nbr_req_t,
-  parameter type                          fsync_nbr_rsp_t                                          = fractal_sync_4x4_pkg::fsync_nbr_rsp_t,
   localparam int unsigned                 N_1D_H_PORTS                                             = fractal_sync_4x4_pkg::N_1D_H_PORTS,
   localparam int unsigned                 N_1D_V_PORTS                                             = fractal_sync_4x4_pkg::N_1D_V_PORTS,
-  localparam int unsigned                 N_ACTIVE_NBR_H_PORTS                                     = fractal_sync_4x4_pkg::N_ACTIVE_NBR_H_PORTS,
-  localparam int unsigned                 N_ACTIVE_NBR_V_PORTS                                     = fractal_sync_4x4_pkg::N_ACTIVE_NBR_V_PORTS,
   localparam int unsigned                 N_2D_H_PORTS                                             = fractal_sync_4x4_pkg::N_2D_H_PORTS,
   localparam int unsigned                 N_2D_V_PORTS                                             = fractal_sync_4x4_pkg::N_2D_V_PORTS
 )(
@@ -140,11 +134,6 @@ module fractal_sync_4x4_core
   output fsync_rsp_t    h_1d_fsync_rsp_o[N_1D_H_PORTS][N_LINKS_IN],
   input  fsync_in_req_t v_1d_fsync_req_i[N_1D_V_PORTS][N_LINKS_IN],
   output fsync_rsp_t    v_1d_fsync_rsp_o[N_1D_V_PORTS][N_LINKS_IN],
-
-  input  fsync_nbr_req_t h_nbr_fsycn_req_i[N_ACTIVE_NBR_H_PORTS],
-  output fsync_nbr_rsp_t h_nbr_fsycn_rsp_o[N_ACTIVE_NBR_H_PORTS],
-  input  fsync_nbr_req_t v_nbr_fsycn_req_i[N_ACTIVE_NBR_V_PORTS],
-  output fsync_nbr_rsp_t v_nbr_fsycn_rsp_o[N_ACTIVE_NBR_V_PORTS],
 
   output fsync_out_req_t h_2d_fsync_req_o[N_2D_H_PORTS][N_LINKS_OUT],
   input  fsync_rsp_t     h_2d_fsync_rsp_i[N_2D_H_PORTS][N_LINKS_OUT],
@@ -158,31 +147,31 @@ module fractal_sync_4x4_core
 
   localparam int unsigned N_LEAF_FSYNC_NETWORKS = 4;
 
-  localparam int unsigned LEAF_RF_TYPE_1D        = RF_TYPE_1D[0];
-  localparam int unsigned LEAF_N_LOCAL_REGS_1D   = N_LOCAL_REGS_1D[0];
-  localparam int unsigned LEAF_N_REMOTE_LINES_1D = N_REMOTE_LINES_1D[0];
-  localparam int unsigned LEAF_RF_TYPE_2D        = RF_TYPE_2D[0];
-  localparam int unsigned LEAF_N_LOCAL_REGS_2D   = N_LOCAL_REGS_2D[0];
-  localparam int unsigned LEAF_N_REMOTE_LINES_2D = N_REMOTE_LINES_2D[0];
-  localparam int unsigned LEAF_N_LINKS_IN        = N_LINKS_IN;
-  localparam int unsigned LEAF_N_LINKS_ITL       = N_LINKS_ITL[0];
-  localparam int unsigned LEAF_N_LINKS_OUT       = N_LINKS_ITL[1];
-  localparam int unsigned LEAF_AGGREGATE_WIDTH   = AGGREGATE_WIDTH;
-  localparam int unsigned LEAF_ID_WIDTH          = ID_WIDTH;
-  localparam int unsigned LEAF_LVL_OFFSET        = LVL_OFFSET;
+  localparam fractal_sync_pkg::remote_rf_e LEAF_RF_TYPE_1D        = RF_TYPE_1D[0];
+  localparam int unsigned                  LEAF_N_LOCAL_REGS_1D   = N_LOCAL_REGS_1D[0];
+  localparam int unsigned                  LEAF_N_REMOTE_LINES_1D = N_REMOTE_LINES_1D[0];
+  localparam fractal_sync_pkg::remote_rf_e LEAF_RF_TYPE_2D        = RF_TYPE_2D[0];
+  localparam int unsigned                  LEAF_N_LOCAL_REGS_2D   = N_LOCAL_REGS_2D[0];
+  localparam int unsigned                  LEAF_N_REMOTE_LINES_2D = N_REMOTE_LINES_2D[0];
+  localparam int unsigned                  LEAF_N_LINKS_IN        = N_LINKS_IN;
+  localparam int unsigned                  LEAF_N_LINKS_ITL       = N_LINKS_ITL[0];
+  localparam int unsigned                  LEAF_N_LINKS_OUT       = N_LINKS_ITL[1];
+  localparam int unsigned                  LEAF_AGGREGATE_WIDTH   = AGGREGATE_WIDTH;
+  localparam int unsigned                  LEAF_ID_WIDTH          = ID_WIDTH;
+  localparam int unsigned                  LEAF_LVL_OFFSET        = LVL_OFFSET;
 
-  localparam int unsigned ROOT_RF_TYPE_1D        = RF_TYPE_1D[1];
-  localparam int unsigned ROOT_N_LOCAL_REGS_1D   = N_LOCAL_REGS_1D[1];
-  localparam int unsigned ROOT_N_REMOTE_LINES_1D = N_REMOTE_LINES_1D[1];
-  localparam int unsigned ROOT_RF_TYPE_2D        = RF_TYPE_2D[1];
-  localparam int unsigned ROOT_N_LOCAL_REGS_2D   = N_LOCAL_REGS_2D[1];
-  localparam int unsigned ROOT_N_REMOTE_LINES_2D = N_REMOTE_LINES_2D[1];
-  localparam int unsigned ROOT_N_LINKS_IN        = N_LINKS_ITL[1];
-  localparam int unsigned ROOT_N_LINKS_ITL       = N_LINKS_ITL[2];
-  localparam int unsigned ROOT_N_LINKS_OUT       = N_LINKS_OUT;
-  localparam int unsigned ROOT_AGGREGATE_WIDTH   = LEAF_AGGREGATE_WIDTH-2;
-  localparam int unsigned ROOT_ID_WIDTH          = LEAF_ID_WIDTH;
-  localparam int unsigned ROOT_LVL_OFFSET        = LEAF_LVL_OFFSET+2;
+  localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_1D        = RF_TYPE_1D[1];
+  localparam int unsigned                  ROOT_N_LOCAL_REGS_1D   = N_LOCAL_REGS_1D[1];
+  localparam int unsigned                  ROOT_N_REMOTE_LINES_1D = N_REMOTE_LINES_1D[1];
+  localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_2D        = RF_TYPE_2D[1];
+  localparam int unsigned                  ROOT_N_LOCAL_REGS_2D   = N_LOCAL_REGS_2D[1];
+  localparam int unsigned                  ROOT_N_REMOTE_LINES_2D = N_REMOTE_LINES_2D[1];
+  localparam int unsigned                  ROOT_N_LINKS_IN        = N_LINKS_ITL[1];
+  localparam int unsigned                  ROOT_N_LINKS_ITL       = N_LINKS_ITL[2];
+  localparam int unsigned                  ROOT_N_LINKS_OUT       = N_LINKS_OUT;
+  localparam int unsigned                  ROOT_AGGREGATE_WIDTH   = LEAF_AGGREGATE_WIDTH-2;
+  localparam int unsigned                  ROOT_ID_WIDTH          = LEAF_ID_WIDTH;
+  localparam int unsigned                  ROOT_LVL_OFFSET        = LEAF_LVL_OFFSET+2;
 
   localparam int unsigned ITL_RSP_AGGR_WIDTH = ROOT_AGGREGATE_WIDTH;
   `FSYNC_TYPEDEF_REQ_ALL(fsync_itl, logic[ITL_RSP_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
@@ -195,11 +184,6 @@ module fractal_sync_4x4_core
 
   localparam int unsigned N_1D_H_ROOT_PORTS = N_LEAF_FSYNC_NETWORKS;
   localparam int unsigned N_1D_V_ROOT_PORTS = N_LEAF_FSYNC_NETWORKS;
-
-  localparam int unsigned N_H_NBR_NODES = $sqrt(N_NBR_H_PORTS);
-  localparam int unsigned N_V_NBR_NODES = $sqrt(N_NBR_V_PORTS);
-
-  localparam int unsigned N_NBR_IN_PORTS = 2;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -222,89 +206,58 @@ module fractal_sync_4x4_core
   fsync_itl_req_t root_v_1d_fsync_req[N_1D_V_ROOT_PORTS][ROOT_N_LINKS_IN];
   fsync_rsp_t     root_v_1d_fsync_rsp[N_1D_V_ROOT_PORTS][ROOT_N_LINKS_IN];
 
-  fsync_nbr_req_t h_nbr_fsycn_req[N_H_NBR_NODES][N_NBR_IN_PORTS];
-  fsync_nbr_rsp_t h_nbr_fsycn_rsp[N_H_NBR_NODES][N_NBR_IN_PORTS];
-  fsync_nbr_req_t v_nbr_fsycn_req[N_V_NBR_NODES][N_NBR_IN_PORTS];
-  fsync_nbr_rsp_t v_nbr_fsycn_rsp[N_V_NBR_NODES][N_NBR_IN_PORTS];
-
 /*******************************************************/
 /**                Internal Signals End               **/
 /*******************************************************/
 /**            Hardwired Signals Beginning            **/
 /*******************************************************/
 
-  for (genvar i = 0; i < N_LINKS_IN; i++) begin: gen_1d_leaf_fsync_net_req_rsp
-    // assign h_1d_fsync_req[i][j][k] = h_1d_fsync_req_i[2*(4*(i/2)+(i%2))+(4*(j/2)+(j%2))][k];
-    assign h_1d_fsync_req[0][0][i] = h_1d_fsync_req_i[0][i];
-    assign h_1d_fsync_req[0][1][i] = h_1d_fsync_req_i[1][i];
-    assign h_1d_fsync_req[0][2][i] = h_1d_fsync_req_i[4][i];
-    assign h_1d_fsync_req[0][3][i] = h_1d_fsync_req_i[5][i];
-    assign h_1d_fsync_req[1][0][i] = h_1d_fsync_req_i[2][i];
-    assign h_1d_fsync_req[1][1][i] = h_1d_fsync_req_i[3][i];
-    assign h_1d_fsync_req[1][2][i] = h_1d_fsync_req_i[6][i];
-    assign h_1d_fsync_req[1][3][i] = h_1d_fsync_req_i[7][i];
-    assign h_1d_fsync_req[2][0][i] = h_1d_fsync_req_i[8][i];
-    assign h_1d_fsync_req[2][1][i] = h_1d_fsync_req_i[9][i];
-    assign h_1d_fsync_req[2][2][i] = h_1d_fsync_req_i[12][i];
-    assign h_1d_fsync_req[2][3][i] = h_1d_fsync_req_i[13][i];
-    assign h_1d_fsync_req[3][0][i] = h_1d_fsync_req_i[10][i];
-    assign h_1d_fsync_req[3][1][i] = h_1d_fsync_req_i[11][i];
-    assign h_1d_fsync_req[3][2][i] = h_1d_fsync_req_i[14][i];
-    assign h_1d_fsync_req[3][3][i] = h_1d_fsync_req_i[15][i];
+  for (genvar i = 0; i < N_LEAF_FSYNC_NETWORKS; i++) begin: gen_h_1d_leaf_fsync_net_req_rsp
+    for (genvar j = 0; j < N_1D_H_LEAF_PORTS; j++) begin
+      for (genvar k = 0; k < N_LINKS_IN; k++) begin
+        localparam int unsigned LEAF_NET_ROWS = $sqrt(N_1D_H_LEAF_PORTS);
+        localparam int unsigned LEAF_NET_COLS = LEAF_NET_ROWS;
+        localparam int unsigned ROOT_NET_ROWS = $sqrt(N_LEAF_FSYNC_NETWORKS);
+        localparam int unsigned ROOT_NET_COLS = ROOT_NET_ROWS;
+        localparam int unsigned NET_ROWS      = $sqrt(N_1D_H_PORTS);
+        localparam int unsigned NET_COLS      = NET_ROWS;
 
-    // assign h_1d_fsync_rsp_o[2*(4*(i/2)+(i%2))+(4*(j/2)+(j%2))][k] = assign h_1d_fsync_rsp[i][j][k];
-    assign h_1d_fsync_rsp_o[0][i]  = h_1d_fsync_rsp[0][0][i];
-    assign h_1d_fsync_rsp_o[1][i]  = h_1d_fsync_rsp[0][1][i];
-    assign h_1d_fsync_rsp_o[4][i]  = h_1d_fsync_rsp[0][2][i];
-    assign h_1d_fsync_rsp_o[5][i]  = h_1d_fsync_rsp[0][3][i];
-    assign h_1d_fsync_rsp_o[2][i]  = h_1d_fsync_rsp[1][0][i];
-    assign h_1d_fsync_rsp_o[3][i]  = h_1d_fsync_rsp[1][1][i];
-    assign h_1d_fsync_rsp_o[6][i]  = h_1d_fsync_rsp[1][2][i];
-    assign h_1d_fsync_rsp_o[7][i]  = h_1d_fsync_rsp[1][3][i];
-    assign h_1d_fsync_rsp_o[8][i]  = h_1d_fsync_rsp[2][0][i];
-    assign h_1d_fsync_rsp_o[9][i]  = h_1d_fsync_rsp[2][1][i];
-    assign h_1d_fsync_rsp_o[12][i] = h_1d_fsync_rsp[2][2][i];
-    assign h_1d_fsync_rsp_o[13][i] = h_1d_fsync_rsp[2][3][i];
-    assign h_1d_fsync_rsp_o[10][i] = h_1d_fsync_rsp[3][0][i];
-    assign h_1d_fsync_rsp_o[11][i] = h_1d_fsync_rsp[3][1][i];
-    assign h_1d_fsync_rsp_o[14][i] = h_1d_fsync_rsp[3][2][i];
-    assign h_1d_fsync_rsp_o[15][i] = h_1d_fsync_rsp[3][3][i];
+        localparam int unsigned leaf_net_row_idx = j/LEAF_NET_COLS;
+        localparam int unsigned leaf_net_col_idx = j%LEAF_NET_COLS;
+        localparam int unsigned root_net_row_idx = i/ROOT_NET_COLS;
+        localparam int unsigned root_net_col_idx = i%ROOT_NET_COLS;
+        localparam int unsigned row_offset       = (root_net_row_idx*LEAF_NET_ROWS+leaf_net_row_idx)*NET_COLS;
+        localparam int unsigned col_offset       = root_net_col_idx*LEAF_NET_COLS+leaf_net_col_idx;
+        localparam int unsigned offset           = row_offset+col_offset;
 
-    // assign v_1d_fsync_req[i][j][k] = v_1d_fsync_req_i[2*(4*(i/2)+(i%2))+(4*(j/2)+(j%2))][k];
-    assign v_1d_fsync_req[0][0][i] = v_1d_fsync_req_i[0][i];
-    assign v_1d_fsync_req[0][1][i] = v_1d_fsync_req_i[1][i];
-    assign v_1d_fsync_req[0][2][i] = v_1d_fsync_req_i[4][i];
-    assign v_1d_fsync_req[0][3][i] = v_1d_fsync_req_i[5][i];
-    assign v_1d_fsync_req[1][0][i] = v_1d_fsync_req_i[2][i];
-    assign v_1d_fsync_req[1][1][i] = v_1d_fsync_req_i[3][i];
-    assign v_1d_fsync_req[1][2][i] = v_1d_fsync_req_i[6][i];
-    assign v_1d_fsync_req[1][3][i] = v_1d_fsync_req_i[7][i];
-    assign v_1d_fsync_req[2][0][i] = v_1d_fsync_req_i[8][i];
-    assign v_1d_fsync_req[2][1][i] = v_1d_fsync_req_i[9][i];
-    assign v_1d_fsync_req[2][2][i] = v_1d_fsync_req_i[12][i];
-    assign v_1d_fsync_req[2][3][i] = v_1d_fsync_req_i[13][i];
-    assign v_1d_fsync_req[3][0][i] = v_1d_fsync_req_i[10][i];
-    assign v_1d_fsync_req[3][1][i] = v_1d_fsync_req_i[11][i];
-    assign v_1d_fsync_req[3][2][i] = v_1d_fsync_req_i[14][i];
-    assign v_1d_fsync_req[3][3][i] = v_1d_fsync_req_i[15][i];
+        assign h_1d_fsync_req[i][j][k]     = h_1d_fsync_req_i[offset][k];
+        assign h_1d_fsync_rsp_o[offset][k] = h_1d_fsync_rsp[i][j][k];
+      end
+    end
+  end
 
-    // assign v_1d_fsync_rsp_o[2*(4*(i/2)+(i%2))+(4*(j/2)+(j%2))][k] = assign v_1d_fsync_rsp[i][j][k];
-    assign v_1d_fsync_rsp_o[0][i]  = v_1d_fsync_rsp[0][0][i];
-    assign v_1d_fsync_rsp_o[1][i]  = v_1d_fsync_rsp[0][1][i];
-    assign v_1d_fsync_rsp_o[4][i]  = v_1d_fsync_rsp[0][2][i];
-    assign v_1d_fsync_rsp_o[5][i]  = v_1d_fsync_rsp[0][3][i];
-    assign v_1d_fsync_rsp_o[2][i]  = v_1d_fsync_rsp[1][0][i];
-    assign v_1d_fsync_rsp_o[3][i]  = v_1d_fsync_rsp[1][1][i];
-    assign v_1d_fsync_rsp_o[6][i]  = v_1d_fsync_rsp[1][2][i];
-    assign v_1d_fsync_rsp_o[7][i]  = v_1d_fsync_rsp[1][3][i];
-    assign v_1d_fsync_rsp_o[8][i]  = v_1d_fsync_rsp[2][0][i];
-    assign v_1d_fsync_rsp_o[9][i]  = v_1d_fsync_rsp[2][1][i];
-    assign v_1d_fsync_rsp_o[12][i] = v_1d_fsync_rsp[2][2][i];
-    assign v_1d_fsync_rsp_o[13][i] = v_1d_fsync_rsp[2][3][i];
-    assign v_1d_fsync_rsp_o[10][i] = v_1d_fsync_rsp[3][0][i];
-    assign v_1d_fsync_rsp_o[11][i] = v_1d_fsync_rsp[3][1][i];
-    assign v_1d_fsync_rsp_o[14][i] = v_1d_fsync_rsp[3][2][i];
-    assign v_1d_fsync_rsp_o[15][i] = v_1d_fsync_rsp[3][3][i];
+  for (genvar i = 0; i < N_LEAF_FSYNC_NETWORKS; i++) begin: gen_v_1d_leaf_fsync_net_req_rsp
+    for (genvar j = 0; j < N_1D_V_LEAF_PORTS; j++) begin
+      for (genvar k = 0; k < N_LINKS_IN; k++) begin
+        localparam int unsigned LEAF_NET_ROWS = $sqrt(N_1D_V_LEAF_PORTS);
+        localparam int unsigned LEAF_NET_COLS = LEAF_NET_ROWS;
+        localparam int unsigned ROOT_NET_ROWS = $sqrt(N_LEAF_FSYNC_NETWORKS);
+        localparam int unsigned ROOT_NET_COLS = ROOT_NET_ROWS;
+        localparam int unsigned NET_ROWS      = $sqrt(N_1D_V_PORTS);
+        localparam int unsigned NET_COLS      = NET_ROWS;
+
+        localparam int unsigned leaf_net_row_idx = j/LEAF_NET_COLS;
+        localparam int unsigned leaf_net_col_idx = j%LEAF_NET_COLS;
+        localparam int unsigned root_net_row_idx = i/ROOT_NET_COLS;
+        localparam int unsigned root_net_col_idx = i%ROOT_NET_COLS;
+        localparam int unsigned row_offset       = (root_net_row_idx*LEAF_NET_ROWS+leaf_net_row_idx)*NET_COLS;
+        localparam int unsigned col_offset       = root_net_col_idx*LEAF_NET_COLS+leaf_net_col_idx;
+        localparam int unsigned offset           = row_offset+col_offset;
+
+        assign v_1d_fsync_req[i][j][k]     = v_1d_fsync_req_i[offset][k];
+        assign v_1d_fsync_rsp_o[offset][k] = v_1d_fsync_rsp[i][j][k];
+      end
+    end
   end
 
   for (genvar i = 0; i < N_1D_H_ROOT_PORTS; i++) begin: gen_1d_h_root_fsync_net_req_rsp
@@ -319,20 +272,6 @@ module fractal_sync_4x4_core
       assign root_v_1d_fsync_req[i][j]    = leaf_v_2d_fsync_req[i][0][j];
       assign leaf_v_2d_fsync_rsp[i][0][j] = root_v_1d_fsync_rsp[i][j];
     end
-  end
-
-  for (genvar i = 0; i < N_H_NBR_NODES; i++) begin: gen_h_nbr_req_rsp
-    assign h_nbr_fsycn_req[i][0]    = h_nbr_fsycn_req_i[2*i];
-    assign h_nbr_fsycn_req[i][1]    = h_nbr_fsycn_req_i[2*i+1];
-    assign h_nbr_fsycn_rsp_o[2*i]   = h_nbr_fsycn_rsp[i][0];
-    assign h_nbr_fsycn_rsp_o[2*i+1] = h_nbr_fsycn_rsp[i][1];
-  end
-
-  for (genvar i = 0; i < N_V_NBR_NODES; i++) begin: gen_v_nbr_req_rsp
-    assign v_nbr_fsycn_req[i][0]    = v_nbr_fsycn_req_i[2*i];
-    assign v_nbr_fsycn_req[i][1]    = v_nbr_fsycn_req_i[2*i+1];
-    assign v_nbr_fsycn_rsp_o[2*i]   = v_nbr_fsycn_rsp[i][0];
-    assign v_nbr_fsycn_rsp_o[2*i+1] = v_nbr_fsycn_rsp[i][1];
   end
 
 /*******************************************************/
@@ -358,9 +297,7 @@ module fractal_sync_4x4_core
       .LVL_OFFSET        ( LEAF_LVL_OFFSET           ),
       .fsync_in_req_t    ( fsync_in_req_t            ),
       .fsync_out_req_t   ( fsync_itl_req_t           ),
-      .fsync_rsp_t       ( fsync_rsp_t               ),
-      .fsync_nbr_req_t   ( fsync_nbr_req_t           ),
-      .fsync_nbr_rsp_t   ( fsync_nbr_req_t           )
+      .fsync_rsp_t       ( fsync_rsp_t               )
     ) i_leaf_fsync_net (
       .clk_i                                       ,
       .rst_ni                                      ,
@@ -378,7 +315,7 @@ module fractal_sync_4x4_core
 /*******************************************************/
 /**         Leaf Synchronization Networks End         **/
 /*******************************************************/
-/**      Root Synchronization Networks Beginning      **/
+/**       Root Synchronization Network Beginning      **/
 /*******************************************************/
 
   fractal_sync_2x2_core #(
@@ -397,9 +334,7 @@ module fractal_sync_4x4_core
     .LVL_OFFSET        ( ROOT_LVL_OFFSET        ),
     .fsync_in_req_t    ( fsync_itl_req_t        ),
     .fsync_out_req_t   ( fsync_out_req_t        ),
-    .fsync_rsp_t       ( fsync_rsp_t            ),
-    .fsync_nbr_req_t   ( fsync_nbr_req_t        ),
-    .fsync_nbr_rsp_t   ( fsync_nbr_rsp_t        )
+    .fsync_rsp_t       ( fsync_rsp_t            )
   ) i_root_fsync_net (
     .clk_i                                    ,
     .rst_ni                                   ,
@@ -414,39 +349,7 @@ module fractal_sync_4x4_core
   );
 
 /*******************************************************/
-/**         Root Synchronization Networks End         **/
-/*******************************************************/
-/**    Neighbor Synchronization Networks Beginning    **/
-/*******************************************************/
-
-  for (genvar i = 0; i < N_H_NBR_NODES; i++) begin: gen_h_nbr_nodes
-    fractal_sync_neighbor #(
-      .fsync_req_t ( fsync_nbr_req_t      ),
-      .fsync_rsp_t ( fsync_nbr_rsp_t      ),
-      .COMB        ( /*DO NOT OVERWRITE*/ ) 
-    ) i_h_nbr_node (
-      .clk_i                        ,
-      .rst_ni                       ,
-      .req_i  ( h_nbr_fsycn_req[i] ),
-      .rsp_o  ( h_nbr_fsycn_rsp[i] )
-    );
-  end
-
-  for (genvar i = 0; i < N_V_NBR_NODES; i++) begin: gen_v_nbr_nodes
-    fractal_sync_neighbor #(
-      .fsync_req_t ( fsync_nbr_req_t      ),
-      .fsync_rsp_t ( fsync_nbr_rsp_t      ),
-      .COMB        ( /*DO NOT OVERWRITE*/ ) 
-    ) i_v_nbr_node (
-      .clk_i                        ,
-      .rst_ni                       ,
-      .req_i  ( v_nbr_fsycn_req[i] ),
-      .rsp_o  ( v_nbr_fsycn_rsp[i] )
-    );
-  end
-
-/*******************************************************/
-/**       Neighbor Synchronization Networks End       **/
+/**          Root Synchronization Network End         **/
 /*******************************************************/
 
 endmodule: fractal_sync_4x4_core
@@ -476,8 +379,6 @@ module fractal_sync_4x4
   localparam int unsigned                 N_1D_V_PORTS                                             = fractal_sync_4x4_pkg::N_1D_V_PORTS,
   localparam int unsigned                 N_NBR_H_PORTS                                            = fractal_sync_4x4_pkg::N_NBR_H_PORTS,
   localparam int unsigned                 N_NBR_V_PORTS                                            = fractal_sync_4x4_pkg::N_NBR_V_PORTS,
-  localparam int unsigned                 N_ACTIVE_NBR_H_PORTS                                     = fractal_sync_4x4_pkg::N_ACTIVE_NBR_H_PORTS,
-  localparam int unsigned                 N_ACTIVE_NBR_V_PORTS                                     = fractal_sync_4x4_pkg::N_ACTIVE_NBR_V_PORTS,
   localparam int unsigned                 N_2D_H_PORTS                                             = fractal_sync_4x4_pkg::N_2D_H_PORTS,
   localparam int unsigned                 N_2D_V_PORTS                                             = fractal_sync_4x4_pkg::N_2D_V_PORTS
 )(
@@ -501,155 +402,72 @@ module fractal_sync_4x4
 );
 
 /*******************************************************/
-/**             Internal Signals Beginning            **/
+/**        Parameters and Definitions Beginning       **/
 /*******************************************************/
 
-  fsync_nbr_req_t h_nbr_fsycn_req[N_ACTIVE_NBR_H_PORTS];
-  fsync_nbr_rsp_t h_nbr_fsycn_rsp[N_ACTIVE_NBR_H_PORTS];
-  fsync_nbr_req_t v_nbr_fsycn_req[N_ACTIVE_NBR_V_PORTS];
-  fsync_nbr_rsp_t v_nbr_fsycn_rsp[N_ACTIVE_NBR_V_PORTS];
+  localparam int unsigned N_H_NBR_NODES  = $sqrt(N_NBR_H_PORTS);
+  localparam int unsigned N_V_NBR_NODES  = $sqrt(N_NBR_V_PORTS);
+  localparam int unsigned LAST_H_NBR_IDX = N_H_NBR_NODES-1;
+  localparam int unsigned LAST_V_NBR_IDX = N_V_NBR_NODES-1;
 
 /*******************************************************/
-/**                Internal Signals End               **/
+/**           Parameters and Definitions End          **/
 /*******************************************************/
-/**            Hardwired Signals Beginning            **/
-/*******************************************************/
-
-  // Horizontal neighbor mapping: neighbor node i -> tile nodes [4*i+1, 4*i+2]
-  // 0 -> [1,  2]
-  // 1 -> [5,  6]
-  // 2 -> [9,  10]
-  // 3 -> [13, 14]
-  assign h_nbr_fsycn_req[0] = h_nbr_fsycn_req_i[1];
-  assign h_nbr_fsycn_req[1] = h_nbr_fsycn_req_i[2];
-  assign h_nbr_fsycn_req[2] = h_nbr_fsycn_req_i[5];
-  assign h_nbr_fsycn_req[3] = h_nbr_fsycn_req_i[6];
-  assign h_nbr_fsycn_req[4] = h_nbr_fsycn_req_i[9];
-  assign h_nbr_fsycn_req[5] = h_nbr_fsycn_req_i[10];
-  assign h_nbr_fsycn_req[6] = h_nbr_fsycn_req_i[13];
-  assign h_nbr_fsycn_req[7] = h_nbr_fsycn_req_i[14];
-
-  assign h_nbr_fsycn_rsp_o[0].wake     = 1'b0;
-  assign h_nbr_fsycn_rsp_o[0].sig.lvl  = '0;
-  assign h_nbr_fsycn_rsp_o[0].sig.id   = '0;
-  assign h_nbr_fsycn_rsp_o[0].error    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[1]          = h_nbr_fsycn_rsp[0];
-  assign h_nbr_fsycn_rsp_o[2]          = h_nbr_fsycn_rsp[1];
-  assign h_nbr_fsycn_rsp_o[3].wake     = 1'b0;
-  assign h_nbr_fsycn_rsp_o[3].sig.lvl  = '0;
-  assign h_nbr_fsycn_rsp_o[3].sig.id   = '0;
-  assign h_nbr_fsycn_rsp_o[3].error    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[4].wake     = 1'b0;
-  assign h_nbr_fsycn_rsp_o[4].sig.lvl  = '0;
-  assign h_nbr_fsycn_rsp_o[4].sig.id   = '0;
-  assign h_nbr_fsycn_rsp_o[4].error    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[5]          = h_nbr_fsycn_rsp[2];
-  assign h_nbr_fsycn_rsp_o[6]          = h_nbr_fsycn_rsp[3];
-  assign h_nbr_fsycn_rsp_o[7].wake     = 1'b0;
-  assign h_nbr_fsycn_rsp_o[7].sig.lvl  = '0;
-  assign h_nbr_fsycn_rsp_o[7].sig.id   = '0;
-  assign h_nbr_fsycn_rsp_o[7].error    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[8].wake     = 1'b0;
-  assign h_nbr_fsycn_rsp_o[8].sig.lvl  = '0;
-  assign h_nbr_fsycn_rsp_o[8].sig.id   = '0;
-  assign h_nbr_fsycn_rsp_o[8].error    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[9]          = h_nbr_fsycn_rsp[4];
-  assign h_nbr_fsycn_rsp_o[10]         = h_nbr_fsycn_rsp[5];
-  assign h_nbr_fsycn_rsp_o[11].wake    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[11].sig.lvl = '0;
-  assign h_nbr_fsycn_rsp_o[11].sig.id  = '0;
-  assign h_nbr_fsycn_rsp_o[11].error   = 1'b0;
-  assign h_nbr_fsycn_rsp_o[12].wake    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[12].sig.lvl = '0;
-  assign h_nbr_fsycn_rsp_o[12].sig.id  = '0;
-  assign h_nbr_fsycn_rsp_o[12].error   = 1'b0;
-  assign h_nbr_fsycn_rsp_o[13]         = h_nbr_fsycn_rsp[6];
-  assign h_nbr_fsycn_rsp_o[14]         = h_nbr_fsycn_rsp[7];
-  assign h_nbr_fsycn_rsp_o[15].wake    = 1'b0;
-  assign h_nbr_fsycn_rsp_o[15].sig.lvl = '0;
-  assign h_nbr_fsycn_rsp_o[15].sig.id  = '0;
-  assign h_nbr_fsycn_rsp_o[15].error   = 1'b0;
-
-  // Vertical neighbor mapping: neighbor node i -> tile nodes [4+i, 8+i]
-  // 0 -> [4, 8]
-  // 1 -> [5, 9]
-  // 2 -> [6, 10]
-  // 3 -> [7, 11]
-  assign v_nbr_fsycn_req[0] = v_nbr_fsycn_req_i[4];
-  assign v_nbr_fsycn_req[1] = v_nbr_fsycn_req_i[8];
-  assign v_nbr_fsycn_req[2] = v_nbr_fsycn_req_i[5];
-  assign v_nbr_fsycn_req[3] = v_nbr_fsycn_req_i[9];
-  assign v_nbr_fsycn_req[4] = v_nbr_fsycn_req_i[6];
-  assign v_nbr_fsycn_req[5] = v_nbr_fsycn_req_i[10];
-  assign v_nbr_fsycn_req[6] = v_nbr_fsycn_req_i[7];
-  assign v_nbr_fsycn_req[7] = v_nbr_fsycn_req_i[11];
-
-  assign v_nbr_fsycn_rsp_o[0].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[0].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[0].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[0].error   = 1'b0;
-  assign v_nbr_fsycn_rsp_o[1].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[1].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[1].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[1].error   = 1'b0;
-  assign v_nbr_fsycn_rsp_o[2].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[2].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[2].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[2].error   = 1'b0;
-  assign v_nbr_fsycn_rsp_o[3].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[3].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[3].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[3].error   = 1'b0;
-  assign v_nbr_fsycn_rsp_o[4]         = v_nbr_fsycn_rsp[0];
-  assign v_nbr_fsycn_rsp_o[8]         = v_nbr_fsycn_rsp[1];
-  assign v_nbr_fsycn_rsp_o[5]         = v_nbr_fsycn_rsp[2];
-  assign v_nbr_fsycn_rsp_o[9]         = v_nbr_fsycn_rsp[3];
-  assign v_nbr_fsycn_rsp_o[6]         = v_nbr_fsycn_rsp[4];
-  assign v_nbr_fsycn_rsp_o[10]        = v_nbr_fsycn_rsp[5];
-  assign v_nbr_fsycn_rsp_o[7]         = v_nbr_fsycn_rsp[6];
-  assign v_nbr_fsycn_rsp_o[11]        = v_nbr_fsycn_rsp[7];
-  assign v_nbr_fsycn_rsp_o[12].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[12].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[12].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[12].error   = 1'b0;
-  assign v_nbr_fsycn_rsp_o[13].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[13].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[13].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[13].error   = 1'b0;
-  assign v_nbr_fsycn_rsp_o[14].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[14].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[14].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[14].error   = 1'b0;
-  assign v_nbr_fsycn_rsp_o[15].wake    = 1'b0;
-  assign v_nbr_fsycn_rsp_o[15].sig.lvl = '0;
-  assign v_nbr_fsycn_rsp_o[15].sig.id  = '0;
-  assign v_nbr_fsycn_rsp_o[15].error   = 1'b0;
-
-/*******************************************************/
-/**               Hardwired Signals End               **/
-/*******************************************************/
-/**         Synchronization Network Beginning         **/
+/**     Neighbor Synchronization Network Beginning    **/
 /*******************************************************/
 
-  fractal_sync_4x4_core i_fractal_sync_4x4 (
-    .clk_i                                ,
-    .rst_ni                               ,
-    .h_1d_fsync_req_i                     ,
-    .h_1d_fsync_rsp_o                     ,
-    .v_1d_fsync_req_i                     ,
-    .v_1d_fsync_rsp_o                     ,
-    .h_nbr_fsycn_req_i ( h_nbr_fsycn_req ),
-    .h_nbr_fsycn_rsp_o ( h_nbr_fsycn_rsp ),
-    .v_nbr_fsycn_req_i ( v_nbr_fsycn_req ),
-    .v_nbr_fsycn_rsp_o ( v_nbr_fsycn_rsp ),
-    .h_2d_fsync_req_o                     ,
-    .h_2d_fsync_rsp_i                     ,
-    .v_2d_fsync_req_o                     ,
-    .v_2d_fsync_rsp_i                     
-  );
+  for (genvar i = 0; i < N_NBR_H_PORTS; i ++) begin: gen_h_nbr_net
+    localparam int unsigned h_nbr_col_idx = i%N_V_NBR_NODES;
+    if ((h_nbr_col_idx == 0) || (h_nbr_col_idx == LAST_H_NBR_IDX)) begin
+      assign h_nbr_fsycn_rsp_o[i].wake    = 1'b0;
+      assign h_nbr_fsycn_rsp_o[i].sig.lvl = '0;
+      assign h_nbr_fsycn_rsp_o[i].sig.id  = '0;
+      assign h_nbr_fsycn_rsp_o[i].error   = 1'b0;
+    end else if (h_nbr_col_idx%2) begin
+      fractal_sync_neighbor #(
+        .fsync_req_t ( fsync_nbr_req_t      ),
+        .fsync_rsp_t ( fsync_nbr_rsp_t      ),
+        .COMB        ( /*DO NOT OVERWRITE*/ ) 
+      ) i_h_nbr_node (
+        .clk_i                                                     ,
+        .rst_ni                                                    ,
+        .req_i  ( '{h_nbr_fsycn_req_i[i], h_nbr_fsycn_req_i[i+1]} ),
+        .rsp_o  ( '{h_nbr_fsycn_rsp_o[i], h_nbr_fsycn_rsp_o[i+1]} )
+      );
+    end
+  end
+
+  for (genvar i = 0; i < N_NBR_V_PORTS; i ++) begin: gen_v_nbr_net
+    localparam int unsigned v_nbr_row_idx = i/N_V_NBR_NODES;
+    if ((v_nbr_row_idx == 0) || (v_nbr_row_idx == LAST_V_NBR_IDX)) begin
+      assign v_nbr_fsycn_rsp_o[i].wake    = 1'b0;
+      assign v_nbr_fsycn_rsp_o[i].sig.lvl = '0;
+      assign v_nbr_fsycn_rsp_o[i].sig.id  = '0;
+      assign v_nbr_fsycn_rsp_o[i].error   = 1'b0;
+    end else if (v_nbr_row_idx%2) begin
+      fractal_sync_neighbor #(
+        .fsync_req_t ( fsync_nbr_req_t      ),
+        .fsync_rsp_t ( fsync_nbr_rsp_t      ),
+        .COMB        ( /*DO NOT OVERWRITE*/ ) 
+      ) i_h_nbr_node (
+        .clk_i                                                                 ,
+        .rst_ni                                                                ,
+        .req_i  ( '{v_nbr_fsycn_req_i[i], v_nbr_fsycn_req_i[i+N_V_NBR_NODES]} ),
+        .rsp_o  ( '{v_nbr_fsycn_rsp_o[i], v_nbr_fsycn_rsp_o[i+N_V_NBR_NODES]} )
+      );
+    end
+  end
 
 /*******************************************************/
-/**            Synchronization Network End            **/
+/**        Neighbor Synchronization Network End       **/
+/*******************************************************/
+/**      H-Tree Synchronization Network Beginning     **/
+/*******************************************************/
+
+  fractal_sync_4x4_core i_fractal_sync_4x4_core (.*);
+
+/*******************************************************/
+/**         H-Tree Synchronization Network End        **/
 /*******************************************************/
 
 endmodule: fractal_sync_4x4
