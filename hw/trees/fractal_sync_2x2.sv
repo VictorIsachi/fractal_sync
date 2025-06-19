@@ -87,12 +87,12 @@ package fractal_sync_2x2_pkg;
 
   localparam int unsigned                  NBR_AGGR_WIDTH    = 1;
   localparam int unsigned                  NBR_LVL_WIDTH     = 1;
-  localparam int unsigned                  NBR_ID_WIDTH      = 1;
+  localparam int unsigned                  NBR_ID_WIDTH      = 2;
 
-  `FSYNC_TYPEDEF_REQ_ALL(fsync_in, logic[IN_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
+  `FSYNC_TYPEDEF_REQ_ALL(fsync_in,  logic[IN_AGGR_WIDTH-1:0],  logic[ID_WIDTH-1:0])
   `FSYNC_TYPEDEF_REQ_ALL(fsync_out, logic[OUT_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
-  `FSYNC_TYPEDEF_RSP_ALL(fsync, logic[LVL_WIDTH-1:0], logic[ID_WIDTH-1:0])
-  `FSYNC_TYPEDEF_ALL(fsync_nbr, logic[NBR_AGGR_WIDTH-1:0], logic[NBR_LVL_WIDTH-1:0], logic[NBR_ID_WIDTH-1:0])
+  `FSYNC_TYPEDEF_RSP_ALL(fsync,     logic[LVL_WIDTH-1:0],      logic[ID_WIDTH-1:0])
+  `FSYNC_TYPEDEF_ALL(    fsync_nbr, logic[NBR_AGGR_WIDTH-1:0], logic[NBR_LVL_WIDTH-1:0], logic[NBR_ID_WIDTH-1:0])
 
 endpackage: fractal_sync_2x2_pkg
 
@@ -115,8 +115,6 @@ module fractal_sync_2x2_core
   parameter type                          fsync_in_req_t    = fractal_sync_2x2_pkg::fsync_in_req_t,
   parameter type                          fsync_out_req_t   = fractal_sync_2x2_pkg::fsync_out_req_t,
   parameter type                          fsync_rsp_t       = fractal_sync_2x2_pkg::fsync_rsp_t,
-  parameter type                          fsync_nbr_req_t   = fractal_sync_2x2_pkg::fsync_nbr_req_t,
-  parameter type                          fsync_nbr_rsp_t   = fractal_sync_2x2_pkg::fsync_nbr_rsp_t,
   localparam int unsigned                 N_1D_H_PORTS      = fractal_sync_2x2_pkg::N_1D_H_PORTS,
   localparam int unsigned                 N_1D_V_PORTS      = fractal_sync_2x2_pkg::N_1D_V_PORTS,
   localparam int unsigned                 N_2D_H_PORTS      = fractal_sync_2x2_pkg::N_2D_H_PORTS,
@@ -434,17 +432,17 @@ module fractal_sync_2x2
 );
 
 /*******************************************************/
-/**            Hardwired Signals Beginning            **/
+/**     Neighbor Synchronization Network Beginning    **/
 /*******************************************************/
 
-  for (genvar i = 0; i < N_NBR_H_PORTS; i++) begin: gen_h_nbr_rsp
+  for (genvar i = 0; i < N_NBR_H_PORTS; i++) begin: gen_h_nbr_net
     assign h_nbr_fsycn_rsp_o[i].wake    = 1'b0;
     assign h_nbr_fsycn_rsp_o[i].sig.lvl = '0;
     assign h_nbr_fsycn_rsp_o[i].sig.id  = '0;
     assign h_nbr_fsycn_rsp_o[i].error   = 1'b0;
   end
 
-  for (genvar i = 0; i < N_NBR_V_PORTS; i++) begin: gen_v_nbr_rsp
+  for (genvar i = 0; i < N_NBR_V_PORTS; i++) begin: gen_v_nbr_net
     assign v_nbr_fsycn_rsp_o[i].wake    = 1'b0;
     assign v_nbr_fsycn_rsp_o[i].sig.lvl = '0;
     assign v_nbr_fsycn_rsp_o[i].sig.id  = '0;
@@ -452,15 +450,15 @@ module fractal_sync_2x2
   end
 
 /*******************************************************/
-/**               Hardwired Signals End               **/
+/**        Neighbor Synchronization Network End       **/
 /*******************************************************/
-/**         Synchronization Network Beginning         **/
+/**      H-Tree Synchronization Network Beginning     **/
 /*******************************************************/
 
-  fractal_sync_2x2_core i_fractal_sync_2x2 (.*);
+  fractal_sync_2x2_core i_fractal_sync_2x2_core (.*);
 
 /*******************************************************/
-/**            Synchronization Network End            **/
+/**         H-Tree Synchronization Network End        **/
 /*******************************************************/
 
 endmodule: fractal_sync_2x2
