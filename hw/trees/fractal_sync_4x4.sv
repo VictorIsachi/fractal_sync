@@ -76,7 +76,7 @@ package fractal_sync_4x4_pkg;
   localparam int unsigned                  N_REMOTE_LINES_2D[N_2D_ITL_LEVELS] = '{4, 16};
 
   localparam int unsigned                  N_LINKS_IN                         = 1;
-  localparam int unsigned                  N_LINKS_ITL[N_ITL_LEVELS]          = '{1, 2, 4};
+  localparam int unsigned                  N_LINKS_ITL[N_ITL_LEVELS]          = '{1, 2, 2};
   localparam int unsigned                  N_LINKS_OUT                        = 1;
 
   localparam int unsigned                  N_1D_H_PORTS                       = 16;
@@ -419,12 +419,12 @@ module fractal_sync_4x4
 
   for (genvar i = 0; i < N_NBR_H_PORTS; i ++) begin: gen_h_nbr_net
     localparam int unsigned h_nbr_col_idx = i%N_V_NBR_NODES;
-    if ((h_nbr_col_idx == 0) || (h_nbr_col_idx == LAST_H_NBR_IDX)) begin
+    if ((h_nbr_col_idx == 0) || (h_nbr_col_idx == LAST_H_NBR_IDX)) begin: gen_hardwire_req_rsp
       assign h_nbr_fsycn_rsp_o[i].wake    = 1'b0;
       assign h_nbr_fsycn_rsp_o[i].sig.lvl = '0;
       assign h_nbr_fsycn_rsp_o[i].sig.id  = '0;
       assign h_nbr_fsycn_rsp_o[i].error   = 1'b0;
-    end else if (h_nbr_col_idx%2) begin
+    end else if (h_nbr_col_idx%2) begin: gen_nbr_node
       fsync_nbr_req_t h_nbr_req[N_NBR_PORTS];
       fsync_nbr_rsp_t h_nbr_rsp[N_NBR_PORTS];
       assign h_nbr_req[0]           = h_nbr_fsycn_req_i[i];
@@ -446,12 +446,12 @@ module fractal_sync_4x4
 
   for (genvar i = 0; i < N_NBR_V_PORTS; i ++) begin: gen_v_nbr_net
     localparam int unsigned v_nbr_row_idx = i/N_V_NBR_NODES;
-    if ((v_nbr_row_idx == 0) || (v_nbr_row_idx == LAST_V_NBR_IDX)) begin
+    if ((v_nbr_row_idx == 0) || (v_nbr_row_idx == LAST_V_NBR_IDX)) begin: gen_hardwire_req_rsp
       assign v_nbr_fsycn_rsp_o[i].wake    = 1'b0;
       assign v_nbr_fsycn_rsp_o[i].sig.lvl = '0;
       assign v_nbr_fsycn_rsp_o[i].sig.id  = '0;
       assign v_nbr_fsycn_rsp_o[i].error   = 1'b0;
-    end else if (v_nbr_row_idx%2) begin
+    end else if (v_nbr_row_idx%2) begin: gen_nbr_node
       fsync_nbr_req_t v_nbr_req[N_NBR_PORTS];
       fsync_nbr_rsp_t v_nbr_rsp[N_NBR_PORTS];
       assign v_nbr_req[0]                       = v_nbr_fsycn_req_i[i];
@@ -462,7 +462,7 @@ module fractal_sync_4x4
         .fsync_req_t ( fsync_nbr_req_t      ),
         .fsync_rsp_t ( fsync_nbr_rsp_t      ),
         .COMB        ( /*DO NOT OVERWRITE*/ ) 
-      ) i_h_nbr_node (
+      ) i_v_nbr_node (
         .clk_i               ,
         .rst_ni              ,
         .req_i  ( v_nbr_req ),
