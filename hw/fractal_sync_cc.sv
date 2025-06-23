@@ -334,7 +334,7 @@ module fractal_sync_cc
         check_local[i]  = 1'b0;
         check_remote[i] = 1'b0;
         set_remote[i]   = 1'b0;
-        sd_in[i]        = '0;
+        sd_in[i]        = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
         push_local[i]   = 1'b0;
         push_remote[i]  = 1'b0;
         unique case (c_state[i])
@@ -343,18 +343,15 @@ module fractal_sync_cc
               n_state[i] = CHECK;
               if (local_i[i]) begin
                 if (!root_i[i]) begin
-                  if (!rf_error[i]) begin
-                    push_remote[i] = bypass_remote[i] | present_remote[i];
-                    set_remote[i]  = 1'b1;
-                    sd_in[i]       = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-                  end else push_local[i] = 1'b1;
+                  set_remote[i]  = 1'b1;
+                  push_remote[i] = (bypass_remote[i] | present_remote[i]) & ~rf_error[i];
+                  push_local[i]  = rf_error[i];
                 end else begin
                   check_local[i] = 1'b1;
                   push_local[i]  = bypass_local[i] | present_local[i] | rf_error[i];
                 end
               end else begin
                 set_remote[i] = 1'b1;
-                sd_in[i]      = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
               end
             end
           CHECK: 
@@ -362,18 +359,15 @@ module fractal_sync_cc
               n_state[i] = CHECK;
               if (local_i[i]) begin
                 if (!root_i[i]) begin
-                  if (!rf_error[i]) begin
-                    push_remote[i] = bypass_remote[i] | present_remote[i];
-                    set_remote[i]  = 1'b1;
-                    sd_in[i]       = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-                  end else push_local[i] = 1'b1;
+                  set_remote[i]  = 1'b1;
+                  push_remote[i] = (bypass_remote[i] | present_remote[i]) & ~rf_error[i];
+                  push_local[i]  = rf_error[i];
                 end else begin
                   check_local[i] = 1'b1;
                   push_local[i]  = bypass_local[i] | present_local[i] | rf_error[i];
                 end
               end else begin
                 set_remote[i] = 1'b1;
-                sd_in[i]      = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
               end
             end else n_state[i] = IDLE;
         endcase
@@ -426,7 +420,7 @@ module fractal_sync_cc
         check_local[2*i]  = 1'b0;
         check_remote[2*i] = 1'b0;
         set_remote[2*i]   = 1'b0;
-        sd_in[2*i]        = '0;
+        sd_in[2*i]        = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
         push_local[2*i]   = 1'b0;
         push_remote[2*i]  = 1'b0;
         unique case (c_state[2*i])
@@ -435,18 +429,15 @@ module fractal_sync_cc
               n_state[2*i] = CHECK;
               if (local_i[2*i]) begin
                 if (!root_i[2*i]) begin
-                  if (!rf_error[2*i]) begin
-                    push_remote[2*i] = bypass_remote[2*i] | present_remote[2*i];
-                    set_remote[2*i]  = 1'b1;
-                    sd_in[2*i]       = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-                  end else push_local[2*i] = 1'b1;
+                  set_remote[2*i]  = 1'b1;
+                  push_remote[2*i] = (bypass_remote[2*i] | present_remote[2*i]) & ~rf_error[2*i];
+                  push_local[2*i]  = rf_error[2*i];
                 end else begin
                   check_local[2*i] = 1'b1;
                   push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | rf_error[2*i];
                 end
               end else begin
                 set_remote[2*i] = 1'b1;
-                sd_in[2*i]      = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
               end
             end
           CHECK: 
@@ -454,18 +445,15 @@ module fractal_sync_cc
               n_state[2*i] = CHECK;
               if (local_i[2*i]) begin
                 if (!root_i[2*i]) begin
-                  if (!rf_error[2*i]) begin
-                    push_remote[2*i] = bypass_remote[2*i] | present_remote[2*i];
-                    set_remote[2*i]  = 1'b1;
-                    sd_in[2*i]       = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-                  end else push_local[2*i] = 1'b1;
+                  set_remote[2*i]  = 1'b1;
+                  push_remote[2*i] = (bypass_remote[2*i] | present_remote[2*i]) & ~rf_error[2*i];
+                  push_local[2*i]  = rf_error[2*i];
                 end else begin
                   check_local[2*i] = 1'b1;
-                  push_local[2*i]  = bypass_local[i] | present_local[i] | rf_error[i];
+                  push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | rf_error[2*i];
                 end
               end else begin
                 set_remote[2*i] = 1'b1;
-                sd_in[2*i]      = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
               end
             end else n_state[2*i] = IDLE;
         endcase
@@ -517,7 +505,7 @@ module fractal_sync_cc
         check_local[2*i+1]  = 1'b0;
         check_remote[2*i+1] = 1'b0;
         set_remote[2*i+1]   = 1'b0;
-        sd_in[2*i+1]        = '0;
+        sd_in[2*i+1]        = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
         push_local[2*i+1]   = 1'b0;
         push_remote[2*i+1]  = 1'b0;
         unique case (c_state[2*i+1])
@@ -526,18 +514,15 @@ module fractal_sync_cc
               n_state[2*i+1] = CHECK;
               if (local_i[2*i+1]) begin
                 if (!root_i[2*i+1]) begin
-                  if (!rf_error[2*i+1]) begin
-                    push_remote[2*i+1] = bypass_remote[2*i+1] | present_remote[2*i+1];
-                    set_remote[2*i+1]  = 1'b1;
-                    sd_in[2*i+1]       = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-                  end else push_local[2*i+1] = 1'b1;
+                  set_remote[2*i+1]  = 1'b1;
+                  push_remote[2*i+1] = (bypass_remote[2*i+1] | present_remote[2*i+1]) & ~rf_error[2*i+1];
+                  push_local[2*i+1]  = rf_error[2*i+1];
                 end else begin
                   check_local[2*i+1] = 1'b1;
                   push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | rf_error[2*i+1];
                 end
               end else begin
                 set_remote[2*i+1] = 1'b1;
-                sd_in[2*i+1]      = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
               end
             end
           CHECK: 
@@ -545,18 +530,15 @@ module fractal_sync_cc
               n_state[2*i+1] = CHECK;
               if (local_i[2*i+1]) begin
                 if (!root_i[2*i+1]) begin
-                  if (!rf_error[2*i+1]) begin
-                    push_remote[2*i+1] = bypass_remote[2*i+1] | present_remote[2*i+1];
-                    set_remote[2*i+1]  = 1'b1;
-                    sd_in[2*i+1]       = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-                  end else push_local[2*i+1] = 1'b1;
+                  set_remote[2*i+1]  = 1'b1;
+                  push_remote[2*i+1] = (bypass_remote[2*i+1] | present_remote[2*i+1]) & ~rf_error[2*i+1];
+                  push_local[2*i+1]  = rf_error[2*i+1];
                 end else begin
                   check_local[2*i+1] = 1'b1;
-                  push_local[2*i+1]  = bypass_local[i+1] | present_local[i+1] | rf_error[i+1];
+                  push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | rf_error[2*i+1];
                 end
               end else begin
                 set_remote[2*i+1] = 1'b1;
-                sd_in[2*i+1]      = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
               end
             end else n_state[2*i+1] = IDLE;
         endcase
