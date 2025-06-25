@@ -122,10 +122,10 @@ bool fsync_partition_subtree(fsync_cu_t **cus, const unsigned int num_cus, const
       h_subtree_active = fsync_partition_subtree(h_h_cus, num_h_h_cus, v_fs_dir, threshold, v_fs_node);
     }
     
-    free (h_l_cus);
-    free (h_h_cus);
-    free (v_l_cus);
-    free (v_h_cus);
+    free(h_l_cus);
+    free(h_h_cus);
+    free(v_l_cus);
+    free(v_h_cus);
 
     return node_active || l_subtree_active || h_subtree_active;
   }else{
