@@ -66,7 +66,7 @@ unsigned int fsync_update_v_poss(fsync_cu_t **cus, const unsigned int num_cus, c
 void fsync_update_cus_req(fsync_cu_t **cus, const unsigned int num_cus, const fsync_dir dir, const fsync_node node, const bool node_active){
   for (unsigned int i = 0; i < num_cus; i++){
     cus[i]->fsync_req.fs_req_aggr <<= 1;
-    cus[i]->fsync_req.fs_req_aggr |= (node_active) ? 1 : 0;
+    cus[i]->fsync_req.fs_req_aggr |= node_active ? 1 : 0;
     if ((cus[i]->fsync_req.req_node == null_fs_node) && node_active){
       cus[i]->fsync_req.req_node = node;
       cus[i]->fsync_req.fs_req_id = (dir == h_fs_dir) ? 0 : 1;
