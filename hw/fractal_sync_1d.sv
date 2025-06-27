@@ -22,7 +22,7 @@
  * Parameters:
  *  NODE_TYPE       - Node type of control core (horizontal, vertical, 2D, root)
  *  RF_TYPE         - Remote RF type (Directly Mapped or CAM)
- *  N_LOCAL_REGS    - Number of register in teh local RF
+ *  N_LOCAL_REGS    - Number of register in the local RF
  *  N_REMOTE_LINES  - Number of CAM lines in a CAM-based remote RF
  *  AGGREGATE_WIDTH - Width of the aggr field
  *  ID_WIDTH        - Width of the id field
@@ -36,8 +36,8 @@
  *
  * Interface signals:
  *  > req_in_i  - Synchronization request (input)
- *  > rsp_in_o  - Synchronization response (output)
- *  > req_out_o - Synch. req. (output)
+ *  < rsp_in_o  - Synchronization response (output)
+ *  < req_out_o - Synch. req. (output)
  *  > rsp_out_i - Synch. rsp. (input)
  */
 

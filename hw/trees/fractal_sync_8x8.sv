@@ -30,6 +30,7 @@
  *  N_LINKS_IN        - Number of input links of the 1D network links (CU-1D node)
  *  N_LINKS_ITL       - Number of network links at the intermediate (internal) levels: index 0 refers to level 2, index 1 refers to level 3, ...
  *  N_LINKS_OUT       - Number of output links of the 2D network links (2D node-Out)
+ *  N_PIPELINE_STAGES - Number of pipeline stages at each level: index 0 refers to level 1, index 1 refers to level 2, ...
  *  AGGREGATE_WIDTH   - Width of the aggr field (CU-1D interface)
  *  ID_WIDTH          - Width of the id field (CU-1D interface)
  *  LVL_OFFSET        - Level offset of 1D nodes (CU-1D interface)
@@ -62,6 +63,7 @@ package fractal_sync_8x8_pkg;
   import fractal_sync_pkg::*;
 
   localparam int unsigned                  N_ITL_LEVELS                       = 5;
+  localparam int unsigned                  N_LEVELS                           = N_ITL_LEVELS+1;
   localparam int unsigned                  N_1D_ITL_LEVELS                    = (N_ITL_LEVELS+1)/2;
   localparam int unsigned                  N_2D_ITL_LEVELS                    = (N_ITL_LEVELS+1)/2;
 
@@ -80,6 +82,8 @@ package fractal_sync_8x8_pkg;
   localparam int unsigned                  N_LINKS_IN                         = 1;
   localparam int unsigned                  N_LINKS_ITL[N_ITL_LEVELS]          = '{1, 2, 2, 4, 4};
   localparam int unsigned                  N_LINKS_OUT                        = 1;
+
+  localparam int unsigned                  N_PIPELINE_STAGES[N_LEVELS]        = '{0, 0, 0, 0, 1, 1};
 
   localparam int unsigned                  N_1D_H_PORTS                       = 64;
   localparam int unsigned                  N_1D_V_PORTS                       = 64;
@@ -118,6 +122,7 @@ module fractal_sync_8x8_core
   parameter int unsigned                  N_LINKS_IN                                               = fractal_sync_8x8_pkg::N_LINKS_IN,
   parameter int unsigned                  N_LINKS_ITL[fractal_sync_8x8_pkg::N_ITL_LEVELS]          = fractal_sync_8x8_pkg::N_LINKS_ITL,
   parameter int unsigned                  N_LINKS_OUT                                              = fractal_sync_8x8_pkg::N_LINKS_OUT,
+  parameter int unsigned                  N_PIPELINE_STAGES[fractal_sync_8x8_pkg::N_LEVELS]        = fractal_sync_8x8_pkg::N_PIPELINE_STAGES,
   parameter int unsigned                  AGGREGATE_WIDTH                                          = fractal_sync_8x8_pkg::IN_AGGR_WIDTH,
   parameter int unsigned                  ID_WIDTH                                                 = fractal_sync_8x8_pkg::ID_WIDTH,
   parameter int unsigned                  LVL_OFFSET                                               = fractal_sync_8x8_pkg::IN_LVL_OFFSET,
@@ -149,6 +154,8 @@ module fractal_sync_8x8_core
 
   localparam int unsigned N_LEAF_FSYNC_NETWORKS  = 4;
   localparam int unsigned N_LEAF_FSYNC_ITL_LVL   = 3;
+  localparam int unsigned N_LEAF_FSYNC_LEVELS    = N_ITL_LEVELS-1;
+  localparam int unsigned N_ROOT_FSYNC_LEVELS    = 2;
   localparam int unsigned N_LEAF_FSYNC_1D_CFG_W  = (N_LEAF_FSYNC_ITL_LVL+1)/2;
   localparam int unsigned N_LEAF_FSYNC_2D_CFG_W  = (N_LEAF_FSYNC_ITL_LVL+1)/2;
   localparam int unsigned N_LEAF_FSYNC_ITL_CFG_W = N_LEAF_FSYNC_ITL_LVL;
@@ -162,22 +169,24 @@ module fractal_sync_8x8_core
   localparam int unsigned                  LEAF_N_LINKS_IN                               = N_LINKS_IN;
   localparam int unsigned                  LEAF_N_LINKS_ITL[N_LEAF_FSYNC_ITL_CFG_W]      = N_LINKS_ITL[0:2];
   localparam int unsigned                  LEAF_N_LINKS_OUT                              = N_LINKS_ITL[3];
+  localparam int unsigned                  LEAF_N_PIPELINE_STAGES[N_LEAF_FSYNC_LEVELS]   = N_PIPELINE_STAGES[0:3];
   localparam int unsigned                  LEAF_AGGREGATE_WIDTH                          = AGGREGATE_WIDTH;
   localparam int unsigned                  LEAF_ID_WIDTH                                 = ID_WIDTH;
   localparam int unsigned                  LEAF_LVL_OFFSET                               = LVL_OFFSET;
 
-  localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_1D        = RF_TYPE_1D[2];
-  localparam int unsigned                  ROOT_N_LOCAL_REGS_1D   = N_LOCAL_REGS_1D[2];
-  localparam int unsigned                  ROOT_N_REMOTE_LINES_1D = N_REMOTE_LINES_1D[2];
-  localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_2D        = RF_TYPE_2D[2];
-  localparam int unsigned                  ROOT_N_LOCAL_REGS_2D   = N_LOCAL_REGS_2D[2];
-  localparam int unsigned                  ROOT_N_REMOTE_LINES_2D = N_REMOTE_LINES_2D[2];
-  localparam int unsigned                  ROOT_N_LINKS_IN        = N_LINKS_ITL[3];
-  localparam int unsigned                  ROOT_N_LINKS_ITL       = N_LINKS_ITL[4];
-  localparam int unsigned                  ROOT_N_LINKS_OUT       = N_LINKS_OUT;
-  localparam int unsigned                  ROOT_AGGREGATE_WIDTH   = LEAF_AGGREGATE_WIDTH-4;
-  localparam int unsigned                  ROOT_ID_WIDTH          = LEAF_ID_WIDTH;
-  localparam int unsigned                  ROOT_LVL_OFFSET        = LEAF_LVL_OFFSET+4;
+  localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_1D                             = RF_TYPE_1D[2];
+  localparam int unsigned                  ROOT_N_LOCAL_REGS_1D                        = N_LOCAL_REGS_1D[2];
+  localparam int unsigned                  ROOT_N_REMOTE_LINES_1D                      = N_REMOTE_LINES_1D[2];
+  localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_2D                             = RF_TYPE_2D[2];
+  localparam int unsigned                  ROOT_N_LOCAL_REGS_2D                        = N_LOCAL_REGS_2D[2];
+  localparam int unsigned                  ROOT_N_REMOTE_LINES_2D                      = N_REMOTE_LINES_2D[2];
+  localparam int unsigned                  ROOT_N_LINKS_IN                             = N_LINKS_ITL[3];
+  localparam int unsigned                  ROOT_N_LINKS_ITL                            = N_LINKS_ITL[4];
+  localparam int unsigned                  ROOT_N_LINKS_OUT                            = N_LINKS_OUT;
+  localparam int unsigned                  ROOT_N_PIPELINE_STAGES[N_ROOT_FSYNC_LEVELS] = N_PIPELINE_STAGES[4:5];
+  localparam int unsigned                  ROOT_AGGREGATE_WIDTH                        = LEAF_AGGREGATE_WIDTH-4;
+  localparam int unsigned                  ROOT_ID_WIDTH                               = LEAF_ID_WIDTH;
+  localparam int unsigned                  ROOT_LVL_OFFSET                             = LEAF_LVL_OFFSET+4;
 
   localparam int unsigned ITL_RSP_AGGR_WIDTH = ROOT_AGGREGATE_WIDTH;
   `FSYNC_TYPEDEF_REQ_ALL(fsync_itl, logic[ITL_RSP_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
@@ -298,6 +307,7 @@ module fractal_sync_8x8_core
       .N_LINKS_IN        ( LEAF_N_LINKS_IN           ),
       .N_LINKS_ITL       ( LEAF_N_LINKS_ITL          ),
       .N_LINKS_OUT       ( LEAF_N_LINKS_OUT          ),
+      .N_PIPELINE_STAGES ( LEAF_N_PIPELINE_STAGES    ),
       .AGGREGATE_WIDTH   ( LEAF_AGGREGATE_WIDTH      ),
       .ID_WIDTH          ( LEAF_ID_WIDTH             ),
       .LVL_OFFSET        ( LEAF_LVL_OFFSET           ),
@@ -335,6 +345,7 @@ module fractal_sync_8x8_core
     .N_LINKS_IN        ( ROOT_N_LINKS_IN        ),
     .N_LINKS_ITL       ( ROOT_N_LINKS_ITL       ),
     .N_LINKS_OUT       ( ROOT_N_LINKS_OUT       ),
+    .N_PIPELINE_STAGES ( ROOT_N_PIPELINE_STAGES ),
     .AGGREGATE_WIDTH   ( ROOT_AGGREGATE_WIDTH   ),
     .ID_WIDTH          ( ROOT_ID_WIDTH          ),
     .LVL_OFFSET        ( ROOT_LVL_OFFSET        ),
@@ -373,6 +384,7 @@ module fractal_sync_8x8
   parameter int unsigned                  N_LINKS_IN                                               = fractal_sync_8x8_pkg::N_LINKS_IN,
   parameter int unsigned                  N_LINKS_ITL[fractal_sync_8x8_pkg::N_ITL_LEVELS]          = fractal_sync_8x8_pkg::N_LINKS_ITL,
   parameter int unsigned                  N_LINKS_OUT                                              = fractal_sync_8x8_pkg::N_LINKS_OUT,
+  parameter int unsigned                  N_PIPELINE_STAGES[fractal_sync_8x8_pkg::N_LEVELS]        = fractal_sync_8x8_pkg::N_PIPELINE_STAGES,
   parameter int unsigned                  AGGREGATE_WIDTH                                          = fractal_sync_8x8_pkg::IN_AGGR_WIDTH,
   parameter int unsigned                  ID_WIDTH                                                 = fractal_sync_8x8_pkg::ID_WIDTH,
   parameter int unsigned                  LVL_OFFSET                                               = fractal_sync_8x8_pkg::IN_LVL_OFFSET,

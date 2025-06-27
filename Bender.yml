@@ -42,6 +42,7 @@ sources:
     - hw/fractal_sync_neighbor.sv
     - hw/fractal_sync_1d.sv
     - hw/fractal_sync_2d.sv
+    - hw/fractal_sync_pipeline.sv
     # Completre Network
     - hw/trees/fractal_sync_2x2.sv
     - hw/trees/fractal_sync_4x4.sv
