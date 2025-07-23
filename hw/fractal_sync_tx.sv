@@ -20,9 +20,10 @@
  * Asynchronous valid low reset
  *
  * Parameters:
- *  fsync_rsp_t  - Type of the synchronization response
- *  COMB_IN         - 1: Combinational datapath, 0: sample input
- *  FIFO_DEPTH      - Depth of the request FIFO
+ *  fsync_rsp_t   - Type of the synchronization response
+ *  COMB_IN       - 1: Combinational datapath, 0: sample input
+ *  FIFO_DEPTH    - Depth of the request FIFO
+ *  FIFO_COMB_OUT - 1: Output FIFO with fall-through; 0: sequential FIFO
  *
  * Interface signals:
  *  > rsp_i             - Synchronization response
@@ -38,9 +39,10 @@
 module fractal_sync_tx 
   import fractal_sync_pkg::*; 
 #(
-  parameter type         fsync_rsp_t  = logic,
-  parameter bit          COMB_IN      = 1'b0,
-  parameter int unsigned FIFO_DEPTH   = 1
+  parameter type         fsync_rsp_t   = logic,
+  parameter bit          COMB_IN       = 1'b0,
+  parameter int unsigned FIFO_DEPTH    = 1,
+  parameter bit          FIFO_COMB_OUT = 1'b1
 )(
   // Response interface - in
   input  logic       clk_i,
@@ -70,14 +72,6 @@ module fractal_sync_tx
 
 /*******************************************************/
 /**                   Assertions End                  **/
-/*******************************************************/
-/**        Parameters and Definitions Beginning       **/
-/*******************************************************/
-
-  localparam bit FIFO_COMB_OUT = 1'b1;
-
-/*******************************************************/
-/**           Parameters and Definitions End          **/
 /*******************************************************/
 /**             Internal Signals Beginning            **/
 /*******************************************************/

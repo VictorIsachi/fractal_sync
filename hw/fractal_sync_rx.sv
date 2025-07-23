@@ -24,6 +24,7 @@
  *  fsync_req_out_t - Type of the output request: aggregate width must be 1 less than input aggregate width; sources width must be 2 more than input sources width
  *  COMB_IN         - 1: Combinational datapath, 0: sample input
  *  FIFO_DEPTH      - Depth of the request FIFO
+ *  FIFO_COMB_OUT   - 1: Output FIFO with fall-through; 0: sequential FIFO
  *
  * Interface signals:
  *  > req_i             - Synchronization request
@@ -43,7 +44,8 @@ module fractal_sync_rx
   parameter type         fsync_req_in_t  = logic,
   parameter type         fsync_req_out_t = logic,
   parameter bit          COMB_IN         = 1'b0,
-  parameter int unsigned FIFO_DEPTH      = 1
+  parameter int unsigned FIFO_DEPTH      = 1,
+  parameter bit          FIFO_COMB_OUT   = 1'b1
 )(
   // Request interface - in
   input  logic           clk_i,
@@ -70,14 +72,6 @@ module fractal_sync_rx
 
 /*******************************************************/
 /**                   Assertions End                  **/
-/*******************************************************/
-/**        Parameters and Definitions Beginning       **/
-/*******************************************************/
-
-  localparam bit FIFO_COMB_OUT = 1'b1;
-
-/*******************************************************/
-/**           Parameters and Definitions End          **/
 /*******************************************************/
 /**             Internal Signals Beginning            **/
 /*******************************************************/

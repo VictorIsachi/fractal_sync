@@ -20,25 +20,35 @@
  * Asynchronous valid low reset
  *
  * Parameters:
- *  TOP_NODE_TYPE     - Top node type (2D or root)
- *  RF_TYPE_1D        - Remote RF type (DM or CAM) of 1D nodes
- *  N_LOCAL_REGS_1D   - Local RF size of 1D nodes
- *  N_REMOTE_LINES_1D - Remote RF size of CAM-based 1D nodes
- *  RF_TYPE_2D        - Remote RF type (DM or CAM) of 2D node
- *  N_LOCAL_REGS_2D   - Local RF size of 2D node
- *  N_REMOTE_LINES_2D - Remote RF size of CAM-based 2D node (will be ignored for root node)
- *  N_LINKS_IN        - Number of input links of the 1D network links (CU-1D node)
- *  N_LINKS_ITL       - Number of output links of the 1D network links and input links of the 2D network links (1D node-2D node)
- *  N_LINKS_OUT       - Number of output links of the 2D network links (2D node-Out)
- *  N_PIPELINE_STAGES - Number of pipeline stages at each level: index 0 refers to level 1, index 1 refers to level 2, ...
- *  AGGREGATE_WIDTH   - Width of the aggr field (CU-1D interface)
- *  ID_WIDTH          - Width of the id field (CU-1D interface)
- *  LVL_OFFSET        - Level offset of 1D nodes (CU-1D interface)
- *  fsync_in_req_t    - CU-1D (horizontal/vertical) synchronization request type (see hw/include/typedef.svh for a template)
- *  fsync_out_req_t   - Top node output synchronization request type  (see hw/include/typedef.svh for a template)
- *  fsync_rsp_t       - 1D/top node synchronization response type (see hw/include/typedef.svh for a template)
- *  fsync_nbr_req_t   - CU neighbor synchronization request type (see hw/include/typedef.svh for a template)
- *  fsync_nbr_rsp_t   - CU neighbor synchronization response type (see hw/include/typedef.svh for a template)
+ *  TOP_NODE_TYPE       - Top node type (2D or root)
+ *  RF_TYPE_1D          - Remote RF type (DM or CAM) of 1D nodes
+ *  ARBITER_TYPE_1D     - Arbiter type (FA, DM_WA or DM_ALT) of 1D nodes
+ *  N_LOCAL_REGS_1D     - Local RF size of 1D nodes
+ *  N_REMOTE_LINES_1D   - Remote RF size of CAM-based 1D nodes
+ *  RX_FIFO_COMB_1D     - Output RX FIFO fall-through/sequential of 1D nodes
+ *  TX_FIFO_COMB_1D     - Output TX FIFO with fall-through/sequential of 1D nodes
+ *  LOCAL_FIFO_COMB_1D  - Output local FIFO with fall-through/sequential of 1D nodes
+ *  REMOTE_FIFO_COMB_1D - Output remote FIFO with fall-through/sequential of 1D nodes
+ *  RF_TYPE_2D          - Remote RF type (DM or CAM) of 2D node
+ *  ARBITER_TYPE_2D     - Arbiter type (FA, DM_WA or DM_ALT) of 2D node
+ *  N_LOCAL_REGS_2D     - Local RF size of 2D node
+ *  N_REMOTE_LINES_2D   - Remote RF size of CAM-based 2D node (will be ignored for root node)
+ *  RX_FIFO_COMB_2D     - Output RX FIFO with fall-through/sequential of 2D node
+ *  TX_FIFO_COMB_2D     - Output TX FIFO with fall-through/sequential of 2D node
+ *  LOCAL_FIFO_COMB_2D  - Output local FIFO with fall-through/sequential of 2D node
+ *  REMOTE_FIFO_COMB_2D - Output remote FIFO with fall-through/sequential of 2D node
+ *  N_LINKS_IN          - Number of input links of the 1D network links (CU-1D node)
+ *  N_LINKS_ITL         - Number of output links of the 1D network links and input links of the 2D network links (1D node-2D node)
+ *  N_LINKS_OUT         - Number of output links of the 2D network links (2D node-Out)
+ *  N_PIPELINE_STAGES   - Number of pipeline stages at each level: index 0 refers to level 1, index 1 refers to level 2, ...
+ *  AGGREGATE_WIDTH     - Width of the aggr field (CU-1D interface)
+ *  ID_WIDTH            - Width of the id field (CU-1D interface)
+ *  LVL_OFFSET          - Level offset of 1D nodes (CU-1D interface)
+ *  fsync_in_req_t      - CU-1D (horizontal/vertical) synchronization request type (see hw/include/typedef.svh for a template)
+ *  fsync_out_req_t     - Top node output synchronization request type  (see hw/include/typedef.svh for a template)
+ *  fsync_rsp_t         - 1D/top node synchronization response type (see hw/include/typedef.svh for a template)
+ *  fsync_nbr_req_t     - CU neighbor synchronization request type (see hw/include/typedef.svh for a template)
+ *  fsync_nbr_rsp_t     - CU neighbor synchronization response type (see hw/include/typedef.svh for a template)
  *
  * Interface signals:
  *  > h_1d_fsync_req_i  - CU horizontal 1D synchronization request
@@ -67,11 +77,21 @@ package fractal_sync_2x2_pkg;
   
   localparam fractal_sync_pkg::node_e      TOP_NODE_TYPE               = fractal_sync_pkg::HV_NODE;
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_1D                  = fractal_sync_pkg::CAM_RF;
+  localparam fractal_sync_pkg::arb_e       ARBITER_TYPE_1D             = fractal_sync_pkg::FA_ARB;
   localparam int unsigned                  N_LOCAL_REGS_1D             = 1;
   localparam int unsigned                  N_REMOTE_LINES_1D           = 2;
+  localparam bit                           RX_FIFO_COMB_1D             = 1;
+  localparam bit                           TX_FIFO_COMB_1D             = 1;
+  localparam bit                           LOCAL_FIFO_COMB_1D          = 1;
+  localparam bit                           REMOTE_FIFO_COMB_1D         = 1;
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_2D                  = fractal_sync_pkg::CAM_RF;
+  localparam fractal_sync_pkg::arb_e       ARBITER_TYPE_2D             = fractal_sync_pkg::FA_ARB;
   localparam int unsigned                  N_LOCAL_REGS_2D             = 2;
   localparam int unsigned                  N_REMOTE_LINES_2D           = 4;
+  localparam bit                           RX_FIFO_COMB_2D             = 1;
+  localparam bit                           TX_FIFO_COMB_2D             = 1;
+  localparam bit                           LOCAL_FIFO_COMB_2D          = 1;
+  localparam bit                           REMOTE_FIFO_COMB_2D         = 1;
 
   localparam int unsigned                  N_LINKS_IN                  = 1;
   localparam int unsigned                  N_LINKS_ITL                 = 1;
@@ -108,11 +128,21 @@ module fractal_sync_2x2_core
 #(
   parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE                                     = fractal_sync_2x2_pkg::TOP_NODE_TYPE,
   parameter fractal_sync_pkg::remote_rf_e RF_TYPE_1D                                        = fractal_sync_2x2_pkg::RF_TYPE_1D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_1D                                   = fractal_sync_2x2_pkg::ARBITER_TYPE_1D,
   parameter int unsigned                  N_LOCAL_REGS_1D                                   = fractal_sync_2x2_pkg::N_LOCAL_REGS_1D,
   parameter int unsigned                  N_REMOTE_LINES_1D                                 = fractal_sync_2x2_pkg::N_REMOTE_LINES_1D,
+  parameter bit                           RX_FIFO_COMB_1D                                   = fractal_sync_2x2_pkg::RX_FIFO_COMB_1D,
+  parameter bit                           TX_FIFO_COMB_1D                                   = fractal_sync_2x2_pkg::TX_FIFO_COMB_1D,
+  parameter bit                           LOCAL_FIFO_COMB_1D                                = fractal_sync_2x2_pkg::LOCAL_FIFO_COMB_1D,
+  parameter bit                           REMOTE_FIFO_COMB_1D                               = fractal_sync_2x2_pkg::REMOTE_FIFO_COMB_1D,
   parameter fractal_sync_pkg::remote_rf_e RF_TYPE_2D                                        = fractal_sync_2x2_pkg::RF_TYPE_2D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_2D                                   = fractal_sync_2x2_pkg::ARBITER_TYPE_2D,
   parameter int unsigned                  N_LOCAL_REGS_2D                                   = fractal_sync_2x2_pkg::N_LOCAL_REGS_2D,
   parameter int unsigned                  N_REMOTE_LINES_2D                                 = fractal_sync_2x2_pkg::N_REMOTE_LINES_2D,
+  parameter bit                           RX_FIFO_COMB_2D                                   = fractal_sync_2x2_pkg::RX_FIFO_COMB_2D,
+  parameter bit                           TX_FIFO_COMB_2D                                   = fractal_sync_2x2_pkg::TX_FIFO_COMB_2D,
+  parameter bit                           LOCAL_FIFO_COMB_2D                                = fractal_sync_2x2_pkg::LOCAL_FIFO_COMB_2D,
+  parameter bit                           REMOTE_FIFO_COMB_2D                               = fractal_sync_2x2_pkg::REMOTE_FIFO_COMB_2D,
   parameter int unsigned                  N_LINKS_IN                                        = fractal_sync_2x2_pkg::N_LINKS_IN,
   parameter int unsigned                  N_LINKS_ITL                                       = fractal_sync_2x2_pkg::N_LINKS_ITL,
   parameter int unsigned                  N_LINKS_OUT                                       = fractal_sync_2x2_pkg::N_LINKS_OUT,
@@ -352,19 +382,24 @@ module fractal_sync_2x2_core
 
   for (genvar i = 0; i < N_1D_H_NODES; i++) begin: gen_h_1d_nodes
     fractal_sync_1d #(
-      .NODE_TYPE       ( fractal_sync_pkg::HOR_NODE ),
-      .RF_TYPE         ( RF_TYPE_1D                 ),
-      .N_LOCAL_REGS    ( N_LOCAL_REGS_1D            ),
-      .N_REMOTE_LINES  ( N_REMOTE_LINES_1D          ),
-      .AGGREGATE_WIDTH ( AGGREGATE_WIDTH            ),
-      .ID_WIDTH        ( ID_WIDTH                   ),
-      .LVL_OFFSET      ( LVL_OFFSET                 ),
-      .fsync_req_in_t  ( fsync_in_req_t             ),
-      .fsync_req_out_t ( fsync_itl_req_t            ),
-      .fsync_rsp_t     ( fsync_rsp_t                ),
-      .FIFO_DEPTH      ( FIFO_DEPTH_1D              ),
-      .IN_PORTS        ( N_1D_NODE_IN_PORTS         ),
-      .OUT_PORTS       ( N_1D_NODE_OUT_PORTS        )
+      .NODE_TYPE            ( fractal_sync_pkg::HOR_NODE ),
+      .RF_TYPE              ( RF_TYPE_1D                 ),
+      .ARBITER_TYPE         ( ARBITER_TYPE_1D            ),
+      .N_LOCAL_REGS         ( N_LOCAL_REGS_1D            ),
+      .N_REMOTE_LINES       ( N_REMOTE_LINES_1D          ),
+      .AGGREGATE_WIDTH      ( AGGREGATE_WIDTH            ),
+      .ID_WIDTH             ( ID_WIDTH                   ),
+      .LVL_OFFSET           ( LVL_OFFSET                 ),
+      .fsync_req_in_t       ( fsync_in_req_t             ),
+      .fsync_req_out_t      ( fsync_itl_req_t            ),
+      .fsync_rsp_t          ( fsync_rsp_t                ),
+      .FIFO_DEPTH           ( FIFO_DEPTH_1D              ),
+      .RX_FIFO_COMB_OUT     ( RX_FIFO_COMB_1D            ),
+      .TX_FIFO_COMB_OUT     ( TX_FIFO_COMB_1D            ),
+      .LOCAL_FIFO_COMB_OUT  ( LOCAL_FIFO_COMB_1D         ),
+      .REMOTE_FIFO_COMB_OUT ( REMOTE_FIFO_COMB_1D        ),
+      .IN_PORTS             ( N_1D_NODE_IN_PORTS         ),
+      .OUT_PORTS            ( N_1D_NODE_OUT_PORTS        )
     ) i_h_1d_node (
       .clk_i                                ,
       .rst_ni                               ,
@@ -383,19 +418,24 @@ module fractal_sync_2x2_core
 
   for (genvar i = 0; i < N_1D_V_NODES; i++) begin: gen_v_1d_nodes
     fractal_sync_1d #(
-      .NODE_TYPE       ( fractal_sync_pkg::VER_NODE ),
-      .RF_TYPE         ( RF_TYPE_1D                 ),
-      .N_LOCAL_REGS    ( N_LOCAL_REGS_1D            ),
-      .N_REMOTE_LINES  ( N_REMOTE_LINES_1D          ),
-      .AGGREGATE_WIDTH ( AGGREGATE_WIDTH            ),
-      .ID_WIDTH        ( ID_WIDTH                   ),
-      .LVL_OFFSET      ( LVL_OFFSET                 ),
-      .fsync_req_in_t  ( fsync_in_req_t             ),
-      .fsync_req_out_t ( fsync_itl_req_t            ),
-      .fsync_rsp_t     ( fsync_rsp_t                ),
-      .FIFO_DEPTH      ( FIFO_DEPTH_1D              ),
-      .IN_PORTS        ( N_1D_NODE_IN_PORTS         ),
-      .OUT_PORTS       ( N_1D_NODE_OUT_PORTS        )
+      .NODE_TYPE            ( fractal_sync_pkg::VER_NODE ),
+      .RF_TYPE              ( RF_TYPE_1D                 ),
+      .ARBITER_TYPE         ( ARBITER_TYPE_1D            ),
+      .N_LOCAL_REGS         ( N_LOCAL_REGS_1D            ),
+      .N_REMOTE_LINES       ( N_REMOTE_LINES_1D          ),
+      .AGGREGATE_WIDTH      ( AGGREGATE_WIDTH            ),
+      .ID_WIDTH             ( ID_WIDTH                   ),
+      .LVL_OFFSET           ( LVL_OFFSET                 ),
+      .fsync_req_in_t       ( fsync_in_req_t             ),
+      .fsync_req_out_t      ( fsync_itl_req_t            ),
+      .fsync_rsp_t          ( fsync_rsp_t                ),
+      .FIFO_DEPTH           ( FIFO_DEPTH_1D              ),
+      .RX_FIFO_COMB_OUT     ( RX_FIFO_COMB_1D            ),
+      .TX_FIFO_COMB_OUT     ( TX_FIFO_COMB_1D            ),
+      .LOCAL_FIFO_COMB_OUT  ( LOCAL_FIFO_COMB_1D         ),
+      .REMOTE_FIFO_COMB_OUT ( REMOTE_FIFO_COMB_1D        ),
+      .IN_PORTS             ( N_1D_NODE_IN_PORTS         ),
+      .OUT_PORTS            ( N_1D_NODE_OUT_PORTS        )
     ) i_v_1d_node (
       .clk_i                                ,
       .rst_ni                               ,
@@ -451,19 +491,24 @@ module fractal_sync_2x2_core
 /*******************************************************/
 
   fractal_sync_2d #(
-    .NODE_TYPE       ( TOP_NODE_TYPE       ),
-    .RF_TYPE         ( RF_TYPE_2D          ),
-    .N_LOCAL_REGS    ( N_LOCAL_REGS_2D     ),
-    .N_REMOTE_LINES  ( N_REMOTE_LINES_2D   ),
-    .AGGREGATE_WIDTH ( ITL_AGGR_WIDTH      ),
-    .ID_WIDTH        ( ITL_ID_WIDTH        ),
-    .LVL_OFFSET      ( OUT_LVL_OFFSET      ),
-    .fsync_req_in_t  ( fsync_itl_req_t     ),
-    .fsync_req_out_t ( fsync_out_req_t     ),
-    .fsync_rsp_t     ( fsync_rsp_t         ),
-    .FIFO_DEPTH      ( FIFO_DEPTH_2D       ),
-    .IN_PORTS        ( N_2D_NODE_IN_PORTS  ),
-    .OUT_PORTS       ( N_2D_NODE_OUT_PORTS )
+    .NODE_TYPE            ( TOP_NODE_TYPE       ),
+    .RF_TYPE              ( RF_TYPE_2D          ),
+    .ARBITER_TYPE         ( ARBITER_TYPE_2D     ),
+    .N_LOCAL_REGS         ( N_LOCAL_REGS_2D     ),
+    .N_REMOTE_LINES       ( N_REMOTE_LINES_2D   ),
+    .AGGREGATE_WIDTH      ( ITL_AGGR_WIDTH      ),
+    .ID_WIDTH             ( ITL_ID_WIDTH        ),
+    .LVL_OFFSET           ( OUT_LVL_OFFSET      ),
+    .fsync_req_in_t       ( fsync_itl_req_t     ),
+    .fsync_req_out_t      ( fsync_out_req_t     ),
+    .fsync_rsp_t          ( fsync_rsp_t         ),
+    .FIFO_DEPTH           ( FIFO_DEPTH_2D       ),
+    .RX_FIFO_COMB_OUT     ( RX_FIFO_COMB_2D     ),
+    .TX_FIFO_COMB_OUT     ( TX_FIFO_COMB_2D     ),
+    .LOCAL_FIFO_COMB_OUT  ( LOCAL_FIFO_COMB_2D  ),
+    .REMOTE_FIFO_COMB_OUT ( REMOTE_FIFO_COMB_2D ),
+    .IN_PORTS             ( N_2D_NODE_IN_PORTS  ),
+    .OUT_PORTS            ( N_2D_NODE_OUT_PORTS )
   ) i_top_node (
     .clk_i                             ,
     .rst_ni                            ,
@@ -488,11 +533,21 @@ module fractal_sync_2x2
 #(
   parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE                                     = fractal_sync_2x2_pkg::TOP_NODE_TYPE,
   parameter fractal_sync_pkg::remote_rf_e RF_TYPE_1D                                        = fractal_sync_2x2_pkg::RF_TYPE_1D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_1D                                   = fractal_sync_2x2_pkg::ARBITER_TYPE_1D,
   parameter int unsigned                  N_LOCAL_REGS_1D                                   = fractal_sync_2x2_pkg::N_LOCAL_REGS_1D,
   parameter int unsigned                  N_REMOTE_LINES_1D                                 = fractal_sync_2x2_pkg::N_REMOTE_LINES_1D,
+  parameter bit                           RX_FIFO_COMB_1D                                   = fractal_sync_2x2_pkg::RX_FIFO_COMB_1D,
+  parameter bit                           TX_FIFO_COMB_1D                                   = fractal_sync_2x2_pkg::TX_FIFO_COMB_1D,
+  parameter bit                           LOCAL_FIFO_COMB_1D                                = fractal_sync_2x2_pkg::LOCAL_FIFO_COMB_1D,
+  parameter bit                           REMOTE_FIFO_COMB_1D                               = fractal_sync_2x2_pkg::REMOTE_FIFO_COMB_1D,
   parameter fractal_sync_pkg::remote_rf_e RF_TYPE_2D                                        = fractal_sync_2x2_pkg::RF_TYPE_2D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_2D                                   = fractal_sync_2x2_pkg::ARBITER_TYPE_2D,
   parameter int unsigned                  N_LOCAL_REGS_2D                                   = fractal_sync_2x2_pkg::N_LOCAL_REGS_2D,
   parameter int unsigned                  N_REMOTE_LINES_2D                                 = fractal_sync_2x2_pkg::N_REMOTE_LINES_2D,
+  parameter bit                           RX_FIFO_COMB_2D                                   = fractal_sync_2x2_pkg::RX_FIFO_COMB_2D,
+  parameter bit                           TX_FIFO_COMB_2D                                   = fractal_sync_2x2_pkg::TX_FIFO_COMB_2D,
+  parameter bit                           LOCAL_FIFO_COMB_2D                                = fractal_sync_2x2_pkg::LOCAL_FIFO_COMB_2D,
+  parameter bit                           REMOTE_FIFO_COMB_2D                               = fractal_sync_2x2_pkg::REMOTE_FIFO_COMB_2D,
   parameter int unsigned                  N_LINKS_IN                                        = fractal_sync_2x2_pkg::N_LINKS_IN,
   parameter int unsigned                  N_LINKS_ITL                                       = fractal_sync_2x2_pkg::N_LINKS_ITL,
   parameter int unsigned                  N_LINKS_OUT                                       = fractal_sync_2x2_pkg::N_LINKS_OUT,

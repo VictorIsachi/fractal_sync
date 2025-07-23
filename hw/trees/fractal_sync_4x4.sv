@@ -20,25 +20,35 @@
  * Asynchronous valid low reset
  *
  * Parameters:
- *  TOP_NODE_TYPE     - Top node type (2D or root)
- *  RF_TYPE_1D        - Remote RF type (DM or CAM) of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
- *  N_LOCAL_REGS_1D   - Local RF size of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
- *  N_REMOTE_LINES_1D - Remote RF size of CAM-based 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
- *  RF_TYPE_2D        - Remote RF type (DM or CAM) of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
- *  N_LOCAL_REGS_2D   - Local RF size of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
- *  N_REMOTE_LINES_2D - Remote RF size of CAM-based 2D nodes (will be ignored for root node) at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
- *  N_LINKS_IN        - Number of input links of the 1D network links (CU-1D node)
- *  N_LINKS_ITL       - Number of network links at the intermediate (internal) levels: index 0 refers to level 2, index 1 refers to level 3, ...
- *  N_LINKS_OUT       - Number of output links of the 2D network links (2D node-Out)
- *  N_PIPELINE_STAGES - Number of pipeline stages at each level: index 0 refers to level 1, index 1 refers to level 2, ...
- *  AGGREGATE_WIDTH   - Width of the aggr field (CU-1D interface)
- *  ID_WIDTH          - Width of the id field (CU-1D interface)
- *  LVL_OFFSET        - Level offset of 1D nodes (CU-1D interface)
- *  fsync_in_req_t    - CU-1D (horizontal/vertical) synchronization request type (see hw/include/typedef.svh for a template)
- *  fsync_out_req_t   - Top node output synchronization request type  (see hw/include/typedef.svh for a template)
- *  fsync_rsp_t       - 1D/top node synchronization response type (see hw/include/typedef.svh for a template)
- *  fsync_nbr_req_t   - CU neighbor synchronization request type (see hw/include/typedef.svh for a template)
- *  fsync_nbr_rsp_t   - CU neighbor synchronization response type (see hw/include/typedef.svh for a template)
+ *  TOP_NODE_TYPE       - Top node type (2D or root)
+ *  RF_TYPE_1D          - Remote RF type (DM or CAM) of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  ARBITER_TYPE_1D     - Arbiter type (FA, DM_WA or DM_ALT) of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  N_LOCAL_REGS_1D     - Local RF size of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  N_REMOTE_LINES_1D   - Remote RF size of CAM-based 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  RX_FIFO_COMB_1D     - Output RX FIFO fall-through/sequential of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  TX_FIFO_COMB_1D     - Output TX FIFO with fall-through/sequential of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  LOCAL_FIFO_COMB_1D  - Output local FIFO with fall-through/sequential of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  REMOTE_FIFO_COMB_1D - Output remote FIFO with fall-through/sequential of 1D nodes at various levels: index 0 refers to level 1, index 1 refers to level 3, ...
+ *  RF_TYPE_2D          - Remote RF type (DM or CAM) of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  ARBITER_TYPE_2D     - Arbiter type (FA, DM_WA or DM_ALT) of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  N_LOCAL_REGS_2D     - Local RF size of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  N_REMOTE_LINES_2D   - Remote RF size of CAM-based 2D nodes (will be ignored for root node) at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  RX_FIFO_COMB_2D     - Output RX FIFO with fall-through/sequential of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  TX_FIFO_COMB_2D     - Output TX FIFO with fall-through/sequential of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  LOCAL_FIFO_COMB_2D  - Output local FIFO with fall-through/sequential of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  REMOTE_FIFO_COMB_2D - Output remote FIFO with fall-through/sequential of 2D nodes at various levels: index 0 refers to level 2, index 1 refers to level 4, ...
+ *  N_LINKS_IN          - Number of input links of the 1D network links (CU-1D node)
+ *  N_LINKS_ITL         - Number of network links at the intermediate (internal) levels: index 0 refers to level 2, index 1 refers to level 3, ...
+ *  N_LINKS_OUT         - Number of output links of the 2D network links (2D node-Out)
+ *  N_PIPELINE_STAGES   - Number of pipeline stages at each level: index 0 refers to level 1, index 1 refers to level 2, ...
+ *  AGGREGATE_WIDTH     - Width of the aggr field (CU-1D interface)
+ *  ID_WIDTH            - Width of the id field (CU-1D interface)
+ *  LVL_OFFSET          - Level offset of 1D nodes (CU-1D interface)
+ *  fsync_in_req_t      - CU-1D (horizontal/vertical) synchronization request type (see hw/include/typedef.svh for a template)
+ *  fsync_out_req_t     - Top node output synchronization request type  (see hw/include/typedef.svh for a template)
+ *  fsync_rsp_t         - 1D/top node synchronization response type (see hw/include/typedef.svh for a template)
+ *  fsync_nbr_req_t     - CU neighbor synchronization request type (see hw/include/typedef.svh for a template)
+ *  fsync_nbr_rsp_t     - CU neighbor synchronization response type (see hw/include/typedef.svh for a template)
  *
  * Interface signals:
  *  > h_1d_fsync_req_i  - CU horizontal 1D synchronization request
@@ -62,43 +72,55 @@ package fractal_sync_4x4_pkg;
 
   import fractal_sync_pkg::*;
 
-  localparam int unsigned                  N_ITL_LEVELS                       = 3;
-  localparam int unsigned                  N_LEVELS                           = N_ITL_LEVELS+1;
-  localparam int unsigned                  N_1D_ITL_LEVELS                    = (N_ITL_LEVELS+1)/2;
-  localparam int unsigned                  N_2D_ITL_LEVELS                    = (N_ITL_LEVELS+1)/2;
+  localparam int unsigned                  N_ITL_LEVELS                         = 3;
+  localparam int unsigned                  N_LEVELS                             = N_ITL_LEVELS+1;
+  localparam int unsigned                  N_1D_ITL_LEVELS                      = (N_ITL_LEVELS+1)/2;
+  localparam int unsigned                  N_2D_ITL_LEVELS                      = (N_ITL_LEVELS+1)/2;
 
-  localparam fractal_sync_pkg::node_e      TOP_NODE_TYPE                      = fractal_sync_pkg::HV_NODE;
-  localparam fractal_sync_pkg::remote_rf_e RF_TYPE_1D[N_1D_ITL_LEVELS]        = '{fractal_sync_pkg::CAM_RF,
-                                                                                  fractal_sync_pkg::DM_RF};
-  localparam int unsigned                  N_LOCAL_REGS_1D[N_1D_ITL_LEVELS]   = '{1, 4};
-  localparam int unsigned                  N_REMOTE_LINES_1D[N_1D_ITL_LEVELS] = '{2, 8};
-  localparam fractal_sync_pkg::remote_rf_e RF_TYPE_2D[N_2D_ITL_LEVELS]        = '{fractal_sync_pkg::CAM_RF,
-                                                                                  fractal_sync_pkg::DM_RF};
-  localparam int unsigned                  N_LOCAL_REGS_2D[N_2D_ITL_LEVELS]   = '{2, 8};
-  localparam int unsigned                  N_REMOTE_LINES_2D[N_2D_ITL_LEVELS] = '{4, 16};
+  localparam fractal_sync_pkg::node_e      TOP_NODE_TYPE                        = fractal_sync_pkg::HV_NODE;
+  localparam fractal_sync_pkg::remote_rf_e RF_TYPE_1D[N_1D_ITL_LEVELS]          = '{fractal_sync_pkg::CAM_RF,
+                                                                                    fractal_sync_pkg::DM_RF};
+  localparam fractal_sync_pkg::arb_e       ARBITER_TYPE_1D[N_1D_ITL_LEVELS]     = '{fractal_sync_pkg::FA_ARB,
+                                                                                    fractal_sync_pkg::FA_ARB};
+  localparam int unsigned                  N_LOCAL_REGS_1D[N_1D_ITL_LEVELS]     = '{1, 4};
+  localparam int unsigned                  N_REMOTE_LINES_1D[N_1D_ITL_LEVELS]   = '{2, 8};
+  localparam bit                           RX_FIFO_COMB_1D[N_1D_ITL_LEVELS]     = '{1, 1};
+  localparam bit                           TX_FIFO_COMB_1D[N_1D_ITL_LEVELS]     = '{1, 1};
+  localparam bit                           LOCAL_FIFO_COMB_1D[N_1D_ITL_LEVELS]  = '{1, 1};
+  localparam bit                           REMOTE_FIFO_COMB_1D[N_1D_ITL_LEVELS] = '{1, 1};
+  localparam fractal_sync_pkg::remote_rf_e RF_TYPE_2D[N_2D_ITL_LEVELS]          = '{fractal_sync_pkg::CAM_RF,
+                                                                                    fractal_sync_pkg::DM_RF};
+  localparam fractal_sync_pkg::arb_e       ARBITER_TYPE_2D[N_2D_ITL_LEVELS]     = '{fractal_sync_pkg::FA_ARB,
+                                                                                    fractal_sync_pkg::FA_ARB};
+  localparam int unsigned                  N_LOCAL_REGS_2D[N_2D_ITL_LEVELS]     = '{2, 8};
+  localparam int unsigned                  N_REMOTE_LINES_2D[N_2D_ITL_LEVELS]   = '{4, 16};
+  localparam bit                           RX_FIFO_COMB_2D[N_2D_ITL_LEVELS]     = '{1, 1};
+  localparam bit                           TX_FIFO_COMB_2D[N_2D_ITL_LEVELS]     = '{1, 1};
+  localparam bit                           LOCAL_FIFO_COMB_2D[N_2D_ITL_LEVELS]  = '{1, 1};
+  localparam bit                           REMOTE_FIFO_COMB_2D[N_2D_ITL_LEVELS] = '{1, 1};
 
-  localparam int unsigned                  N_LINKS_IN                         = 1;
-  localparam int unsigned                  N_LINKS_ITL[N_ITL_LEVELS]          = '{1, 2, 2};
-  localparam int unsigned                  N_LINKS_OUT                        = 1;
+  localparam int unsigned                  N_LINKS_IN                           = 1;
+  localparam int unsigned                  N_LINKS_ITL[N_ITL_LEVELS]            = '{1, 2, 2};
+  localparam int unsigned                  N_LINKS_OUT                          = 1;
 
-  localparam int unsigned                  N_PIPELINE_STAGES[N_LEVELS]        = '{0, 0, 0, 0};
+  localparam int unsigned                  N_PIPELINE_STAGES[N_LEVELS]          = '{0, 0, 0, 0};
 
-  localparam int unsigned                  N_1D_H_PORTS                       = 16;
-  localparam int unsigned                  N_1D_V_PORTS                       = 16;
-  localparam int unsigned                  N_NBR_H_PORTS                      = 16;
-  localparam int unsigned                  N_NBR_V_PORTS                      = 16;
-  localparam int unsigned                  N_2D_H_PORTS                       = 1;
-  localparam int unsigned                  N_2D_V_PORTS                       = 1;
+  localparam int unsigned                  N_1D_H_PORTS                         = 16;
+  localparam int unsigned                  N_1D_V_PORTS                         = 16;
+  localparam int unsigned                  N_NBR_H_PORTS                        = 16;
+  localparam int unsigned                  N_NBR_V_PORTS                        = 16;
+  localparam int unsigned                  N_2D_H_PORTS                         = 1;
+  localparam int unsigned                  N_2D_V_PORTS                         = 1;
 
-  localparam int unsigned                  OUT_AGGR_WIDTH                     = 1;
-  localparam int unsigned                  IN_AGGR_WIDTH                      = OUT_AGGR_WIDTH+N_ITL_LEVELS+1;
-  localparam int unsigned                  LVL_WIDTH                          = $clog2(IN_AGGR_WIDTH-1);
-  localparam int unsigned                  ID_WIDTH                           = N_ITL_LEVELS;
-  localparam int unsigned                  IN_LVL_OFFSET                      = 0;
+  localparam int unsigned                  OUT_AGGR_WIDTH                       = 1;
+  localparam int unsigned                  IN_AGGR_WIDTH                        = OUT_AGGR_WIDTH+N_ITL_LEVELS+1;
+  localparam int unsigned                  LVL_WIDTH                            = $clog2(IN_AGGR_WIDTH-1);
+  localparam int unsigned                  ID_WIDTH                             = N_ITL_LEVELS;
+  localparam int unsigned                  IN_LVL_OFFSET                        = 0;
 
-  localparam int unsigned                  NBR_AGGR_WIDTH                     = 1;
-  localparam int unsigned                  NBR_LVL_WIDTH                      = 1;
-  localparam int unsigned                  NBR_ID_WIDTH                       = 2;
+  localparam int unsigned                  NBR_AGGR_WIDTH                       = 1;
+  localparam int unsigned                  NBR_LVL_WIDTH                        = 1;
+  localparam int unsigned                  NBR_ID_WIDTH                         = 2;
 
   `FSYNC_TYPEDEF_REQ_ALL(fsync_in,  logic[IN_AGGR_WIDTH-1:0],  logic[ID_WIDTH-1:0])
   `FSYNC_TYPEDEF_REQ_ALL(fsync_out, logic[OUT_AGGR_WIDTH-1:0], logic[ID_WIDTH-1:0])
@@ -110,27 +132,37 @@ endpackage: fractal_sync_4x4_pkg
 module fractal_sync_4x4_core
   import fractal_sync_4x4_pkg::*;
 #(
-  parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE                                            = fractal_sync_4x4_pkg::TOP_NODE_TYPE,
-  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]        = fractal_sync_4x4_pkg::RF_TYPE_1D,
-  parameter int unsigned                  N_LOCAL_REGS_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_LOCAL_REGS_1D,
-  parameter int unsigned                  N_REMOTE_LINES_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS] = fractal_sync_4x4_pkg::N_REMOTE_LINES_1D,
-  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]        = fractal_sync_4x4_pkg::RF_TYPE_2D,
-  parameter int unsigned                  N_LOCAL_REGS_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_LOCAL_REGS_2D,
-  parameter int unsigned                  N_REMOTE_LINES_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS] = fractal_sync_4x4_pkg::N_REMOTE_LINES_2D,
-  parameter int unsigned                  N_LINKS_IN                                               = fractal_sync_4x4_pkg::N_LINKS_IN,
-  parameter int unsigned                  N_LINKS_ITL[fractal_sync_4x4_pkg::N_ITL_LEVELS]          = fractal_sync_4x4_pkg::N_LINKS_ITL,
-  parameter int unsigned                  N_LINKS_OUT                                              = fractal_sync_4x4_pkg::N_LINKS_OUT,
-  parameter int unsigned                  N_PIPELINE_STAGES[fractal_sync_4x4_pkg::N_LEVELS]        = fractal_sync_4x4_pkg::N_PIPELINE_STAGES,
-  parameter int unsigned                  AGGREGATE_WIDTH                                          = fractal_sync_4x4_pkg::IN_AGGR_WIDTH,
-  parameter int unsigned                  ID_WIDTH                                                 = fractal_sync_4x4_pkg::ID_WIDTH,
-  parameter int unsigned                  LVL_OFFSET                                               = fractal_sync_4x4_pkg::IN_LVL_OFFSET,
-  parameter type                          fsync_in_req_t                                           = fractal_sync_4x4_pkg::fsync_in_req_t,
-  parameter type                          fsync_out_req_t                                          = fractal_sync_4x4_pkg::fsync_out_req_t,
-  parameter type                          fsync_rsp_t                                              = fractal_sync_4x4_pkg::fsync_rsp_t,
-  localparam int unsigned                 N_1D_H_PORTS                                             = fractal_sync_4x4_pkg::N_1D_H_PORTS,
-  localparam int unsigned                 N_1D_V_PORTS                                             = fractal_sync_4x4_pkg::N_1D_V_PORTS,
-  localparam int unsigned                 N_2D_H_PORTS                                             = fractal_sync_4x4_pkg::N_2D_H_PORTS,
-  localparam int unsigned                 N_2D_V_PORTS                                             = fractal_sync_4x4_pkg::N_2D_V_PORTS
+  parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE                                              = fractal_sync_4x4_pkg::TOP_NODE_TYPE,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]          = fractal_sync_4x4_pkg::RF_TYPE_1D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::ARBITER_TYPE_1D,
+  parameter int unsigned                  N_LOCAL_REGS_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::N_LOCAL_REGS_1D,
+  parameter int unsigned                  N_REMOTE_LINES_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_REMOTE_LINES_1D,
+  parameter bit                           RX_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::RX_FIFO_COMB_1D,
+  parameter bit                           TX_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::TX_FIFO_COMB_1D,
+  parameter bit                           LOCAL_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]  = fractal_sync_4x4_pkg::LOCAL_FIFO_COMB_1D,
+  parameter bit                           REMOTE_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS] = fractal_sync_4x4_pkg::REMOTE_FIFO_COMB_1D,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]          = fractal_sync_4x4_pkg::RF_TYPE_2D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::ARBITER_TYPE_2D,
+  parameter int unsigned                  N_LOCAL_REGS_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::N_LOCAL_REGS_2D,
+  parameter int unsigned                  N_REMOTE_LINES_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_REMOTE_LINES_2D,
+  parameter bit                           RX_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::RX_FIFO_COMB_2D,
+  parameter bit                           TX_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::TX_FIFO_COMB_2D,
+  parameter bit                           LOCAL_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]  = fractal_sync_4x4_pkg::LOCAL_FIFO_COMB_2D,
+  parameter bit                           REMOTE_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS] = fractal_sync_4x4_pkg::REMOTE_FIFO_COMB_2D,
+  parameter int unsigned                  N_LINKS_IN                                                 = fractal_sync_4x4_pkg::N_LINKS_IN,
+  parameter int unsigned                  N_LINKS_ITL[fractal_sync_4x4_pkg::N_ITL_LEVELS]            = fractal_sync_4x4_pkg::N_LINKS_ITL,
+  parameter int unsigned                  N_LINKS_OUT                                                = fractal_sync_4x4_pkg::N_LINKS_OUT,
+  parameter int unsigned                  N_PIPELINE_STAGES[fractal_sync_4x4_pkg::N_LEVELS]          = fractal_sync_4x4_pkg::N_PIPELINE_STAGES,
+  parameter int unsigned                  AGGREGATE_WIDTH                                            = fractal_sync_4x4_pkg::IN_AGGR_WIDTH,
+  parameter int unsigned                  ID_WIDTH                                                   = fractal_sync_4x4_pkg::ID_WIDTH,
+  parameter int unsigned                  LVL_OFFSET                                                 = fractal_sync_4x4_pkg::IN_LVL_OFFSET,
+  parameter type                          fsync_in_req_t                                             = fractal_sync_4x4_pkg::fsync_in_req_t,
+  parameter type                          fsync_out_req_t                                            = fractal_sync_4x4_pkg::fsync_out_req_t,
+  parameter type                          fsync_rsp_t                                                = fractal_sync_4x4_pkg::fsync_rsp_t,
+  localparam int unsigned                 N_1D_H_PORTS                                               = fractal_sync_4x4_pkg::N_1D_H_PORTS,
+  localparam int unsigned                 N_1D_V_PORTS                                               = fractal_sync_4x4_pkg::N_1D_V_PORTS,
+  localparam int unsigned                 N_2D_H_PORTS                                               = fractal_sync_4x4_pkg::N_2D_H_PORTS,
+  localparam int unsigned                 N_2D_V_PORTS                                               = fractal_sync_4x4_pkg::N_2D_V_PORTS
 )(
   input  logic           clk_i,
   input  logic           rst_ni,
@@ -155,11 +187,21 @@ module fractal_sync_4x4_core
   localparam int unsigned N_ROOT_FSYNC_LEVELS   = 2;
 
   localparam fractal_sync_pkg::remote_rf_e LEAF_RF_TYPE_1D                             = RF_TYPE_1D[0];
+  localparam fractal_sync_pkg::arb_e       LEAF_ARBITER_TYPE_1D                        = ARBITER_TYPE_1D[0];
   localparam int unsigned                  LEAF_N_LOCAL_REGS_1D                        = N_LOCAL_REGS_1D[0];
   localparam int unsigned                  LEAF_N_REMOTE_LINES_1D                      = N_REMOTE_LINES_1D[0];
+  localparam bit                           LEAF_RX_FIFO_COMB_1D                        = RX_FIFO_COMB_1D[0];
+  localparam bit                           LEAF_TX_FIFO_COMB_1D                        = TX_FIFO_COMB_1D[0];
+  localparam bit                           LEAF_LOCAL_FIFO_COMB_1D                     = LOCAL_FIFO_COMB_1D[0];
+  localparam bit                           LEAF_REMOTE_FIFO_COMB_1D                    = REMOTE_FIFO_COMB_1D[0];
   localparam fractal_sync_pkg::remote_rf_e LEAF_RF_TYPE_2D                             = RF_TYPE_2D[0];
+  localparam fractal_sync_pkg::arb_e       LEAF_ARBITER_TYPE_2D                        = ARBITER_TYPE_2D[0];
   localparam int unsigned                  LEAF_N_LOCAL_REGS_2D                        = N_LOCAL_REGS_2D[0];
   localparam int unsigned                  LEAF_N_REMOTE_LINES_2D                      = N_REMOTE_LINES_2D[0];
+  localparam bit                           LEAF_RX_FIFO_COMB_2D                        = RX_FIFO_COMB_2D[0];
+  localparam bit                           LEAF_TX_FIFO_COMB_2D                        = TX_FIFO_COMB_2D[0];
+  localparam bit                           LEAF_LOCAL_FIFO_COMB_2D                     = LOCAL_FIFO_COMB_2D[0];
+  localparam bit                           LEAF_REMOTE_FIFO_COMB_2D                    = REMOTE_FIFO_COMB_2D[0];
   localparam int unsigned                  LEAF_N_LINKS_IN                             = N_LINKS_IN;
   localparam int unsigned                  LEAF_N_LINKS_ITL                            = N_LINKS_ITL[0];
   localparam int unsigned                  LEAF_N_LINKS_OUT                            = N_LINKS_ITL[1];
@@ -169,11 +211,21 @@ module fractal_sync_4x4_core
   localparam int unsigned                  LEAF_LVL_OFFSET                             = LVL_OFFSET;
 
   localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_1D                             = RF_TYPE_1D[1];
+  localparam fractal_sync_pkg::arb_e       ROOT_ARBITER_TYPE_1D                        = ARBITER_TYPE_1D[1];
   localparam int unsigned                  ROOT_N_LOCAL_REGS_1D                        = N_LOCAL_REGS_1D[1];
   localparam int unsigned                  ROOT_N_REMOTE_LINES_1D                      = N_REMOTE_LINES_1D[1];
+  localparam bit                           ROOT_RX_FIFO_COMB_1D                        = RX_FIFO_COMB_1D[1];
+  localparam bit                           ROOT_TX_FIFO_COMB_1D                        = TX_FIFO_COMB_1D[1];
+  localparam bit                           ROOT_LOCAL_FIFO_COMB_1D                     = LOCAL_FIFO_COMB_1D[1];
+  localparam bit                           ROOT_REMOTE_FIFO_COMB_1D                    = REMOTE_FIFO_COMB_1D[1];
   localparam fractal_sync_pkg::remote_rf_e ROOT_RF_TYPE_2D                             = RF_TYPE_2D[1];
+  localparam fractal_sync_pkg::arb_e       ROOT_ARBITER_TYPE_2D                        = ARBITER_TYPE_2D[1];
   localparam int unsigned                  ROOT_N_LOCAL_REGS_2D                        = N_LOCAL_REGS_2D[1];
   localparam int unsigned                  ROOT_N_REMOTE_LINES_2D                      = N_REMOTE_LINES_2D[1];
+  localparam bit                           ROOT_RX_FIFO_COMB_2D                        = RX_FIFO_COMB_2D[1];
+  localparam bit                           ROOT_TX_FIFO_COMB_2D                        = TX_FIFO_COMB_2D[1];
+  localparam bit                           ROOT_LOCAL_FIFO_COMB_2D                     = LOCAL_FIFO_COMB_2D[1];
+  localparam bit                           ROOT_REMOTE_FIFO_COMB_2D                    = REMOTE_FIFO_COMB_2D[1];
   localparam int unsigned                  ROOT_N_LINKS_IN                             = N_LINKS_ITL[1];
   localparam int unsigned                  ROOT_N_LINKS_ITL                            = N_LINKS_ITL[2];
   localparam int unsigned                  ROOT_N_LINKS_OUT                            = N_LINKS_OUT;
@@ -291,23 +343,33 @@ module fractal_sync_4x4_core
 
   for (genvar i = 0; i < N_LEAF_FSYNC_NETWORKS; i++) begin: gen_leaf_fsync_net
     fractal_sync_2x2_core #(
-      .TOP_NODE_TYPE     ( fractal_sync_pkg::HV_NODE ),
-      .RF_TYPE_1D        ( LEAF_RF_TYPE_1D           ),
-      .N_LOCAL_REGS_1D   ( LEAF_N_LOCAL_REGS_1D      ),
-      .N_REMOTE_LINES_1D ( LEAF_N_REMOTE_LINES_1D    ),
-      .RF_TYPE_2D        ( LEAF_RF_TYPE_2D           ),
-      .N_LOCAL_REGS_2D   ( LEAF_N_LOCAL_REGS_2D      ),
-      .N_REMOTE_LINES_2D ( LEAF_N_REMOTE_LINES_2D    ),
-      .N_LINKS_IN        ( LEAF_N_LINKS_IN           ),
-      .N_LINKS_ITL       ( LEAF_N_LINKS_ITL          ),
-      .N_LINKS_OUT       ( LEAF_N_LINKS_OUT          ),
-      .N_PIPELINE_STAGES ( LEAF_N_PIPELINE_STAGES    ),
-      .AGGREGATE_WIDTH   ( LEAF_AGGREGATE_WIDTH      ),
-      .ID_WIDTH          ( LEAF_ID_WIDTH             ),
-      .LVL_OFFSET        ( LEAF_LVL_OFFSET           ),
-      .fsync_in_req_t    ( fsync_in_req_t            ),
-      .fsync_out_req_t   ( fsync_itl_req_t           ),
-      .fsync_rsp_t       ( fsync_rsp_t               )
+      .TOP_NODE_TYPE       ( fractal_sync_pkg::HV_NODE ),
+      .RF_TYPE_1D          ( LEAF_RF_TYPE_1D           ),
+      .ARBITER_TYPE_1D     ( LEAF_ARBITER_TYPE_1D      ),
+      .N_LOCAL_REGS_1D     ( LEAF_N_LOCAL_REGS_1D      ),
+      .N_REMOTE_LINES_1D   ( LEAF_N_REMOTE_LINES_1D    ),
+      .RX_FIFO_COMB_1D     ( LEAF_RX_FIFO_COMB_1D      ),
+      .TX_FIFO_COMB_1D     ( LEAF_TX_FIFO_COMB_1D      ),
+      .LOCAL_FIFO_COMB_1D  ( LEAF_LOCAL_FIFO_COMB_1D   ),
+      .REMOTE_FIFO_COMB_1D ( LEAF_REMOTE_FIFO_COMB_1D  ),
+      .RF_TYPE_2D          ( LEAF_RF_TYPE_2D           ),
+      .ARBITER_TYPE_2D     ( LEAF_ARBITER_TYPE_2D      ),
+      .N_LOCAL_REGS_2D     ( LEAF_N_LOCAL_REGS_2D      ),
+      .N_REMOTE_LINES_2D   ( LEAF_N_REMOTE_LINES_2D    ),
+      .RX_FIFO_COMB_2D     ( LEAF_RX_FIFO_COMB_2D      ),
+      .TX_FIFO_COMB_2D     ( LEAF_TX_FIFO_COMB_2D      ),
+      .LOCAL_FIFO_COMB_2D  ( LEAF_LOCAL_FIFO_COMB_2D   ),
+      .REMOTE_FIFO_COMB_2D ( LEAF_REMOTE_FIFO_COMB_2D  ),
+      .N_LINKS_IN          ( LEAF_N_LINKS_IN           ),
+      .N_LINKS_ITL         ( LEAF_N_LINKS_ITL          ),
+      .N_LINKS_OUT         ( LEAF_N_LINKS_OUT          ),
+      .N_PIPELINE_STAGES   ( LEAF_N_PIPELINE_STAGES    ),
+      .AGGREGATE_WIDTH     ( LEAF_AGGREGATE_WIDTH      ),
+      .ID_WIDTH            ( LEAF_ID_WIDTH             ),
+      .LVL_OFFSET          ( LEAF_LVL_OFFSET           ),
+      .fsync_in_req_t      ( fsync_in_req_t            ),
+      .fsync_out_req_t     ( fsync_itl_req_t           ),
+      .fsync_rsp_t         ( fsync_rsp_t               )
     ) i_leaf_fsync_net (
       .clk_i                                       ,
       .rst_ni                                      ,
@@ -329,23 +391,33 @@ module fractal_sync_4x4_core
 /*******************************************************/
 
   fractal_sync_2x2_core #(
-    .TOP_NODE_TYPE     ( TOP_NODE_TYPE          ),
-    .RF_TYPE_1D        ( ROOT_RF_TYPE_1D        ),
-    .N_LOCAL_REGS_1D   ( ROOT_N_LOCAL_REGS_1D   ),
-    .N_REMOTE_LINES_1D ( ROOT_N_REMOTE_LINES_1D ),
-    .RF_TYPE_2D        ( ROOT_RF_TYPE_2D        ),
-    .N_LOCAL_REGS_2D   ( ROOT_N_LOCAL_REGS_2D   ),
-    .N_REMOTE_LINES_2D ( ROOT_N_REMOTE_LINES_2D ),
-    .N_LINKS_IN        ( ROOT_N_LINKS_IN        ),
-    .N_LINKS_ITL       ( ROOT_N_LINKS_ITL       ),
-    .N_LINKS_OUT       ( ROOT_N_LINKS_OUT       ),
-    .N_PIPELINE_STAGES ( ROOT_N_PIPELINE_STAGES ),
-    .AGGREGATE_WIDTH   ( ROOT_AGGREGATE_WIDTH   ),
-    .ID_WIDTH          ( ROOT_ID_WIDTH          ),
-    .LVL_OFFSET        ( ROOT_LVL_OFFSET        ),
-    .fsync_in_req_t    ( fsync_itl_req_t        ),
-    .fsync_out_req_t   ( fsync_out_req_t        ),
-    .fsync_rsp_t       ( fsync_rsp_t            )
+    .TOP_NODE_TYPE       ( TOP_NODE_TYPE            ),
+    .RF_TYPE_1D          ( ROOT_RF_TYPE_1D          ),
+    .ARBITER_TYPE_1D     ( ROOT_ARBITER_TYPE_1D     ),
+    .N_LOCAL_REGS_1D     ( ROOT_N_LOCAL_REGS_1D     ),
+    .N_REMOTE_LINES_1D   ( ROOT_N_REMOTE_LINES_1D   ),
+    .RX_FIFO_COMB_1D     ( ROOT_RX_FIFO_COMB_1D     ),
+    .TX_FIFO_COMB_1D     ( ROOT_TX_FIFO_COMB_1D     ),
+    .LOCAL_FIFO_COMB_1D  ( ROOT_LOCAL_FIFO_COMB_1D  ),
+    .REMOTE_FIFO_COMB_1D ( ROOT_REMOTE_FIFO_COMB_1D ),
+    .RF_TYPE_2D          ( ROOT_RF_TYPE_2D          ),
+    .ARBITER_TYPE_2D     ( ROOT_ARBITER_TYPE_2D     ),
+    .N_LOCAL_REGS_2D     ( ROOT_N_LOCAL_REGS_2D     ),
+    .N_REMOTE_LINES_2D   ( ROOT_N_REMOTE_LINES_2D   ),
+    .RX_FIFO_COMB_2D     ( ROOT_RX_FIFO_COMB_2D     ),
+    .TX_FIFO_COMB_2D     ( ROOT_TX_FIFO_COMB_2D     ),
+    .LOCAL_FIFO_COMB_2D  ( ROOT_LOCAL_FIFO_COMB_2D  ),
+    .REMOTE_FIFO_COMB_2D ( ROOT_REMOTE_FIFO_COMB_2D ),
+    .N_LINKS_IN          ( ROOT_N_LINKS_IN          ),
+    .N_LINKS_ITL         ( ROOT_N_LINKS_ITL         ),
+    .N_LINKS_OUT         ( ROOT_N_LINKS_OUT         ),
+    .N_PIPELINE_STAGES   ( ROOT_N_PIPELINE_STAGES   ),
+    .AGGREGATE_WIDTH     ( ROOT_AGGREGATE_WIDTH     ),
+    .ID_WIDTH            ( ROOT_ID_WIDTH            ),
+    .LVL_OFFSET          ( ROOT_LVL_OFFSET          ),
+    .fsync_in_req_t      ( fsync_itl_req_t          ),
+    .fsync_out_req_t     ( fsync_out_req_t          ),
+    .fsync_rsp_t         ( fsync_rsp_t              )
   ) i_root_fsync_net (
     .clk_i                                    ,
     .rst_ni                                   ,
@@ -368,31 +440,41 @@ endmodule: fractal_sync_4x4_core
 module fractal_sync_4x4
   import fractal_sync_4x4_pkg::*;
 #(
-  parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE                                            = fractal_sync_4x4_pkg::TOP_NODE_TYPE,
-  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]        = fractal_sync_4x4_pkg::RF_TYPE_1D,
-  parameter int unsigned                  N_LOCAL_REGS_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_LOCAL_REGS_1D,
-  parameter int unsigned                  N_REMOTE_LINES_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS] = fractal_sync_4x4_pkg::N_REMOTE_LINES_1D,
-  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]        = fractal_sync_4x4_pkg::RF_TYPE_2D,
-  parameter int unsigned                  N_LOCAL_REGS_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_LOCAL_REGS_2D,
-  parameter int unsigned                  N_REMOTE_LINES_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS] = fractal_sync_4x4_pkg::N_REMOTE_LINES_2D,
-  parameter int unsigned                  N_LINKS_IN                                               = fractal_sync_4x4_pkg::N_LINKS_IN,
-  parameter int unsigned                  N_LINKS_ITL[fractal_sync_4x4_pkg::N_ITL_LEVELS]          = fractal_sync_4x4_pkg::N_LINKS_ITL,
-  parameter int unsigned                  N_LINKS_OUT                                              = fractal_sync_4x4_pkg::N_LINKS_OUT,
-  parameter int unsigned                  N_PIPELINE_STAGES[fractal_sync_4x4_pkg::N_LEVELS]        = fractal_sync_4x4_pkg::N_PIPELINE_STAGES,
-  parameter int unsigned                  AGGREGATE_WIDTH                                          = fractal_sync_4x4_pkg::IN_AGGR_WIDTH,
-  parameter int unsigned                  ID_WIDTH                                                 = fractal_sync_4x4_pkg::ID_WIDTH,
-  parameter int unsigned                  LVL_OFFSET                                               = fractal_sync_4x4_pkg::IN_LVL_OFFSET,
-  parameter type                          fsync_in_req_t                                           = fractal_sync_4x4_pkg::fsync_in_req_t,
-  parameter type                          fsync_out_req_t                                          = fractal_sync_4x4_pkg::fsync_out_req_t,
-  parameter type                          fsync_rsp_t                                              = fractal_sync_4x4_pkg::fsync_rsp_t,
-  parameter type                          fsync_nbr_req_t                                          = fractal_sync_4x4_pkg::fsync_nbr_req_t,
-  parameter type                          fsync_nbr_rsp_t                                          = fractal_sync_4x4_pkg::fsync_nbr_rsp_t,
-  localparam int unsigned                 N_1D_H_PORTS                                             = fractal_sync_4x4_pkg::N_1D_H_PORTS,
-  localparam int unsigned                 N_1D_V_PORTS                                             = fractal_sync_4x4_pkg::N_1D_V_PORTS,
-  localparam int unsigned                 N_NBR_H_PORTS                                            = fractal_sync_4x4_pkg::N_NBR_H_PORTS,
-  localparam int unsigned                 N_NBR_V_PORTS                                            = fractal_sync_4x4_pkg::N_NBR_V_PORTS,
-  localparam int unsigned                 N_2D_H_PORTS                                             = fractal_sync_4x4_pkg::N_2D_H_PORTS,
-  localparam int unsigned                 N_2D_V_PORTS                                             = fractal_sync_4x4_pkg::N_2D_V_PORTS
+  parameter fractal_sync_pkg::node_e      TOP_NODE_TYPE                                              = fractal_sync_4x4_pkg::TOP_NODE_TYPE,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]          = fractal_sync_4x4_pkg::RF_TYPE_1D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::ARBITER_TYPE_1D,
+  parameter int unsigned                  N_LOCAL_REGS_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::N_LOCAL_REGS_1D,
+  parameter int unsigned                  N_REMOTE_LINES_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_REMOTE_LINES_1D,
+  parameter bit                           RX_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::RX_FIFO_COMB_1D,
+  parameter bit                           TX_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]     = fractal_sync_4x4_pkg::TX_FIFO_COMB_1D,
+  parameter bit                           LOCAL_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS]  = fractal_sync_4x4_pkg::LOCAL_FIFO_COMB_1D,
+  parameter bit                           REMOTE_FIFO_COMB_1D[fractal_sync_4x4_pkg::N_1D_ITL_LEVELS] = fractal_sync_4x4_pkg::REMOTE_FIFO_COMB_1D,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]          = fractal_sync_4x4_pkg::RF_TYPE_2D,
+  parameter fractal_sync_pkg::arb_e       ARBITER_TYPE_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::ARBITER_TYPE_2D,
+  parameter int unsigned                  N_LOCAL_REGS_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::N_LOCAL_REGS_2D,
+  parameter int unsigned                  N_REMOTE_LINES_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]   = fractal_sync_4x4_pkg::N_REMOTE_LINES_2D,
+  parameter bit                           RX_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::RX_FIFO_COMB_2D,
+  parameter bit                           TX_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]     = fractal_sync_4x4_pkg::TX_FIFO_COMB_2D,
+  parameter bit                           LOCAL_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS]  = fractal_sync_4x4_pkg::LOCAL_FIFO_COMB_2D,
+  parameter bit                           REMOTE_FIFO_COMB_2D[fractal_sync_4x4_pkg::N_2D_ITL_LEVELS] = fractal_sync_4x4_pkg::REMOTE_FIFO_COMB_2D,
+  parameter int unsigned                  N_LINKS_IN                                                 = fractal_sync_4x4_pkg::N_LINKS_IN,
+  parameter int unsigned                  N_LINKS_ITL[fractal_sync_4x4_pkg::N_ITL_LEVELS]            = fractal_sync_4x4_pkg::N_LINKS_ITL,
+  parameter int unsigned                  N_LINKS_OUT                                                = fractal_sync_4x4_pkg::N_LINKS_OUT,
+  parameter int unsigned                  N_PIPELINE_STAGES[fractal_sync_4x4_pkg::N_LEVELS]          = fractal_sync_4x4_pkg::N_PIPELINE_STAGES,
+  parameter int unsigned                  AGGREGATE_WIDTH                                            = fractal_sync_4x4_pkg::IN_AGGR_WIDTH,
+  parameter int unsigned                  ID_WIDTH                                                   = fractal_sync_4x4_pkg::ID_WIDTH,
+  parameter int unsigned                  LVL_OFFSET                                                 = fractal_sync_4x4_pkg::IN_LVL_OFFSET,
+  parameter type                          fsync_in_req_t                                             = fractal_sync_4x4_pkg::fsync_in_req_t,
+  parameter type                          fsync_out_req_t                                            = fractal_sync_4x4_pkg::fsync_out_req_t,
+  parameter type                          fsync_rsp_t                                                = fractal_sync_4x4_pkg::fsync_rsp_t,
+  parameter type                          fsync_nbr_req_t                                            = fractal_sync_4x4_pkg::fsync_nbr_req_t,
+  parameter type                          fsync_nbr_rsp_t                                            = fractal_sync_4x4_pkg::fsync_nbr_rsp_t,
+  localparam int unsigned                 N_1D_H_PORTS                                               = fractal_sync_4x4_pkg::N_1D_H_PORTS,
+  localparam int unsigned                 N_1D_V_PORTS                                               = fractal_sync_4x4_pkg::N_1D_V_PORTS,
+  localparam int unsigned                 N_NBR_H_PORTS                                              = fractal_sync_4x4_pkg::N_NBR_H_PORTS,
+  localparam int unsigned                 N_NBR_V_PORTS                                              = fractal_sync_4x4_pkg::N_NBR_V_PORTS,
+  localparam int unsigned                 N_2D_H_PORTS                                               = fractal_sync_4x4_pkg::N_2D_H_PORTS,
+  localparam int unsigned                 N_2D_V_PORTS                                               = fractal_sync_4x4_pkg::N_2D_V_PORTS
 )(
   input  logic           clk_i,
   input  logic           rst_ni,

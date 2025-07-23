@@ -20,20 +20,22 @@
  * Asynchronous valid low reset
  *
  * Parameters:
- *  NODE_TYPE       - Node type of control core (horizontal, vertical, 2D, root)
- *  RF_TYPE         - Remote RF type (Directly Mapped or CAM)
- *  N_LOCAL_REGS    - Number of register in teh local RF
- *  N_REMOTE_LINES  - Number of CAM lines in a CAM-based remote RF
- *  AGGREGATE_WIDTH - Width of the aggr field
- *  ID_WIDTH        - Width of the id field
- *  LVL_OFFSET      - Level offset from first node of the syncrhonization tree: 0 for nodes at level 1, 1 for nodes at level 2, ...
- *  fsync_req_in_t  - Input synchronization request type (RX -> CC)
- *  fsync_rsp_in_t  - Input synchronization response type (CC -> TX arb.)
- *  fsync_req_out_t - Output synchronization request type (CC -> RX arb.)
- *  fsync_rsp_out_t - Output synchronization response type (TX - > CC)
- *  N_RX_PORTS      - Number of input (RX) ports
- *  N_TX_PORTS      - Number of output (TX) ports
- *  FIFO_DEPTH      - Maximum number of elements that can be present in a FIFO
+ *  NODE_TYPE            - Node type of control core (horizontal, vertical, 2D, root)
+ *  RF_TYPE              - Remote RF type (Directly Mapped or CAM)
+ *  N_LOCAL_REGS         - Number of register in teh local RF
+ *  N_REMOTE_LINES       - Number of CAM lines in a CAM-based remote RF
+ *  AGGREGATE_WIDTH      - Width of the aggr field
+ *  ID_WIDTH             - Width of the id field
+ *  LVL_OFFSET           - Level offset from first node of the syncrhonization tree: 0 for nodes at level 1, 1 for nodes at level 2, ...
+ *  fsync_req_in_t       - Input synchronization request type (RX -> CC)
+ *  fsync_rsp_in_t       - Input synchronization response type (CC -> TX arb.)
+ *  fsync_req_out_t      - Output synchronization request type (CC -> RX arb.)
+ *  fsync_rsp_out_t      - Output synchronization response type (TX - > CC)
+ *  N_RX_PORTS           - Number of input (RX) ports
+ *  N_TX_PORTS           - Number of output (TX) ports
+ *  FIFO_DEPTH           - Maximum number of elements that can be present in a FIFO
+ *  LOCAL_FIFO_COMB_OUT  - 1: Output local FIFO with fall-through; 0: sequential local FIFO
+ *  REMOTE_FIFO_COMB_OUT - 1: Output remote FIFO with fall-through; 0: sequential remote FIFO
  *
  * Interface signals:
  *  > req_i               - Synchronization request (input)
@@ -58,33 +60,35 @@
 module fractal_sync_cc 
   import fractal_sync_pkg::*; 
 #(
-  parameter fractal_sync_pkg::node_e      NODE_TYPE       = fractal_sync_pkg::HV_NODE,
-  localparam fractal_sync_pkg::rf_dim_e   RF_DIM          = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
-                                                            (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
-                                                            fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
-  parameter fractal_sync_pkg::remote_rf_e RF_TYPE         = fractal_sync_pkg::CAM_RF,
-  parameter int unsigned                  N_LOCAL_REGS    = 0,
-  parameter int unsigned                  N_REMOTE_LINES  = 0,
-  parameter int unsigned                  AGGREGATE_WIDTH = 1,
-  parameter int unsigned                  ID_WIDTH        = 1,
-  parameter int unsigned                  LVL_OFFSET      = 0,
-  parameter type                          fsync_req_in_t  = logic,
-  parameter type                          fsync_rsp_in_t  = logic,
-  parameter type                          fsync_req_out_t = logic,
-  parameter type                          fsync_rsp_out_t = logic,
+  parameter fractal_sync_pkg::node_e      NODE_TYPE            = fractal_sync_pkg::HV_NODE,
+  localparam fractal_sync_pkg::rf_dim_e   RF_DIM               = (NODE_TYPE == fractal_sync_pkg::HV_NODE) ||
+                                                                 (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
+                                                                 fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
+  parameter fractal_sync_pkg::remote_rf_e RF_TYPE              = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  N_LOCAL_REGS         = 0,
+  parameter int unsigned                  N_REMOTE_LINES       = 0,
+  parameter int unsigned                  AGGREGATE_WIDTH      = 1,
+  parameter int unsigned                  ID_WIDTH             = 1,
+  parameter int unsigned                  LVL_OFFSET           = 0,
+  parameter type                          fsync_req_in_t       = logic,
+  parameter type                          fsync_rsp_in_t       = logic,
+  parameter type                          fsync_req_out_t      = logic,
+  parameter type                          fsync_rsp_out_t      = logic,
   // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
-  parameter int unsigned                  N_RX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
-                                                            (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
-                                                            0,
+  parameter int unsigned                  N_RX_PORTS           = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
+                                                                 (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
+                                                                 0,
   // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
-  parameter int unsigned                  N_TX_PORTS      = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
-                                                            (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
-                                                            0,
+  parameter int unsigned                  N_TX_PORTS           = (RF_DIM == fractal_sync_pkg::RF2D) ? 2 : 
+                                                                 (RF_DIM == fractal_sync_pkg::RF1D) ? 1 :
+                                                                 0,
   // Total number of ports: lower indexes represent RX ports; higher indexes represent TX ports
-  localparam int unsigned                 N_PORTS         = N_RX_PORTS + N_TX_PORTS,
+  localparam int unsigned                 N_PORTS              = N_RX_PORTS + N_TX_PORTS,
   // 2D CC: even indexed FIFOs -> horizontal channel; odd indexed FIFOs -> vertical channel
-  localparam int unsigned                 N_FIFOS         = N_RX_PORTS, 
-  parameter int unsigned                  FIFO_DEPTH      = 1
+  localparam int unsigned                 N_FIFOS              = N_RX_PORTS, 
+  parameter int unsigned                  FIFO_DEPTH           = 1,
+  parameter bit                           LOCAL_FIFO_COMB_OUT  = 1'b1,
+  parameter bit                           REMOTE_FIFO_COMB_OUT = 1'b1
 )(
   input  logic           clk_i,
   input  logic           rst_ni,
@@ -691,8 +695,9 @@ module fractal_sync_cc
 
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_local_fifos
     fractal_sync_fifo #(
-      .FIFO_DEPTH ( FIFO_DEPTH     ),
-      .fifo_t     ( fsync_rsp_in_t )
+      .FIFO_DEPTH ( FIFO_DEPTH          ),
+      .fifo_t     ( fsync_rsp_in_t      ),
+      .COMB_OUT   ( LOCAL_FIFO_COMB_OUT )
     ) i_local_fifo (
       .clk_i                         ,
       .rst_ni                        ,
@@ -707,8 +712,9 @@ module fractal_sync_cc
 
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_remote_fifos
     fractal_sync_fifo #(
-      .FIFO_DEPTH ( FIFO_DEPTH      ),
-      .fifo_t     ( fsync_req_out_t )
+      .FIFO_DEPTH ( FIFO_DEPTH           ),
+      .fifo_t     ( fsync_req_out_t      ),
+      .COMB_OUT   ( REMOTE_FIFO_COMB_OUT )
     ) i_remote_fifo (
       .clk_i                          ,
       .rst_ni                         ,

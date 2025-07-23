@@ -68,11 +68,11 @@ module fractal_sync_mp_rf #(
 /*******************************************************/
 
   logic[REG_IDX_WIDTH-1:0] reg_idx[N_PORTS];
-  
-  logic check_demux[N_PORTS][N_REGS];
+
+  logic check_port[N_REGS][N_PORTS];
   logic check_reg[N_REGS];
 
-  logic set_demux[N_PORTS][N_REGS];
+  logic set_port[N_REGS][N_PORTS];
   logic set_reg[N_REGS];
 
   logic reg_d[N_REGS];
@@ -94,24 +94,21 @@ module fractal_sync_mp_rf #(
 /**         Multi-Port Register File Beginning        **/
 /*******************************************************/
   
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_check_set_demux
+  for (genvar i = 0; i < N_REGS; i++) begin: gen_check_set
     always_comb begin
-      check_demux[i] = '{default: 1'b0};
-      set_demux[i]   = '{default: 1'b0};
-      if (idx_valid_i[i]) begin
-        check_demux[i][reg_idx[i]] = check_i[i];
-        set_demux[i][reg_idx[i]]   = set_i[i];
+      check_port[i] = '{default: '0};
+      set_port[i]   = '{default: '0};
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        check_port[i][j] = check_i[j] && (reg_idx[j] == i) ? 1'b1 : 1'b0;
+        set_port[i][j]   = set_i[j]   && (reg_idx[j] == i) ? 1'b1 : 1'b0;
       end
     end
-  end
-
-  always_comb begin: check_set_reg_logic
-    check_reg = '{default: 1'b0};
-    set_reg   = '{default: 1'b0};
-    for (int unsigned i = 0; i < N_PORTS; i++) begin
-      for (int unsigned j = 0; j < N_REGS; j++) begin
-        if (check_demux[i][j]) check_reg[j] = 1'b1;
-        if (set_demux[i][j])   set_reg[j]   = 1'b1;
+    always_comb begin
+      check_reg[i] = 1'b0;
+      set_reg[i]   = 1'b0;
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        check_reg[i] |= check_port[i][j];
+        set_reg[i]   |= set_port[i][j];
       end
     end
   end
@@ -217,10 +214,10 @@ module fractal_sync_mp_rf_br #(
 
   logic[REG_IDX_WIDTH-1:0] reg_idx[N_PORTS];
   
-  logic check_demux[N_PORTS][N_REGS];
+  logic check_port[N_REGS][N_PORTS];
   logic check_reg[N_REGS];
 
-  logic set_demux[N_PORTS][N_REGS];
+  logic set_port[N_REGS][N_PORTS];
   logic set_reg[N_REGS];
 
   logic reg_d[N_REGS];
@@ -228,6 +225,7 @@ module fractal_sync_mp_rf_br #(
 
   logic[SD_WIDTH-1:0] sd_reg_d[N_REGS];
   logic[SD_WIDTH-1:0] sd_reg_q[N_REGS];
+  logic[SD_WIDTH-1:0] sd_mask[N_REGS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -245,27 +243,31 @@ module fractal_sync_mp_rf_br #(
 /**         Multi-Port Register File Beginning        **/
 /*******************************************************/
   
-  for (genvar i = 0; i < N_PORTS; i++) begin: gen_check_set_demux
+  for (genvar i = 0; i < N_REGS; i++) begin: gen_check_set_sd
     always_comb begin
-      check_demux[i] = '{default: 1'b0};
-      set_demux[i]   = '{default: 1'b0};
-      if (idx_valid_i[i]) begin
-        check_demux[i][reg_idx[i]] = check_i[i];
-        set_demux[i][reg_idx[i]]   = set_i[i];
+      check_port[i] = '{default: '0};
+      set_port[i]   = '{default: '0};
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        check_port[i][j] = check_i[j] && (reg_idx[j] == i) ? 1'b1 : 1'b0;
+        set_port[i][j]   = set_i[j]   && (reg_idx[j] == i) ? 1'b1 : 1'b0;
       end
     end
-  end
+    always_comb begin
+      check_reg[i] = 1'b0;
+      set_reg[i]   = 1'b0;
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        check_reg[i] |= check_port[i][j];
+        set_reg[i]   |= set_port[i][j];
+      end
+    end
 
-  always_comb begin: check_set_sd_reg_logic
-    check_reg = '{default: 1'b0};
-    set_reg   = '{default: 1'b0};
-    sd_reg_d  = sd_reg_q;
-    for (int unsigned i = 0; i < N_PORTS; i++) begin
-      for (int unsigned j = 0; j < N_REGS; j++) begin
-        if (check_demux[i][j]) begin check_reg[j] = 1'b1; sd_reg_d[j] = sd_reg_q[j] | sd_i[i]; end
-        if (set_demux[i][j])   begin set_reg[j]   = 1'b1; sd_reg_d[j] = sd_reg_q[j] | sd_i[i]; end
+    always_comb begin
+      sd_mask[i] = '0;
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        if ((check_i[j] | set_i[j]) && (reg_idx[j] == i)) sd_mask[i] = sd_i[j];
       end
     end
+    assign sd_reg_d[i] = sd_reg_q[i] | sd_mask[i];
   end
 
   always_comb begin: reg_d_logic
