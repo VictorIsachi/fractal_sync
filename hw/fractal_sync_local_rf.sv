@@ -77,6 +77,11 @@ module fractal_sync_1d_local_rf
   logic[LOCAL_ID_WIDTH-1:0] local_id[N_PORTS];
 
   logic valid_idx[N_PORTS];
+
+  logic selected_id[N_REGS][N_PORTS];
+  logic selected_id_bypass[N_REGS][N_PORTS];
+  logic selected_id_ignore[N_REGS][N_PORTS];
+  logic selected_id_active[N_REGS];
   
   logic check_rf[N_PORTS];
 
@@ -92,19 +97,40 @@ module fractal_sync_1d_local_rf
     assign id_err_o[i]  = (~valid_idx[i] & check_i[i]);
   end
 
-  always_comb begin: bypass_ignore_logic
-    bypass_o = '{default: 1'b0};
-    ignore_o = '{default: 1'b0};
-    for (int unsigned i = 0; i < N_PORTS-1; i++) begin
-      if (~check_i[i] | ignore_o[i]) continue;
-      else begin
-        for (int unsigned j = i+1; j < N_PORTS; j++) begin
-          if ((local_id[i] == local_id[j]) && check_i[j]) begin
-            bypass_o[i] = 1'b1;
-            ignore_o[j] = 1'b1;
-            break;
-          end
+  for (genvar i = 0; i < N_REGS; i++) begin: gen_selected_id_bypass_ignore_active
+    for (genvar j = 0; j < N_PORTS; j++) begin
+      assign selected_id[i][j] = check_i[j] && (local_id[j] == i) ? 1'b1 : 1'b0;
+    end
+
+    always_comb begin
+      selected_id_bypass[i] = '{default: '0};
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        if (selected_id[i][j] == 1'b1) begin
+          selected_id_bypass[i][j] = 1'b1;
+          break;
         end
+      end
+    end
+
+    for (genvar j = 0; j < N_PORTS; j++) begin
+      assign selected_id_ignore[i][j] = selected_id[i][j] & ~selected_id_bypass[i][j];
+    end
+
+    always_comb begin
+      selected_id_active[i] = 1'b0;
+      for (int unsigned j = 0; j < N_PORTS; j++) begin
+        selected_id_active[i] |= selected_id_ignore[i][j];
+      end
+    end
+  end
+
+  for (genvar i = 0; i < N_PORTS; i++) begin: gen_bypass_ignore_sd
+    always_comb begin
+      bypass_o[i] = 1'b0;
+      ignore_o[i] = 1'b0;
+      for (int unsigned j = 0; j < N_REGS; j++) begin
+        bypass_o[i] |= (selected_id_bypass[j][i] & selected_id_active[j]);
+        ignore_o[i] |= selected_id_ignore[j][i];
       end
     end
   end

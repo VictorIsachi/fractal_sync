@@ -42,6 +42,13 @@ package fractal_sync_pkg;
     DM_RF  = 1
   } remote_rf_e;
 
+  // Arbiter types: Fully Associative, Directly Mapped wrap-around order, Directly Mapped alternating order
+  typedef enum logic[1:0] {
+    FA_ARB     = 0,
+    DM_WA_ARB  = 1,
+    DM_ALT_ARB = 2
+  } arb_e;
+
   typedef enum logic[2:0] {
     NBR_NODE = 0,
     HOR_NODE = 1,
