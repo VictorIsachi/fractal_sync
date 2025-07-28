@@ -79,33 +79,33 @@ package fractal_sync_16x16_pkg;
 
   localparam fractal_sync_pkg::node_e      TOP_NODE_TYPE                        = fractal_sync_pkg::HV_NODE;
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_1D[N_1D_ITL_LEVELS]          = '{fractal_sync_pkg::CAM_RF,
-                                                                                    fractal_sync_pkg::CAM_RF,
+                                                                                    fractal_sync_pkg::DM_RF,
                                                                                     fractal_sync_pkg::DM_RF,
                                                                                     fractal_sync_pkg::DM_RF};
   localparam fractal_sync_pkg::arb_e       ARBITER_TYPE_1D[N_1D_ITL_LEVELS]     = '{fractal_sync_pkg::FA_ARB,
                                                                                     fractal_sync_pkg::FA_ARB,
-                                                                                    fractal_sync_pkg::FA_ARB,
-                                                                                    fractal_sync_pkg::FA_ARB};
+                                                                                    fractal_sync_pkg::DM_ALT_ARB,
+                                                                                    fractal_sync_pkg::DM_ALT_ARB};
   localparam int unsigned                  N_LOCAL_REGS_1D[N_1D_ITL_LEVELS]     = '{1, 4, 16, 64};
   localparam int unsigned                  N_REMOTE_LINES_1D[N_1D_ITL_LEVELS]   = '{2, 8, 32, 128};
-  localparam bit                           RX_FIFO_COMB_1D[N_1D_ITL_LEVELS]     = '{1, 1, 1, 1};
-  localparam bit                           TX_FIFO_COMB_1D[N_1D_ITL_LEVELS]     = '{1, 1, 0, 0};
-  localparam bit                           LOCAL_FIFO_COMB_1D[N_1D_ITL_LEVELS]  = '{1, 1, 1, 0};
-  localparam bit                           REMOTE_FIFO_COMB_1D[N_1D_ITL_LEVELS] = '{1, 1, 0, 0};
+  localparam bit                           RX_FIFO_COMB_1D[N_1D_ITL_LEVELS]     = '{0, 0, 0, 0};
+  localparam bit                           TX_FIFO_COMB_1D[N_1D_ITL_LEVELS]     = '{0, 0, 0, 0};
+  localparam bit                           LOCAL_FIFO_COMB_1D[N_1D_ITL_LEVELS]  = '{0, 0, 0, 0};
+  localparam bit                           REMOTE_FIFO_COMB_1D[N_1D_ITL_LEVELS] = '{0, 0, 0, 0};
   localparam fractal_sync_pkg::remote_rf_e RF_TYPE_2D[N_2D_ITL_LEVELS]          = '{fractal_sync_pkg::CAM_RF,
-                                                                                    fractal_sync_pkg::CAM_RF,
+                                                                                    fractal_sync_pkg::DM_RF,
                                                                                     fractal_sync_pkg::DM_RF,
                                                                                     fractal_sync_pkg::DM_RF};
   localparam fractal_sync_pkg::arb_e       ARBITER_TYPE_2D[N_2D_ITL_LEVELS]     = '{fractal_sync_pkg::FA_ARB,
                                                                                     fractal_sync_pkg::FA_ARB,
-                                                                                    fractal_sync_pkg::FA_ARB,
-                                                                                    fractal_sync_pkg::FA_ARB};
+                                                                                    fractal_sync_pkg::DM_ALT_ARB,
+                                                                                    fractal_sync_pkg::DM_ALT_ARB};
   localparam int unsigned                  N_LOCAL_REGS_2D[N_2D_ITL_LEVELS]     = '{2, 8,  32, 128};
   localparam int unsigned                  N_REMOTE_LINES_2D[N_2D_ITL_LEVELS]   = '{4, 16, 64, 256};
-  localparam bit                           RX_FIFO_COMB_2D[N_2D_ITL_LEVELS]     = '{1, 1, 1, 1};
-  localparam bit                           TX_FIFO_COMB_2D[N_2D_ITL_LEVELS]     = '{1, 1, 0, 0};
-  localparam bit                           LOCAL_FIFO_COMB_2D[N_2D_ITL_LEVELS]  = '{1, 1, 1, 0};
-  localparam bit                           REMOTE_FIFO_COMB_2D[N_2D_ITL_LEVELS] = '{1, 1, 0, 0};
+  localparam bit                           RX_FIFO_COMB_2D[N_2D_ITL_LEVELS]     = '{0, 0, 0, 0};
+  localparam bit                           TX_FIFO_COMB_2D[N_2D_ITL_LEVELS]     = '{0, 0, 0, 0};
+  localparam bit                           LOCAL_FIFO_COMB_2D[N_2D_ITL_LEVELS]  = '{0, 0, 0, 0};
+  localparam bit                           REMOTE_FIFO_COMB_2D[N_2D_ITL_LEVELS] = '{0, 0, 0, 0};
 
   localparam int unsigned                  N_LINKS_IN                           = 1;
   localparam int unsigned                  N_LINKS_ITL[N_ITL_LEVELS]            = '{1, 2, 2, 4, 4, 8, 8};
