@@ -194,7 +194,9 @@ endmodule: fractal_sync_1d_local_rf
  *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
  */
 
-module fractal_sync_2d_local_rf #(
+module fractal_sync_2d_local_rf
+  import fractal_sync_pkg::*;
+#(
   parameter int unsigned N_REGS    = 2,
   parameter int unsigned ID_WIDTH  = 1,
   parameter int unsigned N_H_PORTS = 2,

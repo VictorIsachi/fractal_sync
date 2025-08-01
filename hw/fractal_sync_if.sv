@@ -19,53 +19,63 @@
  * Fractal synchronization interface
  *
  * Parameters:
- *  AGGR_WIDTH - Width of aggr, representing the the levels of the tree where aggregation ought to occur; leading 1 represent the root level of the synchronization request
- *  LVL_WIDTH  - Width of lvl, indicating the root level of the synchronization request
- *  ID_WIDTH   - Width of the id indicator of the barrier, each id is local to the specific synchronization node: distinct nodes have overlapping ids
+ *  AGGR_WIDTH - Width of aggr, representing the the levels of the tree where aggregation ought to occur for barriers and back-routing pattern for locks; leading 1 represents the root level of the synchronization request
+ *  ID_WIDTH   - Width of the id indicator of the synchronization primitive (barrier or lock), each id is local to the specific synchronization node: distinct nodes have overlapping ids
  *
  * Interface signals:
- *  sync               - Indicates request for synchronization
- *  aggr (aggregate)   - Indicates the levels of the tree where synchronization requests should be aggregated, leading 1 indicates level of synchronization request
- *  id_req             - Indicates the id of the barrier of the synchronization request (local to specific synchronization node)
- *  wake               - Indicates granted synchronization
- *  lvl (level)        - Indicates the level of origin of synchronization response
- *  id_rsp             - Indicated the id of the barrier of the synchronization response
- *  error              - Indicates error
+ *  sync                 - Indicates request for synchronization
+ *  lock                 - Indicates request for exclusive access to resource
+ *  free                 - Indicates end of exclusive access to resource
+ *  aggr_req (aggregate) - Indicates the levels of the tree where synchronization requests should be aggregated for barriers and back-routing pattern for locks, leading 1 indicates level of synchronization request
+ *  id_req               - Indicates the id of the synchronization primitive (barrier or lock) of the synchronization request (local to specific synchronization node)
+ *  wake                 - Indicates granted barrier synchronization
+ *  grant                - Indicates granted exclusive access (locked) to resource
+ *  aggr_rsp             - Indicates the level of origin of synchronization response for barriers and the back-routing pattern for lock responses
+ *  id_rsp               - Indicated the id of the synchronization primitive of the synchronization response
+ *  error                - Indicates error
  */
 
 interface fractal_sync_if
 #(
   parameter int unsigned AGGR_WIDTH = 0,
-  parameter int unsigned LVL_WIDTH  = 0,
   parameter int unsigned ID_WIDTH   = 0
 )(
 );
 
   logic                 sync;
-  logic[AGGR_WIDTH-1:0] aggr;
+  logic                 lock;
+  logic                 free;
+  logic[AGGR_WIDTH-1:0] aggr_req;
   logic[ID_WIDTH-1:0]   id_req;
 
   logic                 wake;
-  logic[LVL_WIDTH-1:0]  lvl;
+  logic                 grant;
+  logic[AGGR_WIDTH-1:0] aggr_rsp;
   logic[ID_WIDTH-1:0]   id_rsp;
   logic                 error;
 
   modport mst_port (
     output sync,
-    output aggr,
+    output lock,
+    output free,
+    output aggr_req,
     output id_req,
     input  wake,
-    input  lvl,
+    input  grant,
+    input  aggr_rsp,
     input  id_rsp,
     input  error
   );
 
   modport slv_port (
     input  sync,
-    input  aggr,
+    input  lock,
+    input  free,
+    input  aggr_req,
     input  id_req,
     output wake,
-    output lvl,
+    output grant,
+    output aggr_rsp,
     output id_rsp,
     output error
   );

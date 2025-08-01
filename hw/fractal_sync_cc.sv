@@ -22,18 +22,19 @@
  * Parameters:
  *  NODE_TYPE            - Node type of control core (horizontal, vertical, 2D, root)
  *  RF_TYPE              - Remote RF type (Directly Mapped or CAM)
- *  N_LOCAL_REGS         - Number of register in teh local RF
+ *  N_QUEUE_REGS         - Number of registers in the queue RF
+ *  QUEUE_DEPTH          - Queue RF register depth (FIFO depth)
+ *  N_LOCAL_REGS         - Number of registers in the local RF
  *  N_REMOTE_LINES       - Number of CAM lines in a CAM-based remote RF
  *  AGGREGATE_WIDTH      - Width of the aggr field
  *  ID_WIDTH             - Width of the id field
  *  LVL_OFFSET           - Level offset from first node of the syncrhonization tree: 0 for nodes at level 1, 1 for nodes at level 2, ...
- *  fsync_req_in_t       - Input synchronization request type (RX -> CC)
- *  fsync_rsp_in_t       - Input synchronization response type (CC -> TX arb.)
- *  fsync_req_out_t      - Output synchronization request type (CC -> RX arb.)
- *  fsync_rsp_out_t      - Output synchronization response type (TX - > CC)
+ *  fsync_req_t          - Input synchronization request type (RX -> CC; CC -> RX arb.)
+ *  fsync_rsp_t          - Input synchronization response type (TX -> CC; CC -> TX arb.)
  *  N_RX_PORTS           - Number of input (RX) ports
  *  N_TX_PORTS           - Number of output (TX) ports
  *  FIFO_DEPTH           - Maximum number of elements that can be present in a FIFO
+ *  QUEUE_FIFO_COMB_OUT  - 1: Queue RF register FIFO with fall-through; 0: sequential register FIFO
  *  LOCAL_FIFO_COMB_OUT  - 1: Output local FIFO with fall-through; 0: sequential local FIFO
  *  REMOTE_FIFO_COMB_OUT - 1: Output remote FIFO with fall-through; 0: sequential remote FIFO
  *
@@ -42,9 +43,13 @@
  *  > check_rf_i          - Indicates the presence of a synch. req.
  *  > local_i             - Indicates that synch. req. should be managed by current node (root or aggregate)
  *  > root_i              - Indicates that synch. req. has reached the root of the synchronization tree
+ *  > lock_i              - Indicates that synch. req. is of type lock
+ *  > free_i              - Indicates that synch. req. is of type free
+ *  < propagate_lock_o    - Indicates that synch. req. of type lock/free should be propagated to the next level of the tree
  *  > error_overflow_rx_i - Indicates RX FIFO overflow
  *  > rsp_i               - Synchronization response (output)
- *  > check_br_i          - Indicates that synch. rsp. should be checked to determine back-routing information
+ *  > check_br_i          - Indicates that synch. rsp. should be checked in remote RF to determine back-routing information
+ *  > check_aggr_i        - Indicates that synch. rsp. should be checked by aggregation pattern to determine back-routing information
  *  < en_br_o             - Indicates that synch. rsp. should be routed via the east-north channel
  *  < ws_br_o             - Indicates taht synch. rsp. should be routed via the west-south channel
  *  > error_overflow_tx_i - Indicates TX FIFO overflow
@@ -65,15 +70,15 @@ module fractal_sync_cc
                                                                  (NODE_TYPE == fractal_sync_pkg::RT_NODE) ? 
                                                                  fractal_sync_pkg::RF2D : fractal_sync_pkg::RF1D,
   parameter fractal_sync_pkg::remote_rf_e RF_TYPE              = fractal_sync_pkg::CAM_RF,
+  parameter int unsigned                  N_QUEUE_REGS         = 0,
+  parameter int unsigned                  QUEUE_DEPTH          = 0,
   parameter int unsigned                  N_LOCAL_REGS         = 0,
   parameter int unsigned                  N_REMOTE_LINES       = 0,
   parameter int unsigned                  AGGREGATE_WIDTH      = 1,
   parameter int unsigned                  ID_WIDTH             = 1,
   parameter int unsigned                  LVL_OFFSET           = 0,
-  parameter type                          fsync_req_in_t       = logic,
-  parameter type                          fsync_rsp_in_t       = logic,
-  parameter type                          fsync_req_out_t      = logic,
-  parameter type                          fsync_rsp_out_t      = logic,
+  parameter type                          fsync_req_t          = logic,
+  parameter type                          fsync_rsp_t          = logic,
   // 2D CC: even indexed ports -> horizontal channel; odd indexed ports -> vertical channel
   parameter int unsigned                  N_RX_PORTS           = (RF_DIM == fractal_sync_pkg::RF2D) ? 4 : 
                                                                  (RF_DIM == fractal_sync_pkg::RF1D) ? 2 :
@@ -87,44 +92,52 @@ module fractal_sync_cc
   // 2D CC: even indexed FIFOs -> horizontal channel; odd indexed FIFOs -> vertical channel
   localparam int unsigned                 N_FIFOS              = N_RX_PORTS, 
   parameter int unsigned                  FIFO_DEPTH           = 1,
+  parameter bit                           QUEUE_FIFO_COMB_OUT  = 1'b1,
   parameter bit                           LOCAL_FIFO_COMB_OUT  = 1'b1,
   parameter bit                           REMOTE_FIFO_COMB_OUT = 1'b1
 )(
-  input  logic           clk_i,
-  input  logic           rst_ni,
+  input  logic       clk_i,
+  input  logic       rst_ni,
 
-  input  fsync_req_in_t  req_i[N_RX_PORTS],
-  input  logic           check_rf_i[N_RX_PORTS],
-  input  logic           local_i[N_RX_PORTS],
-  input  logic           root_i[N_RX_PORTS],
-  input  logic           error_overflow_rx_i[N_RX_PORTS],
+  input  fsync_req_t req_i[N_RX_PORTS],
+  input  logic       check_rf_i[N_RX_PORTS],
+  input  logic       local_i[N_RX_PORTS],
+  input  logic       root_i[N_RX_PORTS],
+  input  logic       lock_i[N_RX_PORTS],
+  input  logic       free_i[N_RX_PORTS],
+  output logic       propagate_lock_o[N_RX_PORTS],
+  input  logic       error_overflow_rx_i[N_RX_PORTS],
 
-  input  fsync_rsp_out_t rsp_i[N_TX_PORTS],
-  input  logic           check_br_i[N_TX_PORTS],
-  output logic           en_br_o[N_TX_PORTS],
-  output logic           ws_br_o[N_TX_PORTS],
-  input  logic           error_overflow_tx_i[N_TX_PORTS],
+  input  fsync_rsp_t rsp_i[N_TX_PORTS],
+  input  logic       check_br_i[N_TX_PORTS],
+  input  logic       check_aggr_i[N_TX_PORTS],
+  output logic       en_br_o[N_TX_PORTS],
+  output logic       ws_br_o[N_TX_PORTS],
+  input  logic       error_overflow_tx_i[N_TX_PORTS],
 
-  output logic           local_empty_o[N_FIFOS],
-  output fsync_rsp_in_t  local_rsp_o[N_FIFOS],
-  input  logic           local_pop_i[N_FIFOS],
+  output logic       local_empty_o[N_FIFOS],
+  output fsync_rsp_t local_rsp_o[N_FIFOS],
+  input  logic       local_pop_i[N_FIFOS],
 
-  output logic           remote_empty_o[N_FIFOS],
-  output fsync_req_out_t remote_req_o[N_FIFOS],
-  input  logic           remote_pop_i[N_FIFOS],
+  output logic       remote_empty_o[N_FIFOS],
+  output fsync_req_t remote_req_o[N_FIFOS],
+  input  logic       remote_pop_i[N_FIFOS],
 
-  output logic           detected_error_o[N_PORTS]
+  output logic       detected_error_o[N_PORTS]
 );
 
 /*******************************************************/
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+  initial FRACTAL_SYNC_CC_QUEUE_REGS: assert (N_QUEUE_REGS > 0) else $fatal("N_QUEUE_REGS must be > 0");
+  initial FRACTAL_SYNC_CC_QUEUE_DEPTH: assert (QUEUE_DEPTH > 0) else $fatal("QUEUE_DEPTH must be > 0");
   initial FRACTAL_SYNC_CC_LOCAL_REGS: assert (N_LOCAL_REGS > 0) else $fatal("N_LOCAL_REGS must be > 0");
   initial FRACTAL_SYNC_CC_REMOTE_LINES: assert (RF_TYPE == fractal_sync_pkg::CAM_RF -> N_REMOTE_LINES > 0) else $fatal("N_REMOTE_LINES must be > 0 for CAM Remote Register File");
   initial FRACTAL_SYNC_CC_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
   initial FRACTAL_SYNC_CC_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
-  initial FRACTAL_SYNC_CC_AGGR: assert ($bits(req_i[0].sig.aggr) == $bits(remote_req_o[0].sig.aggr)+1) else $fatal("Input req. aggregate with must be 1 more than output");
+  initial FRACTAL_SYNC_CC_AGGR: assert ($bits(req_i[0].sig.aggr) == $bits(rsp_i[0].sig.aggr)) else $fatal("Req. aggregate with must be equal to rsp. aggregate width ");
+  initial FRACTAL_SYNC_CC_ID: assert ($bits(req_i[0].sig.id) == $bits(rsp_i[0].sig.id)) else $fatal("Req. id with must be equal to rsp. id width ");
   initial FRACTAL_SYNC_CC_RX_PORTS: assert (N_RX_PORTS > 0) else $fatal("N_RX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_TX_PORTS: assert (N_TX_PORTS > 0) else $fatal("N_TX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
@@ -142,10 +155,7 @@ module fractal_sync_cc
   localparam int unsigned                     N_1D_PORTS    = N_PORTS/2;
   localparam int unsigned                     SD_WIDTH      = fractal_sync_pkg::SD_WIDTH;
 
-  typedef enum logic {
-    IDLE,
-    CHECK
-  } state_e;
+  typedef logic[AGGREGATE_WIDTH-1:0] aggr_t;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -159,9 +169,6 @@ module fractal_sync_cc
   logic[ID_WIDTH-1:0]    id[N_PORTS];
   logic[ID_WIDTH-1:0]    h_id[N_1D_PORTS];
   logic[ID_WIDTH-1:0]    v_id[N_1D_PORTS];
-  logic[ID_WIDTH-1:0]    local_id[N_RX_PORTS];
-  logic[ID_WIDTH-1:0]    local_h_id[N_1D_RX_PORTS];
-  logic[ID_WIDTH-1:0]    local_v_id[N_1D_RX_PORTS];
   logic[SD_WIDTH-1:0]    sd_in[N_PORTS];
   logic[SD_WIDTH-1:0]    h_sd_in[N_1D_PORTS];
   logic[SD_WIDTH-1:0]    v_sd_in[N_1D_PORTS];
@@ -169,8 +176,14 @@ module fractal_sync_cc
   logic[SD_WIDTH-1:0]    h_sd_out[N_1D_PORTS];
   logic[SD_WIDTH-1:0]    v_sd_out[N_1D_PORTS];
 
-  fsync_rsp_in_t  local_rsp[N_RX_PORTS];
-  fsync_req_out_t remote_req[N_RX_PORTS];
+  fsync_rsp_t local_barrier_rsp[N_RX_PORTS];
+  fsync_rsp_t local_lock_rsp[N_RX_PORTS];
+  logic       local_rsp_type[N_RX_PORTS];
+  fsync_rsp_t local_rsp[N_RX_PORTS];
+  fsync_req_t remote_req[N_RX_PORTS];
+
+  logic lock_req[N_RX_PORTS];
+  logic local_queue[N_RX_PORTS];
   
   logic id_error[N_RX_PORTS];
   logic h_id_error[N_1D_RX_PORTS];
@@ -186,6 +199,12 @@ module fractal_sync_cc
   logic full_remote_fifo_err[N_FIFOS];
   logic fifo_error[N_FIFOS];
 
+  logic lock_queue[N_RX_PORTS];
+  logic h_lock_queue[N_1D_RX_PORTS];
+  logic v_lock_queue[N_1D_RX_PORTS];
+  logic free_queue[N_RX_PORTS];
+  logic h_free_queue[N_1D_RX_PORTS];
+  logic v_free_queue[N_1D_RX_PORTS];
   logic check_local[N_RX_PORTS];
   logic h_check_local[N_1D_RX_PORTS];
   logic v_check_local[N_1D_RX_PORTS];
@@ -201,6 +220,9 @@ module fractal_sync_cc
   logic bypass_remote[N_PORTS];
   logic h_bypass_remote[N_1D_PORTS];
   logic v_bypass_remote[N_1D_PORTS];
+  logic grant_queue[N_RX_PORTS];
+  logic h_grant_queue[N_RX_PORTS];
+  logic v_grant_queue[N_RX_PORTS];
   logic present_local[N_RX_PORTS];
   logic h_present_local[N_1D_RX_PORTS];
   logic v_present_local[N_1D_RX_PORTS];
@@ -212,9 +234,6 @@ module fractal_sync_cc
   logic full_local[N_FIFOS];
   logic push_remote[N_FIFOS];
   logic full_remote[N_FIFOS];
-
-  state_e c_state[N_PORTS];
-  state_e n_state[N_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -254,9 +273,12 @@ module fractal_sync_cc
     for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin
       assign id_error[2*i]   = h_id_error[i];
       assign id_error[2*i+1] = v_id_error[i];
+      
+      assign h_lock_queue[i] = lock_queue[2*i];
+      assign v_lock_queue[i] = lock_queue[2*i+1];
 
-      assign local_h_id[i] = local_id[2*i];
-      assign local_v_id[i] = local_id[2*i+1];
+      assign h_free_queue[i] = free_queue[2*i];
+      assign v_free_queue[i] = free_queue[2*i+1];
       
       assign h_check_local[i] = check_local[2*i];
       assign v_check_local[i] = check_local[2*i+1];
@@ -264,14 +286,21 @@ module fractal_sync_cc
       assign bypass_local[2*i]   = h_bypass_local[i];
       assign bypass_local[2*i+1] = v_bypass_local[i];
 
+      assign grant_queue[2*i]   = h_grant_queue[i];
+      assign grant_queue[2*i+1] = v_grant_queue[i];
+
       assign present_local[2*i]   = h_present_local[i];
       assign present_local[2*i+1] = v_present_local[i];
     end
   end
 
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_lock_req_local_queue
+    assign lock_req[i]       = lock_i[i] | free_i[i];
+    assign local_queue[i] = (level[i] == LVL_OFFSET) ? 1'b1 : 1'b0;
+  end
+  
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rx_id
-    assign id[i]       = req_i[i].sig.id;
-    assign local_id[i] = id[i];
+    assign id[i] = req_i[i].sig.id;
   end
   for (genvar i = 0; i < N_TX_PORTS; i++) begin: gen_tx_id
     assign id[i+N_RX_PORTS] = rsp_i[i].sig.id;
@@ -286,15 +315,31 @@ module fractal_sync_cc
 
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_req
     assign remote_req[i].sync     = req_i[i].sync;
+    assign remote_req[i].lock     = req_i[i].lock;
+    assign remote_req[i].free     = req_i[i].free;
     assign remote_req[i].sig.aggr = req_i[i].sig.aggr >> 1;
     assign remote_req[i].sig.id   = req_i[i].sig.id;
   end
 
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_barrier_rsp
+    assign local_barrier_rsp[i].wake     = 1'b1;
+    assign local_barrier_rsp[i].grant    = 1'b0;
+    assign local_barrier_rsp[i].sig.aggr = level[i];
+    assign local_barrier_rsp[i].sig.id   = req_i[i].sig.id;
+    assign local_barrier_rsp[i].error    = rf_error[i];
+  end
+
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_lock_rsp
+    assign local_lock_rsp[i].wake     = 1'b0;
+    assign local_lock_rsp[i].grant    = 1'b1;
+    assign local_lock_rsp[i].sig.aggr = req_i[i].sig.aggr;
+    assign local_lock_rsp[i].sig.id   = req_i[i].sig.id;
+    assign local_lock_rsp[i].error    = rf_error[i];
+  end
+
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rsp
-    assign local_rsp[i].wake    = 1'b1;
-    assign local_rsp[i].sig.lvl = level[i];
-    assign local_rsp[i].sig.id  = req_i[i].sig.id;
-    assign local_rsp[i].error   = rf_error[i];
+    assign local_rsp_type[i] = req_i[i].sync ? 1'b1 : 1'b0;
+    assign local_rsp[i]      = local_rsp_type[i] ? local_barrier_rsp[i] : local_lock_rsp[i];
   end
 
 /*******************************************************/
@@ -303,316 +348,227 @@ module fractal_sync_cc
 /**              Level Encoder Beginning              **/
 /*******************************************************/
 
-  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_lvl_enc
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rx_lvl_enc
     always_comb begin: enc_logic
       level[i] = '0;
       for (int j = AGGREGATE_WIDTH-1; j >= 0; j--) begin
         if (req_i[i].sig.aggr[j] == 1'b1) begin
-          level[i] = j+LVL_OFFSET;
+          level[i] = lock_req[i] ? j : j+LVL_OFFSET;
           break;
         end
       end
     end
   end
-  for (genvar i = 0; i < N_TX_PORTS; i++) begin
-    assign level[i+N_RX_PORTS] = rsp_i[i].sig.lvl;
+  for (genvar i = 0; i < N_TX_PORTS; i++) begin: gen_tx_lvl_enc
+    assign level[i+N_RX_PORTS] = rsp_i[i].sig.aggr;
   end
 
 /*******************************************************/
 /**                 Level Encoder End                 **/
 /*******************************************************/
-/**               Control FSMs Beginning              **/
+/**              Control Logic Beginning              **/
 /*******************************************************/
 
-  if (RF_DIM == fractal_sync_pkg::RF1D) begin: gen_1d_fsm
-    for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rx_fsm
+  if (RF_DIM == fractal_sync_pkg::RF1D) begin: gen_1d_logic
+    for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rx_logic
+      always_comb begin
+        lock_queue[i]       = 1'b0;
+        free_queue[i]       = 1'b0;
+        check_local[i]      = 1'b0;
+        check_remote[i]     = 1'b0;
+        set_remote[i]       = 1'b0;
+        sd_in[i]            = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        push_local[i]       = 1'b0;
+        push_remote[i]      = 1'b0;
+        propagate_lock_o[i] = 1'b0;
 
-      always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
-        if (!rst_ni) c_state[i] <= IDLE;
-        else         c_state[i] <= n_state[i];
-      end
-
-      always_comb begin: state_and_output_logic
-        n_state[i] = c_state[i];
-
-        check_local[i]  = 1'b0;
-        check_remote[i] = 1'b0;
-        set_remote[i]   = 1'b0;
-        sd_in[i]        = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-        push_local[i]   = 1'b0;
-        push_remote[i]  = 1'b0;
-        unique case (c_state[i])
-          IDLE:
-            if (check_rf_i[i]) begin
-              n_state[i] = CHECK;
-              if (local_i[i]) begin
-                if (!root_i[i]) begin
-                  set_remote[i]  = 1'b1;
-                  push_remote[i] = (bypass_remote[i] | present_remote[i]) & ~rf_error[i];
-                  push_local[i]  = rf_error[i];
-                end else begin
-                  check_local[i] = 1'b1;
-                  push_local[i]  = bypass_local[i] | present_local[i] | rf_error[i];
-                end
-              end else begin
-                set_remote[i] = 1'b1;
-              end
+        if (lock_req[i]) begin
+          if (!local_queue[i]) begin
+            propagate_lock_o[i] = 1'b1;
+          end else begin
+            lock_queue[i] = lock_i[i];
+            free_queue[i] = free_i[i];
+            push_local[i] = grant_queue[i] | rf_error[i];
+          end
+        end else if (check_rf_i[i]) begin
+          if (local_i[i]) begin
+            if (!root_i[i]) begin
+              set_remote[i]  = 1'b1;
+              push_remote[i] = (bypass_remote[i] | present_remote[i]) & ~rf_error[i];
+              push_local[i]  = rf_error[i];
+            end else begin
+              check_local[i] = 1'b1;
+              push_local[i]  = bypass_local[i] | present_local[i] | rf_error[i];
             end
-          CHECK: 
-            if (check_rf_i[i]) begin
-              n_state[i] = CHECK;
-              if (local_i[i]) begin
-                if (!root_i[i]) begin
-                  set_remote[i]  = 1'b1;
-                  push_remote[i] = (bypass_remote[i] | present_remote[i]) & ~rf_error[i];
-                  push_local[i]  = rf_error[i];
-                end else begin
-                  check_local[i] = 1'b1;
-                  push_local[i]  = bypass_local[i] | present_local[i] | rf_error[i];
-                end
-              end else begin
-                set_remote[i] = 1'b1;
-              end
-            end else n_state[i] = IDLE;
-        endcase
+          end else begin
+            set_remote[i] = 1'b1;
+          end
+        end
       end
-
     end
-    for (genvar i = 0; i < N_TX_PORTS; i++) begin: gen_tx_fsm
-
-      always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
-        if (!rst_ni) c_state[i+N_RX_PORTS] <= IDLE;
-        else         c_state[i+N_RX_PORTS] <= n_state[i+N_RX_PORTS];
-      end
-
-      always_comb begin: state_and_output_logic
-        n_state[i+N_RX_PORTS] = c_state[i+N_RX_PORTS];
-
+    for (genvar i = 0; i < N_TX_PORTS; i++) begin: gen_tx_logic
+      always_comb begin
         check_remote[i+N_RX_PORTS] = 1'b0;
         set_remote[i+N_RX_PORTS]   = 1'b0;
         sd_in[i+N_RX_PORTS]        = '0;
         en_br_o[i]                 = 1'b0;
         ws_br_o[i]                 = 1'b0;
-        unique case (c_state[i+N_RX_PORTS])
-          IDLE:
-            if (check_br_i[i]) begin
-              n_state[i+N_RX_PORTS]      = CHECK;
-              check_remote[i+N_RX_PORTS] = 1'b1;
-              {ws_br_o[i], en_br_o[i]}   = rf_error[i+N_RX_PORTS] ? '0 : sd_out[i+N_RX_PORTS];
-            end
-          CHECK: 
-            if (check_br_i[i]) begin
-              n_state[i+N_RX_PORTS]      = CHECK;
-              check_remote[i+N_RX_PORTS] = 1'b1;
-              {ws_br_o[i], en_br_o[i]}   = rf_error[i+N_RX_PORTS] ? '0 : sd_out[i+N_RX_PORTS];
-          end else n_state[i+N_RX_PORTS] = IDLE;
-        endcase
+
+        if (check_aggr_i[i]) begin
+          {ws_br_o[i], en_br_o[i]} = rsp_i[i].sig.aggr[LVL_OFFSET] ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        end else if (check_br_i[i]) begin
+          check_remote[i+N_RX_PORTS] = 1'b1;
+          {ws_br_o[i], en_br_o[i]}   = rf_error[i+N_RX_PORTS] ? '0 : sd_out[i+N_RX_PORTS];
+        end
       end
-            
     end
-  end else if (RF_DIM == fractal_sync_pkg::RF2D) begin: gen_2d_fsm
-    for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin: gen_h_rx_fsm
+  end else if (RF_DIM == fractal_sync_pkg::RF2D) begin: gen_2d_logic
+    for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin: gen_h_rx_logic
+      always_comb begin
+        lock_queue[2*i]       = 1'b0
+        free_queue[2*i]       = 1'b0
+        check_local[2*i]      = 1'b0;
+        check_remote[2*i]     = 1'b0;
+        set_remote[2*i]       = 1'b0;
+        sd_in[2*i]            = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        push_local[2*i]       = 1'b0;
+        push_remote[2*i]      = 1'b0;
+        propagate_lock_o[2*i] = 1'b0;
 
-      always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
-        if (!rst_ni) c_state[2*i] <= IDLE;
-        else         c_state[2*i] <= n_state[2*i];
-      end
-
-      always_comb begin: state_and_output_logic
-        n_state[2*i] = c_state[2*i];
-
-        check_local[2*i]  = 1'b0;
-        check_remote[2*i] = 1'b0;
-        set_remote[2*i]   = 1'b0;
-        sd_in[2*i]        = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-        push_local[2*i]   = 1'b0;
-        push_remote[2*i]  = 1'b0;
-        unique case (c_state[2*i])
-          IDLE:
-            if (check_rf_i[2*i]) begin
-              n_state[2*i] = CHECK;
-              if (local_i[2*i]) begin
-                if (!root_i[2*i]) begin
-                  set_remote[2*i]  = 1'b1;
-                  push_remote[2*i] = (bypass_remote[2*i] | present_remote[2*i]) & ~rf_error[2*i];
-                  push_local[2*i]  = rf_error[2*i];
-                end else begin
-                  check_local[2*i] = 1'b1;
-                  push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | rf_error[2*i];
-                end
-              end else begin
-                set_remote[2*i] = 1'b1;
-              end
+        if (lock_req[2*i]) begin
+          if (!local_queue[2*i]) begin
+            propagate_lock_o[2*i] = 1'b1;
+          end else begin
+            lock_queue[2*i] = lock_i[2*i];
+            free_queue[2*i] = free_i[2*i];
+            push_local[2*i] = grant_queue[2*i] | rf_error[2*i];
+          end
+        end else if (check_rf_i[2*i]) begin
+          if (local_i[2*i]) begin
+            if (!root_i[2*i]) begin
+              set_remote[2*i]  = 1'b1;
+              push_remote[2*i] = (bypass_remote[2*i] | present_remote[2*i]) & ~rf_error[2*i];
+              push_local[2*i]  = rf_error[2*i];
+            end else begin
+              check_local[2*i] = 1'b1;
+              push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | rf_error[2*i];
             end
-          CHECK: 
-            if (check_rf_i[2*i]) begin
-              n_state[2*i] = CHECK;
-              if (local_i[2*i]) begin
-                if (!root_i[2*i]) begin
-                  set_remote[2*i]  = 1'b1;
-                  push_remote[2*i] = (bypass_remote[2*i] | present_remote[2*i]) & ~rf_error[2*i];
-                  push_local[2*i]  = rf_error[2*i];
-                end else begin
-                  check_local[2*i] = 1'b1;
-                  push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | rf_error[2*i];
-                end
-              end else begin
-                set_remote[2*i] = 1'b1;
-              end
-            end else n_state[2*i] = IDLE;
-        endcase
+          end else begin
+            set_remote[2*i] = 1'b1;
+          end
+        end
       end
-
     end
-    for (genvar i = 0; i < N_1D_TX_PORTS; i++) begin: gen_h_tx_fsm
-
-      always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
-        if (!rst_ni) c_state[2*i+N_RX_PORTS] <= IDLE;
-        else         c_state[2*i+N_RX_PORTS] <= n_state[2*i+N_RX_PORTS];
-      end
-
-      always_comb begin: state_and_output_logic
-        n_state[2*i+N_RX_PORTS] = c_state[2*i+N_RX_PORTS];
-
+    for (genvar i = 0; i < N_1D_TX_PORTS; i++) begin: gen_h_tx_logic
+      always_comb begin
         check_remote[2*i+N_RX_PORTS] = 1'b0;
         set_remote[2*i+N_RX_PORTS]   = 1'b0;
         sd_in[2*i+N_RX_PORTS]        = '0;
         en_br_o[2*i]                 = 1'b0;
         ws_br_o[2*i]                 = 1'b0;
-        unique case (c_state[2*i+N_RX_PORTS])
-          IDLE:
-            if (check_br_i[2*i]) begin
-              n_state[2*i+N_RX_PORTS]      = CHECK;
-              check_remote[2*i+N_RX_PORTS] = 1'b1;
-              {ws_br_o[2*i], en_br_o[2*i]} = rf_error[2*i+N_RX_PORTS] ? '0 : sd_out[2*i+N_RX_PORTS];
-            end
-          CHECK: 
-            if (check_br_i[2*i]) begin
-              n_state[2*i+N_RX_PORTS]      = CHECK;
-              check_remote[2*i+N_RX_PORTS] = 1'b1;
-              {ws_br_o[2*i], en_br_o[2*i]} = rf_error[2*i+N_RX_PORTS] ? '0 : sd_out[2*i+N_RX_PORTS];
-          end else n_state[2*i+N_RX_PORTS] = IDLE;
-        endcase
+
+        if (check_aggr_i[2*i]) begin
+          {ws_br_o[2*i], en_br_o[2*i]} = rsp_i[2*i].sig.aggr[LVL_OFFSET] ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        end else if (check_br_i[2*i]) begin
+          check_remote[2*i+N_RX_PORTS] = 1'b1;
+          {ws_br_o[2*i], en_br_o[2*i]} = rf_error[2*i+N_RX_PORTS] ? '0 : sd_out[2*i+N_RX_PORTS];
+        end
       end
-            
     end
-    for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin: gen_v_rx_fsm
+    for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin: gen_v_rx_logic
+      always_comb begin
+        lock_queue[2*i+1]       = 1'b0;
+        free_queue[2*i+1]       = 1'b0;
+        check_local[2*i+1]      = 1'b0;
+        check_remote[2*i+1]     = 1'b0;
+        set_remote[2*i+1]       = 1'b0;
+        sd_in[2*i+1]            = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        push_local[2*i+1]       = 1'b0;
+        push_remote[2*i+1]      = 1'b0;
+        propagate_lock_o[2*i+1] = 1'b0;
 
-      always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
-        if (!rst_ni) c_state[2*i+1] <= IDLE;
-        else         c_state[2*i+1] <= n_state[2*i+1];
-      end
-
-      always_comb begin: state_and_output_logic
-        n_state[2*i+1] = c_state[2*i+1];
-
-        check_local[2*i+1]  = 1'b0;
-        check_remote[2*i+1] = 1'b0;
-        set_remote[2*i+1]   = 1'b0;
-        sd_in[2*i+1]        = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
-        push_local[2*i+1]   = 1'b0;
-        push_remote[2*i+1]  = 1'b0;
-        unique case (c_state[2*i+1])
-          IDLE:
-            if (check_rf_i[2*i+1]) begin
-              n_state[2*i+1] = CHECK;
-              if (local_i[2*i+1]) begin
-                if (!root_i[2*i+1]) begin
-                  set_remote[2*i+1]  = 1'b1;
-                  push_remote[2*i+1] = (bypass_remote[2*i+1] | present_remote[2*i+1]) & ~rf_error[2*i+1];
-                  push_local[2*i+1]  = rf_error[2*i+1];
-                end else begin
-                  check_local[2*i+1] = 1'b1;
-                  push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | rf_error[2*i+1];
-                end
-              end else begin
-                set_remote[2*i+1] = 1'b1;
-              end
+        if (lock_req[2*i+1]) begin
+          if (!local_queue[2*i+1]) begin
+            propagate_lock_o[2*i+1] = 1'b1;
+          end else begin
+            lock_queue[2*i+1] = lock_i[2*i+1];
+            free_queue[2*i+1] = free_i[2*i+1];
+            push_local[2*i+1] = grant_queue[2*i+1] | rf_error[2*i+1];
+          end
+        end else if (check_rf_i[2*i+1]) begin
+          if (local_i[2*i+1]) begin
+            if (!root_i[2*i+1]) begin
+              set_remote[2*i+1]  = 1'b1;
+              push_remote[2*i+1] = (bypass_remote[2*i+1] | present_remote[2*i+1]) & ~rf_error[2*i+1];
+              push_local[2*i+1]  = rf_error[2*i+1];
+            end else begin
+              check_local[2*i+1] = 1'b1;
+              push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | rf_error[2*i+1];
             end
-          CHECK: 
-            if (check_rf_i[2*i+1]) begin
-              n_state[2*i+1] = CHECK;
-              if (local_i[2*i+1]) begin
-                if (!root_i[2*i+1]) begin
-                  set_remote[2*i+1]  = 1'b1;
-                  push_remote[2*i+1] = (bypass_remote[2*i+1] | present_remote[2*i+1]) & ~rf_error[2*i+1];
-                  push_local[2*i+1]  = rf_error[2*i+1];
-                end else begin
-                  check_local[2*i+1] = 1'b1;
-                  push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | rf_error[2*i+1];
-                end
-              end else begin
-                set_remote[2*i+1] = 1'b1;
-              end
-            end else n_state[2*i+1] = IDLE;
-        endcase
+          end else begin
+            set_remote[2*i+1] = 1'b1;
+          end
+        end
       end
-
     end
-    for (genvar i = 0; i < N_1D_TX_PORTS; i++) begin: gen_v_tx_fsm
-
-      always_ff @(posedge clk_i, negedge rst_ni) begin: state_register
-        if (!rst_ni) c_state[2*i+1+N_RX_PORTS] <= IDLE;
-        else         c_state[2*i+1+N_RX_PORTS] <= n_state[2*i+1+N_RX_PORTS];
-      end
-
-      always_comb begin: state_and_output_logic
-        n_state[2*i+1+N_RX_PORTS] = c_state[2*i+1+N_RX_PORTS];
-
+    for (genvar i = 0; i < N_1D_TX_PORTS; i++) begin: gen_v_tx_logic
+      always_comb begin
         check_remote[2*i+1+N_RX_PORTS] = 1'b0;
         set_remote[2*i+1+N_RX_PORTS]   = 1'b0;
         sd_in[2*i+1+N_RX_PORTS]        = '0;
         en_br_o[2*i+1]                 = 1'b0;
         ws_br_o[2*i+1]                 = 1'b0;
-        unique case (c_state[2*i+1+N_RX_PORTS])
-          IDLE:
-            if (check_br_i[2*i+1]) begin
-              n_state[2*i+1+N_RX_PORTS]        = CHECK;
-              check_remote[2*i+1+N_RX_PORTS]   = 1'b1;
-              {ws_br_o[2*i+1], en_br_o[2*i+1]} = rf_error[2*i+1+N_RX_PORTS] ? '0 : sd_out[2*i+1+N_RX_PORTS];
-            end
-          CHECK: 
-            if (check_br_i[2*i+1]) begin
-              n_state[2*i+1+N_RX_PORTS]        = CHECK;
-              check_remote[2*i+1+N_RX_PORTS]   = 1'b1;
-              {ws_br_o[2*i+1], en_br_o[2*i+1]} = rf_error[2*i+1+N_RX_PORTS] ? '0 : sd_out[2*i+1+N_RX_PORTS];
-          end else n_state[2*i+1+N_RX_PORTS] = IDLE;
-        endcase
-      end
-            
+
+        if (check_aggr_i[2*i+1]) begin
+          {ws_br_o[2*i+1], en_br_o[2*i+1]} = rsp_i[2*i+1].sig.aggr[LVL_OFFSET] ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        end else if (check_br_i[2*i+1]) begin
+          check_remote[2*i+1+N_RX_PORTS]   = 1'b1;
+          {ws_br_o[2*i+1], en_br_o[2*i+1]} = rf_error[2*i+1+N_RX_PORTS] ? '0 : sd_out[2*i+1+N_RX_PORTS];
+        end
+      end  
     end
   end else $fatal("Unsupported Register File Dimension");
 
 /*******************************************************/
-/**                  Control FSMs End                 **/
+/**                 Control Logic End                 **/
 /*******************************************************/
 /**              Register File Beginning              **/
 /*******************************************************/
 
   if (RF_DIM == fractal_sync_pkg::RF1D) begin: gen_1d_rf
     fractal_sync_1d_rf #(
-      .REMOTE_RF_TYPE ( RF_TYPE        ),
-      .EN_REMOTE_RF   ( EN_REMOTE_RF   ),
-      .N_LOCAL_REGS   ( N_LOCAL_REGS   ),
-      .LEVEL_WIDTH    ( LEVEL_WIDTH    ),
-      .ID_WIDTH       ( ID_WIDTH       ),
-      .N_REMOTE_LINES ( N_REMOTE_LINES ),
-      .N_LOCAL_PORTS  ( N_RX_PORTS     ),
-      .N_REMOTE_PORTS ( N_PORTS        )
+      .REMOTE_RF_TYPE  ( RF_TYPE             ),
+      .EN_REMOTE_RF    ( EN_REMOTE_RF        ),
+      .N_QUEUE_REGS    ( N_QUEUE_REGS        ),
+      .QUEUE_DEPTH     ( QUEUE_DEPTH         ),
+      .N_LOCAL_REGS    ( N_LOCAL_REGS        ),
+      .LEVEL_WIDTH     ( LEVEL_WIDTH         ),
+      .ID_WIDTH        ( ID_WIDTH            ),
+      .N_REMOTE_LINES  ( N_REMOTE_LINES      ),
+      .br_pattern_t    ( aggr_t              ),
+      .QUEUE_COMB_FIFO ( QUEUE_FIFO_COMB_OUT ),
+      .N_LOCAL_PORTS   ( N_RX_PORTS          ),
+      .N_REMOTE_PORTS  ( N_PORTS             )
     ) i_rf (
       .clk_i                              ,
       .rst_ni                             ,
       .level_i          ( level          ),
       .id_i             ( id             ),
       .sd_remote_i      ( sd_in          ),
+      .br_queue_i       (  ),
+      .lock_queue_i     (  ),
+      .free_queue_i     (  ),
       .check_local_i    ( check_local    ),
       .check_remote_i   ( check_remote   ),
       .set_remote_i     ( set_remote     ),
+      .grant_queue_o    (  ),
       .present_local_o  ( present_local  ),
       .present_remote_o ( present_remote ),
       .sd_remote_o      ( sd_out         ),
+      .br_queue_o       (  ),
       .id_err_o         ( id_error       ),
       .sig_err_o        ( sig_error      ),
+      .queue_err_o      (  ),
       .bypass_local_o   ( bypass_local   ),
       .bypass_remote_o  ( bypass_remote  ),
       .ignore_local_o   (                ),
@@ -620,30 +576,40 @@ module fractal_sync_cc
     );
   end else if (RF_DIM == fractal_sync_pkg::RF2D) begin: gen_2d_rf
     fractal_sync_2d_rf #(
-      .REMOTE_RF_TYPE   ( RF_TYPE        ),
-      .EN_REMOTE_RF     ( EN_REMOTE_RF   ),
-      .N_LOCAL_REGS     ( N_LOCAL_REGS   ),
-      .LEVEL_WIDTH      ( LEVEL_WIDTH    ),
-      .ID_WIDTH         ( ID_WIDTH       ),
-      .N_REMOTE_LINES   ( N_REMOTE_LINES ),
-      .N_LOCAL_H_PORTS  ( N_1D_RX_PORTS  ),
-      .N_LOCAL_V_PORTS  ( N_1D_RX_PORTS  ),
-      .N_REMOTE_H_PORTS ( N_1D_PORTS     ),
-      .N_REMOTE_V_PORTS ( N_1D_PORTS     )
+      .REMOTE_RF_TYPE   ( RF_TYPE             ),
+      .EN_REMOTE_RF     ( EN_REMOTE_RF        ),
+      .N_QUEUE_REGS     ( N_QUEUE_REGS        ),
+      .QUEUE_DEPTH      ( QUEUE_DEPTH         ),
+      .N_LOCAL_REGS     ( N_LOCAL_REGS        ),
+      .LEVEL_WIDTH      ( LEVEL_WIDTH         ),
+      .ID_WIDTH         ( ID_WIDTH            ),
+      .N_REMOTE_LINES   ( N_REMOTE_LINES      ),
+      .br_pattern_t     ( aggr_t              ),
+      .QUEUE_COMB_FIFO  ( QUEUE_FIFO_COMB_OUT ),
+      .N_LOCAL_H_PORTS  ( N_1D_RX_PORTS       ),
+      .N_LOCAL_V_PORTS  ( N_1D_RX_PORTS       ),
+      .N_REMOTE_H_PORTS ( N_1D_PORTS          ),
+      .N_REMOTE_V_PORTS ( N_1D_PORTS          )
     ) i_rf (
       .clk_i                                  ,
       .rst_ni                                 ,
       .level_h_i          ( h_level          ),
       .id_h_i             ( h_id             ),
       .sd_h_remote_i      ( h_sd_in          ),
+      .br_h_queue_i       (  ),
+      .lock_h_queue_i     (  ),
+      .free_h_queue_i     (  ),
       .check_h_local_i    ( h_check_local    ),
       .check_h_remote_i   ( h_check_remote   ),
       .set_h_remote_i     ( h_set_remote     ),
+      .h_grant_queue_o    (  ),
       .h_present_local_o  ( h_present_local  ),
       .h_present_remote_o ( h_present_remote ),
       .h_sd_remote_o      ( h_sd_out         ),
+      .h_br_queue_o       (  ),
       .h_id_err_o         ( h_id_error       ),
       .h_sig_err_o        ( h_sig_error      ),
+      .h_queue_err_o      (  ),
       .h_bypass_local_o   ( h_bypass_local   ),
       .h_bypass_remote_o  ( h_bypass_remote  ),
       .h_ignore_local_o   (                  ),
@@ -651,14 +617,20 @@ module fractal_sync_cc
       .level_v_i          ( v_level          ),
       .id_v_i             ( v_id             ),
       .sd_v_remote_i      ( v_sd_in          ),
+      .br_v_queue_i       (  ),
+      .lock_v_queue_i     (  ),
+      .free_v_queue_i     (  ),
       .check_v_local_i    ( v_check_local    ),
       .check_v_remote_i   ( v_check_remote   ),
       .set_v_remote_i     ( v_set_remote     ),
+      .v_grant_queue_o    (  ),
       .v_present_local_o  ( v_present_local  ),
       .v_present_remote_o ( v_present_remote ),
       .v_sd_remote_o      ( v_sd_out         ),
+      .v_br_queue_o       (  ),
       .v_id_err_o         ( v_id_error       ),
       .v_sig_err_o        ( v_sig_error      ),
+      .v_queue_err_o      (  ),
       .v_bypass_local_o   ( v_bypass_local   ),
       .v_bypass_remote_o  ( v_bypass_remote  ),
       .v_ignore_local_o   (                  ),
@@ -696,7 +668,7 @@ module fractal_sync_cc
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_local_fifos
     fractal_sync_fifo #(
       .FIFO_DEPTH ( FIFO_DEPTH          ),
-      .fifo_t     ( fsync_rsp_in_t      ),
+      .fifo_t     ( fsync_rsp_t         ),
       .COMB_OUT   ( LOCAL_FIFO_COMB_OUT )
     ) i_local_fifo (
       .clk_i                         ,
@@ -713,7 +685,7 @@ module fractal_sync_cc
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_remote_fifos
     fractal_sync_fifo #(
       .FIFO_DEPTH ( FIFO_DEPTH           ),
-      .fifo_t     ( fsync_req_out_t      ),
+      .fifo_t     ( fsync_req_t          ),
       .COMB_OUT   ( REMOTE_FIFO_COMB_OUT )
     ) i_remote_fifo (
       .clk_i                          ,

@@ -32,7 +32,9 @@
  *  < present_o   - Indicates whether register at selected index is present (asynchronous)
  */
 
-module fractal_sync_mp_rf #(
+module fractal_sync_mp_rf
+  import fractal_sync_pkg::*;
+#(
   parameter int unsigned N_REGS    = 2,
   parameter int unsigned IDX_WIDTH = 1,
   parameter int unsigned N_PORTS   = 2
@@ -174,7 +176,9 @@ endmodule: fractal_sync_mp_rf
  *  < sd_o        - Source/destination ports of the synchronization transaction stored: sticky, will remember all ports
  */
 
-module fractal_sync_mp_rf_br #(
+module fractal_sync_mp_rf_br
+  import fractal_sync_pkg::*;
+#(
   parameter int unsigned  N_REGS    = 2,
   parameter int unsigned  IDX_WIDTH = 1,
   localparam int unsigned SD_WIDTH  = fractal_sync_pkg::SD_WIDTH,

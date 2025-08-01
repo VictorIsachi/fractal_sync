@@ -31,18 +31,21 @@
 `define FYSNC_TYPEDEF_REQ_T(fsync_req_t, fsync_req_sig_t) \
   typedef struct packed {                                 \
     logic           sync;                                 \
+    logic           lock;                                 \
+    logic           free;                                 \
     fsync_req_sig_t sig;                                  \
   } fsync_req_t;
 
-`define FSYNC_TYPEDEF_RSP_SIG_T(fsync_rsp_sig_t, lvl_t, id_t) \
-  typedef struct packed {                                     \
-    lvl_t lvl;                                                \
-    id_t  id;                                                 \
+`define FSYNC_TYPEDEF_RSP_SIG_T(fsync_rsp_sig_t, aggr_t, id_t) \
+  typedef struct packed {                                      \
+    aggr_t aggr;                                               \
+    id_t   id;                                                 \
   } fsync_rsp_sig_t;
 
 `define FSYNC_TYPEDEF_RSP_T(fsync_rsp_t, fsync_rsp_sig_t) \
   typedef struct packed {                                 \
     logic           wake;                                 \
+    logic           grant;                                \
     fsync_rsp_sig_t sig;                                  \
     logic           error;                                \
   } fsync_rsp_t;
@@ -51,12 +54,12 @@
   `FSYNC_TYPEDEF_REQ_SIG_T(__name``_req_sig_t, __aggr_t, __id_t) \
   `FYSNC_TYPEDEF_REQ_T(__name``_req_t, __name``_req_sig_t)
 
-`define FSYNC_TYPEDEF_RSP_ALL(__name, __lvl_t, __id_t)          \
-  `FSYNC_TYPEDEF_RSP_SIG_T(__name``_rsp_sig_t, __lvl_t, __id_t) \
+`define FSYNC_TYPEDEF_RSP_ALL(__name, __aggr_t, __id_t)          \
+  `FSYNC_TYPEDEF_RSP_SIG_T(__name``_rsp_sig_t, __aggr_t, __id_t) \
   `FSYNC_TYPEDEF_RSP_T(__name``_rsp_t, __name``_rsp_sig_t)
 
-`define FSYNC_TYPEDEF_ALL(__name, __aggr_t, __lvl_t, __id_t) \
-  `FSYNC_TYPEDEF_REQ_ALL(__name, __aggr_t, __id_t)           \
-  `FSYNC_TYPEDEF_RSP_ALL(__name, __lvl_t, __id_t)
+`define FSYNC_TYPEDEF_ALL(__name, __aggr_t, __id_t) \
+  `FSYNC_TYPEDEF_REQ_ALL(__name, __aggr_t, __id_t)  \
+  `FSYNC_TYPEDEF_RSP_ALL(__name, __aggr_t, __id_t)
 
 `endif /* FSYNC_TYPEDEF_SVH_ */

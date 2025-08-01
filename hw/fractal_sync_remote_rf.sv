@@ -283,7 +283,9 @@ endmodule: fractal_sync_1d_remote_rf
  *  < ignore_o  - Indicates that current RF req. should be ignored (detected 2 req. to the same barrier)
  */
 
-module fractal_sync_2d_remote_rf #(
+module fractal_sync_2d_remote_rf
+  import fractal_sync_pkg::*;
+#(
   parameter fractal_sync_pkg::remote_rf_e RF_TYPE     = fractal_sync_pkg::CAM_RF,
   parameter int unsigned                  LEVEL_WIDTH = 1,
   parameter int unsigned                  ID_WIDTH    = 1,

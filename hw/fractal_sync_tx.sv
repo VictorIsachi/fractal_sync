@@ -29,6 +29,7 @@
  *  > rsp_i             - Synchronization response
  *  < sampled_rsp_o     - Sampled synchronization response
  *  < check_propagate_o - Check remote RF to determine where to propagate synch. rsp.
+ *  < check_lock_o      - Check aggregate pattern to determine where to propagate synch. rsp.
  *  > propagate_i       - Indicates that the synch. rsp. should be propagated through channel
  *  < error_overflow_o  - Indicates error: fifo overflown
  *  < empty_o           - Indicates empty fifo
@@ -51,6 +52,7 @@ module fractal_sync_tx
   output fsync_rsp_t sampled_rsp_o,
   // Control - Status
   output logic       check_propagate_o,
+  output logic       check_lock_o,
   input  logic       en_propagate_i,
   input  logic       ws_propagate_i,
   output logic       en_error_overflow_o,
@@ -76,8 +78,11 @@ module fractal_sync_tx
 /**             Internal Signals Beginning            **/
 /*******************************************************/
   
+  logic barrier;
+  logic lock;
   logic en_sample;
   logic sampled_wake;
+  logic sampled_grant;
   logic en_push;
   logic ws_push;
 
@@ -90,8 +95,11 @@ module fractal_sync_tx
 /**            Hardwired Signals Beginning            **/
 /*******************************************************/
   
-  assign en_sample         = rsp_i.wake;
+  assign barrier           = rsp_i.wake;
+  assign lock              = rsp_i.grant;
+  assign en_sample         = barrier | lock;
   assign check_propagate_o = sampled_wake;
+  assign check_lock_o      = sampled_grant;
 
 /*******************************************************/
 /**               Hardwired Signals End               **/
@@ -101,11 +109,12 @@ module fractal_sync_tx
   
   if (COMB_IN) begin: gen_comb_sample
     assign sampled_wake  = rsp_i.wake;
+    assign sampled_grant = rsp_i.grant;
     assign sampled_rsp_o = rsp_i;
   end else begin: gen_seq_sample
-    always_ff @(posedge clk_i, negedge rst_ni) begin: wake_reg
-      if (!rst_ni) sampled_wake <= 1'b0;
-      else         sampled_wake <= rsp_i.wake;
+    always_ff @(posedge clk_i, negedge rst_ni) begin: wake_grant_reg
+      if (!rst_ni) begin sampled_wake <= 1'b0;       sampled_grant <= 1'b0;        end
+      else         begin sampled_wake <= rsp_i.wake; sampled_grant <= rsp_i.grant; end
     end
     always_ff @(posedge clk_i, negedge rst_ni) begin: sample_reg
       if      (!rst_ni)   sampled_rsp_o <= '0;
@@ -113,8 +122,8 @@ module fractal_sync_tx
     end
   end
 
-  assign en_push = sampled_wake & en_propagate_i;
-  assign ws_push = sampled_wake & ws_propagate_i;
+  assign en_push = (sampled_wake | sampled_grant) & en_propagate_i;
+  assign ws_push = (sampled_wake | sampled_grant) & ws_propagate_i;
   
   assign en_error_overflow_o = en_full_fifo & en_push & ~en_pop_i;
   assign ws_error_overflow_o = ws_full_fifo & ws_push & ~ws_pop_i;
