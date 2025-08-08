@@ -23,17 +23,19 @@
  *  NODE_TYPE            - Node type of control core (horizontal, vertical, 2D, root)
  *  RF_TYPE              - Remote RF type (Directly Mapped or CAM)
  *  ARBITER_TYPE         - Arbiter type (Fully Associative or Directly Mapped wrap-around/alternating order)
+ *  N_QUEUE_REGS         - Number of registers in the queue RF
+ *  QUEUE_DEPTH          - Queue RF register depth (FIFO depth)
  *  N_LOCAL_REGS         - Number of register in the local RF
  *  N_REMOTE_LINES       - Number of CAM lines in a CAM-based remote RF
  *  AGGREGATE_WIDTH      - Width of the aggr field
  *  ID_WIDTH             - Width of the id field
  *  LVL_OFFSET           - Level offset from first node of the syncrhonization tree: 0 for nodes at level 1, 1 for nodes at level 2, ...
- *  fsync_req_in_t       - Input synchronization request type (->RX)
- *  fsync_req_out_t      - Output synchronization request type (RX arb.->)
+ *  fsync_req_t          - Input/output synchronization request type (->RX; RX arb.->)
  *  fsync_rsp_t          - Input/output synchronization response type (TX arb.->; ->TX)
  *  FIFO_DEPTH           - Maximum number of elements that can be present in a FIFO
  *  RX_FIFO_COMB_OUT     - 1: Output RX FIFO with fall-through; 0: sequential RX FIFO
  *  TX_FIFO_COMB_OUT     - 1: Output TX FIFO with fall-through; 0: sequential TX FIFO
+ *  QUEUE_FIFO_COMB_OUT  - 1: Queue RF register and output FIFOs with fall-through; 0: sequential register and output FIFOs
  *  LOCAL_FIFO_COMB_OUT  - 1: Output local FIFO with fall-through; 0: sequential local FIFO
  *  REMOTE_FIFO_COMB_OUT - 1: Output remote FIFO with fall-through; 0: sequential remote FIFO
  *  IN_PORTS             - Number of RX (input) ports
@@ -52,17 +54,19 @@ module fractal_sync_2d
   parameter fractal_sync_pkg::node_e      NODE_TYPE            = fractal_sync_pkg::HV_NODE,
   parameter fractal_sync_pkg::remote_rf_e RF_TYPE              = fractal_sync_pkg::CAM_RF,
   parameter fractal_sync_pkg::arb_e       ARBITER_TYPE         = fractal_sync_pkg::DM_ALT_ARB,
+  parameter int unsigned                  N_QUEUE_REGS         = 0,
+  parameter int unsigned                  QUEUE_DEPTH          = 0,
   parameter int unsigned                  N_LOCAL_REGS         = 0,
   parameter int unsigned                  N_REMOTE_LINES       = 0,
   parameter int unsigned                  AGGREGATE_WIDTH      = 1,
   parameter int unsigned                  ID_WIDTH             = 1,
   parameter int unsigned                  LVL_OFFSET           = 0,
-  parameter type                          fsync_req_in_t       = logic,
-  parameter type                          fsync_req_out_t      = logic,
+  parameter type                          fsync_req_t          = logic,
   parameter type                          fsync_rsp_t          = logic,
   parameter int unsigned                  FIFO_DEPTH           = 1,
   parameter bit                           RX_FIFO_COMB_OUT     = 1'b1,
   parameter bit                           TX_FIFO_COMB_OUT     = 1'b1,
+  parameter bit                           QUEUE_FIFO_COMB_OUT  = 1'b1,
   parameter bit                           LOCAL_FIFO_COMB_OUT  = 1'b1,
   parameter bit                           REMOTE_FIFO_COMB_OUT = 1'b1,
   parameter int unsigned                  IN_PORTS             = 4,
@@ -103,8 +107,8 @@ module fractal_sync_2d
   localparam int unsigned V_WS_IN_PORTS   = IN_V_PORTS/2;
   localparam int unsigned H_REQ_ARB_PORTS = IN_H_PORTS + IN_H_PORTS;
   localparam int unsigned V_REQ_ARB_PORTS = IN_V_PORTS + IN_V_PORTS;
-  localparam int unsigned H_RSP_ARB_PORTS = IN_H_PORTS + OUT_H_PORTS;
-  localparam int unsigned V_RSP_ARB_PORTS = IN_V_PORTS + OUT_V_PORTS;
+  localparam int unsigned H_RSP_ARB_PORTS = 2*IN_H_PORTS + OUT_H_PORTS;
+  localparam int unsigned V_RSP_ARB_PORTS = 2*IN_V_PORTS + OUT_V_PORTS;
 
 /*******************************************************/
 /**           Parameters and Definitions End          **/
@@ -112,36 +116,43 @@ module fractal_sync_2d
 /**             Internal Signals Beginning            **/
 /*******************************************************/
 
-  fsync_req_in_t  h_sampled_req_in[IN_H_PORTS];
-  logic           h_check_rx[IN_H_PORTS];
-  logic           h_local_rx[IN_H_PORTS];
-  logic           h_root_rx[IN_H_PORTS];
-  logic           h_overflow_rx[IN_H_PORTS];
+  fsync_req_t h_sampled_req_in[IN_H_PORTS];
+  logic       h_check_rx[IN_H_PORTS];
+  logic       h_local_rx[IN_H_PORTS];
+  logic       h_root_rx[IN_H_PORTS];
+  logic       h_lock_rx[IN_H_PORTS];
+  logic       h_free_rx[IN_H_PORTS];
+  logic       h_propagate_lock_rx[IN_H_PORTS];
+  logic       h_overflow_rx[IN_H_PORTS];
 
-  logic           h_empty_rx[IN_H_PORTS];
-  fsync_req_out_t h_req_rx[IN_H_PORTS];
-  logic           h_pop_rx[IN_H_PORTS];
+  logic       h_empty_rx[IN_H_PORTS];
+  fsync_req_t h_req_rx[IN_H_PORTS];
+  logic       h_pop_rx[IN_H_PORTS];
 
-  fsync_req_in_t  v_sampled_req_in[IN_V_PORTS];
-  logic           v_check_rx[IN_V_PORTS];
-  logic           v_local_rx[IN_V_PORTS];
-  logic           v_root_rx[IN_V_PORTS];
-  logic           v_overflow_rx[IN_V_PORTS];
+  fsync_req_t v_sampled_req_in[IN_V_PORTS];
+  logic       v_check_rx[IN_V_PORTS];
+  logic       v_local_rx[IN_V_PORTS];
+  logic       v_root_rx[IN_V_PORTS];
+  logic       v_lock_rx[IN_V_PORTS];
+  logic       v_free_rx[IN_V_PORTS];
+  logic       v_propagate_lock_rx[IN_V_PORTS];
+  logic       v_overflow_rx[IN_V_PORTS];
   
-  logic           v_empty_rx[IN_V_PORTS];
-  fsync_req_out_t v_req_rx[IN_V_PORTS];
-  logic           v_pop_rx[IN_V_PORTS];
+  logic       v_empty_rx[IN_V_PORTS];
+  fsync_req_t v_req_rx[IN_V_PORTS];
+  logic       v_pop_rx[IN_V_PORTS];
 
-  logic           h_pop_req_arb[H_REQ_ARB_PORTS];
-  logic           h_empty_req_arb[H_REQ_ARB_PORTS];
-  fsync_req_out_t h_req_arb[H_REQ_ARB_PORTS];
+  logic       h_pop_req_arb[H_REQ_ARB_PORTS];
+  logic       h_empty_req_arb[H_REQ_ARB_PORTS];
+  fsync_req_t h_req_arb[H_REQ_ARB_PORTS];
 
-  logic           v_pop_req_arb[V_REQ_ARB_PORTS];
-  logic           v_empty_req_arb[V_REQ_ARB_PORTS];
-  fsync_req_out_t v_req_arb[V_REQ_ARB_PORTS];
+  logic       v_pop_req_arb[V_REQ_ARB_PORTS];
+  logic       v_empty_req_arb[V_REQ_ARB_PORTS];
+  fsync_req_t v_req_arb[V_REQ_ARB_PORTS];
 
   fsync_rsp_t h_sampled_rsp_out[OUT_H_PORTS];
-  logic       h_check_tx[OUT_H_PORTS];
+  logic       h_check_prop_tx[OUT_H_PORTS];
+  logic       h_check_lock_tx[OUT_H_PORTS];
   logic       h_en_propagate_tx[OUT_H_PORTS];
   logic       h_ws_propagate_tx[OUT_H_PORTS];
   logic       h_en_overflow_tx[OUT_H_PORTS];
@@ -149,7 +160,8 @@ module fractal_sync_2d
   logic       h_overflow_tx[OUT_H_PORTS];
 
   fsync_rsp_t v_sampled_rsp_out[OUT_V_PORTS];
-  logic       v_check_tx[OUT_V_PORTS];
+  logic       v_check_prop_tx[OUT_V_PORTS];
+  logic       v_check_lock_tx[OUT_V_PORTS];
   logic       v_en_propagate_tx[OUT_V_PORTS];
   logic       v_ws_propagate_tx[OUT_V_PORTS];
   logic       v_en_overflow_tx[OUT_V_PORTS];
@@ -188,27 +200,39 @@ module fractal_sync_2d
   fsync_rsp_t v_ws_rsp_arb_in[V_RSP_ARB_PORTS];
   fsync_rsp_t v_ws_rsp_arb_out[V_WS_IN_PORTS];
 
-  fsync_req_in_t sampled_req_in[IN_PORTS];
-  logic          check_rx[IN_PORTS];
-  logic          local_rx[IN_PORTS];
-  logic          root_rx[IN_PORTS];
-  logic          overflow_rx[IN_PORTS];
+  fsync_req_t sampled_req_in[IN_PORTS];
+  logic       check_rx[IN_PORTS];
+  logic       local_rx[IN_PORTS];
+  logic       root_rx[IN_PORTS];
+  logic       lock_rx[IN_PORTS];
+  logic       free_rx[IN_PORTS];
+  logic       propagate_lock_rx[IN_PORTS];
+  logic       overflow_rx[IN_PORTS];
 
   fsync_rsp_t sampled_rsp_out[OUT_PORTS];
-  logic       check_tx[OUT_PORTS];
+  logic       check_prop_tx[OUT_PORTS];
+  logic       check_lock_tx[OUT_PORTS];
   logic       en_propagate_tx[OUT_PORTS];
   logic       ws_propagate_tx[OUT_PORTS];
   logic       overflow_tx[OUT_PORTS];
   
-  logic           remote_empty[IN_PORTS];
-  fsync_req_out_t remote_req[IN_PORTS];
-  logic           remote_pop[IN_PORTS];
+  logic       remote_empty[IN_PORTS];
+  fsync_req_t remote_req[IN_PORTS];
+  logic       remote_pop[IN_PORTS];
 
   logic       local_empty[IN_PORTS];
   fsync_rsp_t local_rsp[IN_PORTS];
   logic       local_pop[IN_PORTS];
   logic[1:0]  local_pop_q[IN_PORTS];
   logic[1:0]  local_pop_d[IN_PORTS];
+
+  logic       en_queue_empty[IN_PORTS];
+  fsync_rsp_t en_queue_rsp[IN_PORTS];
+  logic       en_queue_pop[IN_PORTS];
+
+  logic       ws_queue_empty[IN_PORTS];
+  fsync_rsp_t ws_queue_rsp[IN_PORTS];
+  logic       ws_queue_pop[IN_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -218,45 +242,49 @@ module fractal_sync_2d
 
   for (genvar i = 0; i < IN_H_PORTS; i++) begin: gen_h_rx
     fractal_sync_rx #(
-      .fsync_req_in_t  ( fsync_req_in_t       ),
-      .fsync_req_out_t ( fsync_req_out_t      ),
-      .COMB_IN         ( /*DO NOT OVERWRITE*/ ),
-      .FIFO_DEPTH      ( FIFO_DEPTH           ),
-      .FIFO_COMB_OUT   ( RX_FIFO_COMB_OUT     )
+      .fsync_req_t   ( fsync_req_t          ),
+      .COMB_IN       ( /*DO NOT OVERWRITE*/ ),
+      .FIFO_DEPTH    ( FIFO_DEPTH           ),
+      .FIFO_COMB_OUT ( RX_FIFO_COMB_OUT     )
     ) i_h_rx (
-      .clk_i                                    ,
-      .rst_ni                                   ,
-      .req_i             ( h_req_in_i[i]       ),
-      .sampled_req_o     ( h_sampled_req_in[i] ),
-      .check_propagate_o ( h_check_rx[i]       ),
-      .local_o           ( h_local_rx[i]       ),
-      .root_o            ( h_root_rx[i]        ),
-      .error_overflow_o  ( h_overflow_rx[i]    ),
-      .empty_o           ( h_empty_rx[i]       ),
-      .req_o             ( h_req_rx[i]         ),
-      .pop_i             ( h_pop_rx[i]         )
+      .clk_i                                       ,
+      .rst_ni                                      ,
+      .req_i             ( h_req_in_i[i]          ),
+      .sampled_req_o     ( h_sampled_req_in[i]    ),
+      .check_propagate_o ( h_check_rx[i]          ),
+      .local_o           ( h_local_rx[i]          ),
+      .root_o            ( h_root_rx[i]           ),
+      .lock_o            ( h_lock_rx[i]           ),
+      .free_o            ( h_free_rx[i]           ),
+      .propagate_lock_i  ( h_propagate_lock_rx[i] ),
+      .error_overflow_o  ( h_overflow_rx[i]       ),
+      .empty_o           ( h_empty_rx[i]          ),
+      .req_o             ( h_req_rx[i]            ),
+      .pop_i             ( h_pop_rx[i]            )
     );
   end
 
   for (genvar i = 0; i < IN_V_PORTS; i++) begin: gen_v_rx
     fractal_sync_rx #(
-      .fsync_req_in_t  ( fsync_req_in_t       ),
-      .fsync_req_out_t ( fsync_req_out_t      ),
-      .COMB_IN         ( /*DO NOT OVERWRITE*/ ),
-      .FIFO_DEPTH      ( FIFO_DEPTH           ),
-      .FIFO_COMB_OUT   ( RX_FIFO_COMB_OUT     )
+      .fsync_req_t   ( fsync_req_t          ),
+      .COMB_IN       ( /*DO NOT OVERWRITE*/ ),
+      .FIFO_DEPTH    ( FIFO_DEPTH           ),
+      .FIFO_COMB_OUT ( RX_FIFO_COMB_OUT     )
     ) i_v_rx (
-      .clk_i                                    ,
-      .rst_ni                                   ,
-      .req_i             ( v_req_in_i[i]       ),
-      .sampled_req_o     ( v_sampled_req_in[i] ),
-      .check_propagate_o ( v_check_rx[i]       ),
-      .local_o           ( v_local_rx[i]       ),
-      .root_o            ( v_root_rx[i]        ),
-      .error_overflow_o  ( v_overflow_rx[i]    ),
-      .empty_o           ( v_empty_rx[i]       ),
-      .req_o             ( v_req_rx[i]         ),
-      .pop_i             ( v_pop_rx[i]         )
+      .clk_i                                       ,
+      .rst_ni                                      ,
+      .req_i             ( v_req_in_i[i]          ),
+      .sampled_req_o     ( v_sampled_req_in[i]    ),
+      .check_propagate_o ( v_check_rx[i]          ),
+      .local_o           ( v_local_rx[i]          ),
+      .root_o            ( v_root_rx[i]           ),
+      .lock_o            ( v_lock_rx[i]           ),
+      .free_o            ( v_free_rx[i]           ),
+      .propagate_lock_i  ( v_propagate_lock_rx[i] ),
+      .error_overflow_o  ( v_overflow_rx[i]       ),
+      .empty_o           ( v_empty_rx[i]          ),
+      .req_o             ( v_req_rx[i]            ),
+      .pop_i             ( v_pop_rx[i]            )
     );
   end
   
@@ -275,7 +303,7 @@ module fractal_sync_2d
   fractal_sync_arbiter #(
     .IN_PORTS     ( H_REQ_ARB_PORTS ),
     .OUT_PORTS    ( OUT_H_PORTS     ),
-    .arbiter_t    ( fsync_req_out_t ),
+    .arbiter_t    ( fsync_req_t     ),
     .ARBITER_TYPE ( ARBITER_TYPE    )
   ) i_h_req_arb (
     .clk_i                        ,
@@ -295,7 +323,7 @@ module fractal_sync_2d
   fractal_sync_arbiter #(
     .IN_PORTS     ( V_REQ_ARB_PORTS ),
     .OUT_PORTS    ( OUT_V_PORTS     ),
-    .arbiter_t    ( fsync_req_out_t ),
+    .arbiter_t    ( fsync_req_t     ),
     .ARBITER_TYPE ( ARBITER_TYPE    )
   ) i_v_req_arb (
     .clk_i                        ,
@@ -325,7 +353,8 @@ module fractal_sync_2d
       .rst_ni                                      ,
       .rsp_i               ( h_rsp_out_i[i]       ),
       .sampled_rsp_o       ( h_sampled_rsp_out[i] ),
-      .check_propagate_o   ( h_check_tx[i]        ),
+      .check_propagate_o   ( h_check_prop_tx[i]   ),
+      .check_lock_o        ( h_check_lock_tx[i]   ),
       .en_propagate_i      ( h_en_propagate_tx[i] ),
       .ws_propagate_i      ( h_ws_propagate_tx[i] ),
       .en_error_overflow_o ( h_en_overflow_tx[i]  ),
@@ -352,7 +381,8 @@ module fractal_sync_2d
       .rst_ni                                      ,
       .rsp_i               ( v_rsp_out_i[i]       ),
       .sampled_rsp_o       ( v_sampled_rsp_out[i] ),
-      .check_propagate_o   ( v_check_tx[i]        ),
+      .check_propagate_o   ( v_check_prop_tx[i]   ),
+      .check_lock_o        ( v_check_lock_tx[i]   ),
       .en_propagate_i      ( v_en_propagate_tx[i] ),
       .ws_propagate_i      ( v_ws_propagate_tx[i] ),
       .en_error_overflow_o ( v_en_overflow_tx[i]  ),
@@ -465,11 +495,14 @@ module fractal_sync_2d
 /*******************************************************/
 
   for (genvar i = 0; i < IN_H_PORTS; i++) begin
-    assign sampled_req_in[2*i] = h_sampled_req_in[i];
-    assign check_rx[2*i]       = h_check_rx[i];
-    assign local_rx[2*i]       = h_local_rx[i];
-    assign root_rx[2*i]        = h_root_rx[i];
-    assign overflow_rx[2*i]    = h_overflow_rx[i];
+    assign sampled_req_in[2*i]    = h_sampled_req_in[i];
+    assign check_rx[2*i]          = h_check_rx[i];
+    assign local_rx[2*i]          = h_local_rx[i];
+    assign root_rx[2*i]           = h_root_rx[i];
+    assign lock_rx[2*i]           = h_lock_rx[i];
+    assign free_rx[2*i]           = h_free_rx[i];
+    assign propagate_lock_rx[2*i] = h_propagate_lock_rx[i];
+    assign overflow_rx[2*i]       = h_overflow_rx[i];
     
     assign remote_pop[2*i]    = h_pop_req_arb[i];
     assign h_empty_req_arb[i] = remote_empty[2*i];
@@ -488,21 +521,33 @@ module fractal_sync_2d
     assign h_en_rsp_arb_in[i]    = local_rsp[2*i];
     assign h_ws_empty_rsp_arb[i] = local_empty[2*i];
     assign h_ws_rsp_arb_in[i]    = local_rsp[2*i];
+
+    assign en_queue_pop[2*i]                        = h_en_pop_rsp_arb[i+IN_PORTS+OUT_PORTS];
+    assign h_en_empty_rsp_arb[i+IN_PORTS+OUT_PORTS] = en_queue_empty[2*i];
+    assign h_en_rsp_arb_in[i+IN_PORTS+OUT_PORTS]    = en_queue_rsp[2*i];
+
+    assign ws_queue_pop[2*i]                        = h_ws_pop_rsp_arb[i+IN_PORTS+OUT_PORTS];
+    assign h_ws_empty_rsp_arb[i+IN_PORTS+OUT_PORTS] = ws_queue_empty[2*i];
+    assign h_ws_rsp_arb_in[i+IN_PORTS+OUT_PORTS]    = ws_queue_rsp[2*i];
   end
   for (genvar i = 0; i < OUT_H_PORTS; i++) begin
     assign sampled_rsp_out[2*i] = h_sampled_rsp_out[i];
-    assign check_tx[2*i]        = h_check_tx[i];
+    assign check_prop_tx[2*i]   = h_check_prop_tx[i];
+    assign check_lock_tx[2*i]   = h_check_lock_tx[i];
     assign h_en_propagate_tx[i] = en_propagate_tx[2*i];
     assign h_ws_propagate_tx[i] = ws_propagate_tx[2*i];
     assign overflow_tx[2*i]     = h_overflow_tx[i];
   end
 
   for (genvar i = 0; i < IN_V_PORTS; i++) begin
-    assign sampled_req_in[2*i+1] = v_sampled_req_in[i];
-    assign check_rx[2*i+1]       = v_check_rx[i];
-    assign local_rx[2*i+1]       = v_local_rx[i];
-    assign root_rx[2*i+1]        = v_root_rx[i];
-    assign overflow_rx[2*i+1]    = v_overflow_rx[i];
+    assign sampled_req_in[2*i+1]    = v_sampled_req_in[i];
+    assign check_rx[2*i+1]          = v_check_rx[i];
+    assign local_rx[2*i+1]          = v_local_rx[i];
+    assign root_rx[2*i+1]           = v_root_rx[i];
+    assign lock_rx[2*i+1]           = v_lock_rx[i];
+    assign free_rx[2*i+1]           = v_free_rx[i];
+    assign propagate_lock_rx[2*i+1] = v_propagate_lock_rx[i];
+    assign overflow_rx[2*i+1]       = v_overflow_rx[i];
     
     assign remote_pop[2*i+1]  = v_pop_req_arb[i];
     assign v_empty_req_arb[i] = remote_empty[2*i+1];
@@ -521,10 +566,19 @@ module fractal_sync_2d
     assign v_en_rsp_arb_in[i]    = local_rsp[2*i+1];
     assign v_ws_empty_rsp_arb[i] = local_empty[2*i+1];
     assign v_ws_rsp_arb_in[i]    = local_rsp[2*i+1];
+
+    assign en_queue_pop[2*i+1]                      = v_en_pop_rsp_arb[i+IN_PORTS+OUT_PORTS];
+    assign v_en_empty_rsp_arb[i+IN_PORTS+OUT_PORTS] = en_queue_empty[2*i+1];
+    assign v_en_rsp_arb_in[i+IN_PORTS+OUT_PORTS]    = en_queue_rsp[2*i+1];
+
+    assign ws_queue_pop[2*i+1]                      = v_ws_pop_rsp_arb[i+IN_PORTS+OUT_PORTS];
+    assign v_ws_empty_rsp_arb[i+IN_PORTS+OUT_PORTS] = ws_queue_empty[2*i+1];
+    assign v_ws_rsp_arb_in[i+IN_PORTS+OUT_PORTS]    = ws_queue_rsp[2*i+1];
   end
   for (genvar i = 0; i < OUT_V_PORTS; i++) begin
     assign sampled_rsp_out[2*i+1] = v_sampled_rsp_out[i];
-    assign check_tx[2*i+1]        = v_check_tx[i];
+    assign check_prop_tx[2*i+1]   = v_check_prop_tx[i];
+    assign check_lock_tx[2*i+1]   = v_check_lock_tx[i];
     assign v_en_propagate_tx[i]   = en_propagate_tx[2*i+1];
     assign v_ws_propagate_tx[i]   = ws_propagate_tx[2*i+1];
     assign overflow_tx[2*i+1]     = v_overflow_tx[i];
@@ -533,40 +587,51 @@ module fractal_sync_2d
   fractal_sync_cc #(
     .NODE_TYPE            ( NODE_TYPE            ),
     .RF_TYPE              ( RF_TYPE              ),
+    .N_QUEUE_REGS         ( N_QUEUE_REGS         ),
+    .QUEUE_DEPTH          ( QUEUE_DEPTH          ),
     .N_LOCAL_REGS         ( N_LOCAL_REGS         ),
     .N_REMOTE_LINES       ( N_REMOTE_LINES       ),
     .AGGREGATE_WIDTH      ( AGGREGATE_WIDTH      ),
     .ID_WIDTH             ( ID_WIDTH             ),
     .LVL_OFFSET           ( LVL_OFFSET           ),
-    .fsync_req_in_t       ( fsync_req_in_t       ),
-    .fsync_rsp_in_t       ( fsync_rsp_t          ),
-    .fsync_req_out_t      ( fsync_req_out_t      ),
-    .fsync_rsp_out_t      ( fsync_rsp_t          ),
+    .fsync_req_t          ( fsync_req_t          ),
+    .fsync_rsp_t          ( fsync_rsp_t          ),
     .N_RX_PORTS           ( IN_PORTS             ),
     .N_TX_PORTS           ( OUT_PORTS            ),
     .FIFO_DEPTH           ( FIFO_DEPTH           ),
+    .QUEUE_FIFO_COMB_OUT  ( QUEUE_FIFO_COMB_OUT  ),
     .LOCAL_FIFO_COMB_OUT  ( LOCAL_FIFO_COMB_OUT  ),
     .REMOTE_FIFO_COMB_OUT ( REMOTE_FIFO_COMB_OUT )
   ) i_cc (
-    .clk_i                                  ,
-    .rst_ni                                 ,
-    .req_i               ( sampled_req_in  ),
-    .check_rf_i          ( check_rx        ),
-    .local_i             ( local_rx        ),
-    .root_i              ( root_rx         ),
-    .error_overflow_rx_i ( overflow_rx     ),
-    .rsp_i               ( sampled_rsp_out ),
-    .check_br_i          ( check_tx        ),
-    .en_br_o             ( en_propagate_tx ),
-    .ws_br_o             ( ws_propagate_tx ),
-    .error_overflow_tx_i ( overflow_tx     ),
-    .local_empty_o       ( local_empty     ),
-    .local_rsp_o         ( local_rsp       ),
-    .local_pop_i         ( local_pop       ),
-    .remote_empty_o      ( remote_empty    ),
-    .remote_req_o        ( remote_req      ),
-    .remote_pop_i        ( remote_pop      ),
-    .detected_error_o    (                 )
+    .clk_i                                    ,
+    .rst_ni                                   ,
+    .req_i               ( sampled_req_in    ),
+    .check_rf_i          ( check_rx          ),
+    .local_i             ( local_rx          ),
+    .root_i              ( root_rx           ),
+    .lock_i              ( lock_rx           ),
+    .free_i              ( free_rx           ),
+    .propagate_lock_o    ( propagate_lock_rx ),
+    .error_overflow_rx_i ( overflow_rx       ),
+    .rsp_i               ( sampled_rsp_out   ),
+    .check_br_i          ( check_prop_tx     ),
+    .check_aggr_i        ( check_lock_tx     ),
+    .en_br_o             ( en_propagate_tx   ),
+    .ws_br_o             ( ws_propagate_tx   ),
+    .error_overflow_tx_i ( overflow_tx       ),
+    .local_empty_o       ( local_empty       ),
+    .local_rsp_o         ( local_rsp         ),
+    .local_pop_i         ( local_pop         ),
+    .remote_empty_o      ( remote_empty      ),
+    .remote_req_o        ( remote_req        ),
+    .remote_pop_i        ( remote_pop        ),
+    .en_queue_empty_o    ( en_queue_empty    ),
+    .en_queue_rsp_o      ( en_queue_rsp      ),
+    .en_queue_pop_i      ( en_queue_pop      ),
+    .ws_queue_empty_o    ( ws_queue_empty    ),
+    .ws_queue_rsp_o      ( ws_queue_rsp      ),
+    .ws_queue_pop_i      ( ws_queue_pop      ),
+    .detected_error_o    (                   )
   );
 
 /*******************************************************/

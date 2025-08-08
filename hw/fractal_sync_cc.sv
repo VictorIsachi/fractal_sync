@@ -34,7 +34,7 @@
  *  N_RX_PORTS           - Number of input (RX) ports
  *  N_TX_PORTS           - Number of output (TX) ports
  *  FIFO_DEPTH           - Maximum number of elements that can be present in a FIFO
- *  QUEUE_FIFO_COMB_OUT  - 1: Queue RF register FIFO with fall-through; 0: sequential register FIFO
+ *  QUEUE_FIFO_COMB_OUT  - 1: Queue RF register and output FIFOs with fall-through; 0: sequential register and output FIFOs
  *  LOCAL_FIFO_COMB_OUT  - 1: Output local FIFO with fall-through; 0: sequential local FIFO
  *  REMOTE_FIFO_COMB_OUT - 1: Output remote FIFO with fall-through; 0: sequential remote FIFO
  *
@@ -59,6 +59,9 @@
  *  > remote_empty_o      - Indicates that remote FIFO (associated with remote RF) is empty
  *  > remote_req_o        - Remote synch. req. (output) FIFO
  *  > remote_pop_i        - Pop synch. req.
+ *  > queue_empty_o       - Indicates that en/ws queue FIFO (associated with queue RF) is empty
+ *  > queue_req_o         - Queue synch. rsp. (input) FIFO
+ *  > queue_pop_i         - Pop synch. rsp.
  *  > detected_error_o    - Detected error associated with RX/TX transaction
  */
 
@@ -123,6 +126,14 @@ module fractal_sync_cc
   output fsync_req_t remote_req_o[N_FIFOS],
   input  logic       remote_pop_i[N_FIFOS],
 
+  output logic       en_queue_empty_o[N_FIFOS],
+  output fsync_rsp_t en_queue_rsp_o[N_FIFOS],
+  input  logic       en_queue_pop_i[N_FIFOS],
+
+  output logic       ws_queue_empty_o[N_FIFOS],
+  output fsync_rsp_t ws_queue_rsp_o[N_FIFOS],
+  input  logic       ws_queue_pop_i[N_FIFOS],
+
   output logic       detected_error_o[N_PORTS]
 );
 
@@ -155,6 +166,9 @@ module fractal_sync_cc
   localparam int unsigned                     N_1D_PORTS    = N_PORTS/2;
   localparam int unsigned                     SD_WIDTH      = fractal_sync_pkg::SD_WIDTH;
 
+  typedef logic[LEVEL_WIDTH-1:0]     level_t;
+  typedef logic[ID_WIDTH-1:0]        id_t;
+  typedef logic[SD_WIDTH-1:0]        sd_t;
   typedef logic[AGGREGATE_WIDTH-1:0] aggr_t;
 
 /*******************************************************/
@@ -163,40 +177,54 @@ module fractal_sync_cc
 /**             Internal Signals Beginning            **/
 /*******************************************************/
 
-  logic[LEVEL_WIDTH-1:0] level[N_PORTS];
-  logic[LEVEL_WIDTH-1:0] h_level[N_1D_PORTS];
-  logic[LEVEL_WIDTH-1:0] v_level[N_1D_PORTS];
-  logic[ID_WIDTH-1:0]    id[N_PORTS];
-  logic[ID_WIDTH-1:0]    h_id[N_1D_PORTS];
-  logic[ID_WIDTH-1:0]    v_id[N_1D_PORTS];
-  logic[SD_WIDTH-1:0]    sd_in[N_PORTS];
-  logic[SD_WIDTH-1:0]    h_sd_in[N_1D_PORTS];
-  logic[SD_WIDTH-1:0]    v_sd_in[N_1D_PORTS];
-  logic[SD_WIDTH-1:0]    sd_out[N_PORTS];
-  logic[SD_WIDTH-1:0]    h_sd_out[N_1D_PORTS];
-  logic[SD_WIDTH-1:0]    v_sd_out[N_1D_PORTS];
+  level_t level[N_PORTS];
+  level_t h_level[N_1D_PORTS];
+  level_t v_level[N_1D_PORTS];
+  id_t    id[N_PORTS];
+  id_t    h_id[N_1D_PORTS];
+  id_t    v_id[N_1D_PORTS];
+  sd_t    sd_in[N_PORTS];
+  sd_t    h_sd_in[N_1D_PORTS];
+  sd_t    v_sd_in[N_1D_PORTS];
+  sd_t    sd_out[N_PORTS];
+  sd_t    h_sd_out[N_1D_PORTS];
+  sd_t    v_sd_out[N_1D_PORTS];
+  aggr_t  br_in[N_RX_PORTS];
+  aggr_t  h_br_in[N_1D_RX_PORTS];
+  aggr_t  v_br_in[N_1D_RX_PORTS];
+  aggr_t  br_out[N_RX_PORTS];
+  aggr_t  h_br_out[N_1D_RX_PORTS];
+  aggr_t  v_br_out[N_1D_RX_PORTS];
 
   fsync_rsp_t local_barrier_rsp[N_RX_PORTS];
   fsync_rsp_t local_lock_rsp[N_RX_PORTS];
   logic       local_rsp_type[N_RX_PORTS];
   fsync_rsp_t local_rsp[N_RX_PORTS];
   fsync_req_t remote_req[N_RX_PORTS];
+  fsync_rsp_t queue_rsp[N_RX_PORTS];
 
   logic lock_req[N_RX_PORTS];
   logic local_queue[N_RX_PORTS];
   
+  logic queue_error[N_RX_PORTS];
+  logic h_queue_error[N_1D_RX_PORTS];
+  logic v_queue_error[N_1D_RX_PORTS];
   logic id_error[N_RX_PORTS];
   logic h_id_error[N_1D_RX_PORTS];
   logic v_id_error[N_1D_RX_PORTS];
   logic sig_error[N_PORTS];
   logic h_sig_error[N_1D_PORTS];
   logic v_sig_error[N_1D_PORTS];
-  logic rf_error[N_PORTS];
+  logic barrier_rf_error[N_PORTS];
 
   logic empty_local_fifo_err[N_FIFOS];
   logic full_local_fifo_err[N_FIFOS];
   logic empty_remote_fifo_err[N_FIFOS];
   logic full_remote_fifo_err[N_FIFOS];
+  logic empty_en_queue_fifo_err[N_FIFOS];
+  logic full_en_queue_fifo_err[N_FIFOS];
+  logic empty_ws_queue_fifo_err[N_FIFOS];
+  logic full_ws_queue_fifo_err[N_FIFOS];
   logic fifo_error[N_FIFOS];
 
   logic lock_queue[N_RX_PORTS];
@@ -234,6 +262,13 @@ module fractal_sync_cc
   logic full_local[N_FIFOS];
   logic push_remote[N_FIFOS];
   logic full_remote[N_FIFOS];
+  logic push_en_queue[N_FIFOS];
+  logic full_en_queuel[N_FIFOS];
+  logic push_ws_queue[N_FIFOS];
+  logic full_ws_queuel[N_FIFOS];
+
+  id_t  sampled_queue_id[N_RX_PORTS];
+  logic sampled_queue_error[N_RX_PORTS];
 
 /*******************************************************/
 /**                Internal Signals End               **/
@@ -271,6 +306,15 @@ module fractal_sync_cc
       assign v_sd_in[i] = sd_in[2*i+1];
     end
     for (genvar i = 0; i < N_1D_RX_PORTS; i++) begin
+      assign h_br_in[i] = br_in[2*i];
+      assign v_br_in[i] = br_in[2*i+1];
+
+      assign br_out[2*i]   = h_br_out[i];
+      assign br_out[2*i+1] = v_br_out[i];
+      
+      assign queue_error[2*i]   = h_queue_error[i];
+      assign queue_error[2*i+1] = v_queue_error[i];
+      
       assign id_error[2*i]   = h_id_error[i];
       assign id_error[2*i+1] = v_id_error[i];
       
@@ -295,25 +339,33 @@ module fractal_sync_cc
   end
 
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_lock_req_local_queue
-    assign lock_req[i]       = lock_i[i] | free_i[i];
+    assign lock_req[i]    = lock_i[i] | free_i[i];
     assign local_queue[i] = (level[i] == LVL_OFFSET) ? 1'b1 : 1'b0;
   end
   
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rx_id
     assign id[i] = req_i[i].sig.id;
+    always_ff @(posedge clk_i, negedge rst_ni) begin
+      if (!rst_ni) sampled_queue_id[i] <= '0;
+      else         sampled_queue_id[i] <= req_i[i].sig.id;
+    end
   end
   for (genvar i = 0; i < N_TX_PORTS; i++) begin: gen_tx_id
     assign id[i+N_RX_PORTS] = rsp_i[i].sig.id;
   end
 
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rx_rf_error
-    assign rf_error[i] = id_error[i] | sig_error[i];
+    assign barrier_rf_error[i] = id_error[i] | sig_error[i];
+    always_ff @(posedge clk_i, negedge rst_ni) begin
+      if (!rst_ni) sampled_queue_error[i] <= 1'b0;
+      else         sampled_queue_error[i] <= queue_error[i];
+    end
   end
   for (genvar i = 0; i < N_TX_PORTS; i++) begin: gen_tx_rf_error
-    assign rf_error[i+N_RX_PORTS] = sig_error[i];
+    assign barrier_rf_error[i+N_RX_PORTS] = sig_error[i];
   end
 
-  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_req
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_remote_req
     assign remote_req[i].sync     = req_i[i].sync;
     assign remote_req[i].lock     = req_i[i].lock;
     assign remote_req[i].free     = req_i[i].free;
@@ -321,25 +373,33 @@ module fractal_sync_cc
     assign remote_req[i].sig.id   = req_i[i].sig.id;
   end
 
-  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_barrier_rsp
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_local_barrier_rsp
     assign local_barrier_rsp[i].wake     = 1'b1;
     assign local_barrier_rsp[i].grant    = 1'b0;
     assign local_barrier_rsp[i].sig.aggr = level[i];
     assign local_barrier_rsp[i].sig.id   = req_i[i].sig.id;
-    assign local_barrier_rsp[i].error    = rf_error[i];
+    assign local_barrier_rsp[i].error    = barrier_rf_error[i];
   end
 
-  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_lock_rsp
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_local_lock_rsp
     assign local_lock_rsp[i].wake     = 1'b0;
     assign local_lock_rsp[i].grant    = 1'b1;
     assign local_lock_rsp[i].sig.aggr = req_i[i].sig.aggr;
     assign local_lock_rsp[i].sig.id   = req_i[i].sig.id;
-    assign local_lock_rsp[i].error    = rf_error[i];
+    assign local_lock_rsp[i].error    = queue_error[i];
   end
 
-  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_rsp
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_local_rsp
     assign local_rsp_type[i] = req_i[i].sync ? 1'b1 : 1'b0;
     assign local_rsp[i]      = local_rsp_type[i] ? local_barrier_rsp[i] : local_lock_rsp[i];
+  end
+
+  for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_queue_rsp
+    assign queue_rsp[i].wake     = 1'b0;
+    assign queue_rsp[i].grant    = 1'b1;
+    assign queue_rsp[i].sig.aggr = br_out[i];
+    assign queue_rsp[i].sig.id   = sampled_queue_id[i];
+    assign queue_rsp[i].error    = sampled_queue_error[i];
   end
 
 /*******************************************************/
@@ -378,31 +438,39 @@ module fractal_sync_cc
         check_remote[i]     = 1'b0;
         set_remote[i]       = 1'b0;
         sd_in[i]            = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        br_in[i]            = '0;
         push_local[i]       = 1'b0;
         push_remote[i]      = 1'b0;
+        push_en_queue[i]    = 1'b0;
+        push_ws_queue[i]    = 1'b0;
         propagate_lock_o[i] = 1'b0;
 
         if (lock_req[i]) begin
           if (!local_queue[i]) begin
             propagate_lock_o[i] = 1'b1;
           end else begin
+            br_in[i]      = req_i[i].sig.aggr;
             lock_queue[i] = lock_i[i];
             free_queue[i] = free_i[i];
-            push_local[i] = grant_queue[i] | rf_error[i];
+            push_local[i] = queue_error[i];
           end
         end else if (check_rf_i[i]) begin
           if (local_i[i]) begin
             if (!root_i[i]) begin
               set_remote[i]  = 1'b1;
-              push_remote[i] = (bypass_remote[i] | present_remote[i]) & ~rf_error[i];
-              push_local[i]  = rf_error[i];
+              push_remote[i] = (bypass_remote[i] | present_remote[i]) & ~barrier_rf_error[i];
+              push_local[i]  = barrier_rf_error[i];
             end else begin
               check_local[i] = 1'b1;
-              push_local[i]  = bypass_local[i] | present_local[i] | rf_error[i];
+              push_local[i]  = bypass_local[i] | present_local[i] | barrier_rf_error[i];
             end
           end else begin
             set_remote[i] = 1'b1;
           end
+        end
+        if (grant_queue[i]) begin
+          if (br_out[i][0]) push_ws_queue[i] = 1'b1;
+          else              push_en_queue[i] = 1'b1;      
         end
       end
     end
@@ -418,7 +486,7 @@ module fractal_sync_cc
           {ws_br_o[i], en_br_o[i]} = rsp_i[i].sig.aggr[LVL_OFFSET] ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
         end else if (check_br_i[i]) begin
           check_remote[i+N_RX_PORTS] = 1'b1;
-          {ws_br_o[i], en_br_o[i]}   = rf_error[i+N_RX_PORTS] ? '0 : sd_out[i+N_RX_PORTS];
+          {ws_br_o[i], en_br_o[i]}   = barrier_rf_error[i+N_RX_PORTS] ? '0 : sd_out[i+N_RX_PORTS];
         end
       end
     end
@@ -431,31 +499,39 @@ module fractal_sync_cc
         check_remote[2*i]     = 1'b0;
         set_remote[2*i]       = 1'b0;
         sd_in[2*i]            = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        br_in[2*i]            = '0;
         push_local[2*i]       = 1'b0;
         push_remote[2*i]      = 1'b0;
+        push_en_queue[2*i]    = 1'b0;
+        push_ws_queue[2*i]    = 1'b0;
         propagate_lock_o[2*i] = 1'b0;
 
         if (lock_req[2*i]) begin
           if (!local_queue[2*i]) begin
             propagate_lock_o[2*i] = 1'b1;
           end else begin
+            br_in[2*i]      = req_i[2*i].sig.aggr;
             lock_queue[2*i] = lock_i[2*i];
             free_queue[2*i] = free_i[2*i];
-            push_local[2*i] = grant_queue[2*i] | rf_error[2*i];
+            push_local[2*i] = queue_error[2*i];
           end
         end else if (check_rf_i[2*i]) begin
           if (local_i[2*i]) begin
             if (!root_i[2*i]) begin
               set_remote[2*i]  = 1'b1;
-              push_remote[2*i] = (bypass_remote[2*i] | present_remote[2*i]) & ~rf_error[2*i];
-              push_local[2*i]  = rf_error[2*i];
+              push_remote[2*i] = (bypass_remote[2*i] | present_remote[2*i]) & ~barrier_rf_error[2*i];
+              push_local[2*i]  = barrier_rf_error[2*i];
             end else begin
               check_local[2*i] = 1'b1;
-              push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | rf_error[2*i];
+              push_local[2*i]  = bypass_local[2*i] | present_local[2*i] | barrier_rf_error[2*i];
             end
           end else begin
             set_remote[2*i] = 1'b1;
           end
+        end
+        if (grant_queue[2*i]) begin
+          if (br_out[2*i][0]) push_ws_queue[2*i] = 1'b1;
+          else                push_en_queue[2*i] = 1'b1;      
         end
       end
     end
@@ -471,7 +547,7 @@ module fractal_sync_cc
           {ws_br_o[2*i], en_br_o[2*i]} = rsp_i[2*i].sig.aggr[LVL_OFFSET] ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
         end else if (check_br_i[2*i]) begin
           check_remote[2*i+N_RX_PORTS] = 1'b1;
-          {ws_br_o[2*i], en_br_o[2*i]} = rf_error[2*i+N_RX_PORTS] ? '0 : sd_out[2*i+N_RX_PORTS];
+          {ws_br_o[2*i], en_br_o[2*i]} = barrier_rf_error[2*i+N_RX_PORTS] ? '0 : sd_out[2*i+N_RX_PORTS];
         end
       end
     end
@@ -483,31 +559,39 @@ module fractal_sync_cc
         check_remote[2*i+1]     = 1'b0;
         set_remote[2*i+1]       = 1'b0;
         sd_in[2*i+1]            = i%2 ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
+        br_in[2*i+1]            = '0;
         push_local[2*i+1]       = 1'b0;
         push_remote[2*i+1]      = 1'b0;
+        push_en_queue[2*i+1]    = 1'b0;
+        push_ws_queue[2*i+1]    = 1'b0;
         propagate_lock_o[2*i+1] = 1'b0;
 
         if (lock_req[2*i+1]) begin
           if (!local_queue[2*i+1]) begin
             propagate_lock_o[2*i+1] = 1'b1;
           end else begin
+            br_in[2*i+1]      = req_i[2*i+1].sig.aggr;
             lock_queue[2*i+1] = lock_i[2*i+1];
             free_queue[2*i+1] = free_i[2*i+1];
-            push_local[2*i+1] = grant_queue[2*i+1] | rf_error[2*i+1];
+            push_local[2*i+1] = queue_error[2*i+1];
           end
         end else if (check_rf_i[2*i+1]) begin
           if (local_i[2*i+1]) begin
             if (!root_i[2*i+1]) begin
               set_remote[2*i+1]  = 1'b1;
-              push_remote[2*i+1] = (bypass_remote[2*i+1] | present_remote[2*i+1]) & ~rf_error[2*i+1];
-              push_local[2*i+1]  = rf_error[2*i+1];
+              push_remote[2*i+1] = (bypass_remote[2*i+1] | present_remote[2*i+1]) & ~barrier_rf_error[2*i+1];
+              push_local[2*i+1]  = barrier_rf_error[2*i+1];
             end else begin
               check_local[2*i+1] = 1'b1;
-              push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | rf_error[2*i+1];
+              push_local[2*i+1]  = bypass_local[2*i+1] | present_local[2*i+1] | barrier_rf_error[2*i+1];
             end
           end else begin
             set_remote[2*i+1] = 1'b1;
           end
+        end
+        if (grant_queue[2*i+1]) begin
+          if (br_out[2*i+1][0]) push_ws_queue[2*i+1] = 1'b1;
+          else                  push_en_queue[2*i+1] = 1'b1;      
         end
       end
     end
@@ -523,7 +607,7 @@ module fractal_sync_cc
           {ws_br_o[2*i+1], en_br_o[2*i+1]} = rsp_i[2*i+1].sig.aggr[LVL_OFFSET] ? fractal_sync_pkg::SD_WEST_SOUTH : fractal_sync_pkg::SD_EAST_NORTH;
         end else if (check_br_i[2*i+1]) begin
           check_remote[2*i+1+N_RX_PORTS]   = 1'b1;
-          {ws_br_o[2*i+1], en_br_o[2*i+1]} = rf_error[2*i+1+N_RX_PORTS] ? '0 : sd_out[2*i+1+N_RX_PORTS];
+          {ws_br_o[2*i+1], en_br_o[2*i+1]} = barrier_rf_error[2*i+1+N_RX_PORTS] ? '0 : sd_out[2*i+1+N_RX_PORTS];
         end
       end  
     end
@@ -555,20 +639,20 @@ module fractal_sync_cc
       .level_i          ( level          ),
       .id_i             ( id             ),
       .sd_remote_i      ( sd_in          ),
-      .br_queue_i       (  ),
-      .lock_queue_i     (  ),
-      .free_queue_i     (  ),
+      .br_queue_i       ( br_in          ),
+      .lock_queue_i     ( lock_queue     ),
+      .free_queue_i     ( free_queue     ),
       .check_local_i    ( check_local    ),
       .check_remote_i   ( check_remote   ),
       .set_remote_i     ( set_remote     ),
-      .grant_queue_o    (  ),
+      .grant_queue_o    ( grant_queue    ),
       .present_local_o  ( present_local  ),
       .present_remote_o ( present_remote ),
       .sd_remote_o      ( sd_out         ),
-      .br_queue_o       (  ),
+      .br_queue_o       ( br_out         ),
       .id_err_o         ( id_error       ),
       .sig_err_o        ( sig_error      ),
-      .queue_err_o      (  ),
+      .queue_err_o      ( queue_error    ),
       .bypass_local_o   ( bypass_local   ),
       .bypass_remote_o  ( bypass_remote  ),
       .ignore_local_o   (                ),
@@ -596,20 +680,20 @@ module fractal_sync_cc
       .level_h_i          ( h_level          ),
       .id_h_i             ( h_id             ),
       .sd_h_remote_i      ( h_sd_in          ),
-      .br_h_queue_i       (  ),
-      .lock_h_queue_i     (  ),
-      .free_h_queue_i     (  ),
+      .br_h_queue_i       ( h_br_in          ),
+      .lock_h_queue_i     ( h_lock_queue     ),
+      .free_h_queue_i     ( h_free_queue     ),
       .check_h_local_i    ( h_check_local    ),
       .check_h_remote_i   ( h_check_remote   ),
       .set_h_remote_i     ( h_set_remote     ),
-      .h_grant_queue_o    (  ),
+      .h_grant_queue_o    ( h_grant_queue    ),
       .h_present_local_o  ( h_present_local  ),
       .h_present_remote_o ( h_present_remote ),
       .h_sd_remote_o      ( h_sd_out         ),
-      .h_br_queue_o       (  ),
+      .h_br_queue_o       ( h_br_out         ),
       .h_id_err_o         ( h_id_error       ),
       .h_sig_err_o        ( h_sig_error      ),
-      .h_queue_err_o      (  ),
+      .h_queue_err_o      ( h_queue_error    ),
       .h_bypass_local_o   ( h_bypass_local   ),
       .h_bypass_remote_o  ( h_bypass_remote  ),
       .h_ignore_local_o   (                  ),
@@ -617,20 +701,20 @@ module fractal_sync_cc
       .level_v_i          ( v_level          ),
       .id_v_i             ( v_id             ),
       .sd_v_remote_i      ( v_sd_in          ),
-      .br_v_queue_i       (  ),
-      .lock_v_queue_i     (  ),
-      .free_v_queue_i     (  ),
+      .br_v_queue_i       ( v_br_in          ),
+      .lock_v_queue_i     ( v_lock_queue     ),
+      .free_v_queue_i     ( v_free_queue     ),
       .check_v_local_i    ( v_check_local    ),
       .check_v_remote_i   ( v_check_remote   ),
       .set_v_remote_i     ( v_set_remote     ),
-      .v_grant_queue_o    (  ),
+      .v_grant_queue_o    ( v_grant_queue    ),
       .v_present_local_o  ( v_present_local  ),
       .v_present_remote_o ( v_present_remote ),
       .v_sd_remote_o      ( v_sd_out         ),
-      .v_br_queue_o       (  ),
+      .v_br_queue_o       ( v_br_out         ),
       .v_id_err_o         ( v_id_error       ),
       .v_sig_err_o        ( v_sig_error      ),
-      .v_queue_err_o      (  ),
+      .v_queue_err_o      ( v_queue_error    ),
       .v_bypass_local_o   ( v_bypass_local   ),
       .v_bypass_remote_o  ( v_bypass_remote  ),
       .v_ignore_local_o   (                  ),
@@ -645,11 +729,18 @@ module fractal_sync_cc
 /*******************************************************/
 
   for (genvar i = 0; i < N_FIFOS; i++) begin: gen_fifo_error
-    assign empty_local_fifo_err[i]  = local_empty_o[i] & local_pop_i[i];
-    assign full_local_fifo_err[i]   = full_local[i] & push_local[i];
-    assign empty_remote_fifo_err[i] = remote_empty_o[i] & remote_pop_i[i];
-    assign full_remote_fifo_err[i]  = full_remote[i] & push_remote[i];
-    assign fifo_error[i]            = empty_local_fifo_err[i] | full_local_fifo_err[i] | empty_remote_fifo_err[i] | full_remote_fifo_err[i];
+    assign empty_local_fifo_err[i]    = local_empty_o[i] & local_pop_i[i];
+    assign full_local_fifo_err[i]     = full_local[i] & push_local[i];
+    assign empty_remote_fifo_err[i]   = remote_empty_o[i] & remote_pop_i[i];
+    assign full_remote_fifo_err[i]    = full_remote[i] & push_remote[i];
+    assign empty_en_queue_fifo_err[i] = en_queue_empty_o[i] & en_queue_pop_i[i];
+    assign full_en_queue_fifo_err[i]  = full_en_queue[i] & push_en_queue[i];
+    assign empty_ws_queue_fifo_err[i] = ws_queue_empty_o[i] & ws_queue_pop_i[i];
+    assign full_ws_queue_fifo_err[i]  = full_ws_queue[i] & push_ws_queue[i];
+    assign fifo_error[i]              = empty_local_fifo_err[i]    | full_local_fifo_err[i]    | 
+                                        empty_remote_fifo_err[i]   | full_remote_fifo_err[i]   |
+                                        empty_en_queue_fifo_err[i] | full_en_queue_fifo_err[i] |
+                                        empty_ws_queue_fifo_err[i] | full_ws_queue_fifo_err[i];
   end
   
   for (genvar i = 0; i < N_RX_PORTS; i++) begin: gen_error_rx
@@ -696,6 +787,40 @@ module fractal_sync_cc
       .element_o ( remote_req_o[i]   ),
       .empty_o   ( remote_empty_o[i] ),
       .full_o    ( full_remote[i]    )
+    );
+  end
+
+  for (genvar i = 0; i < N_FIFOS; i++) begin: gen_en_queue_fifos
+    fractal_sync_fifo #(
+      .FIFO_DEPTH ( FIFO_DEPTH          ),
+      .fifo_t     ( fsync_rsp_t         ),
+      .COMB_OUT   ( QUEUE_FIFO_COMB_OUT )
+    ) i_en_queue_fifo (
+      .clk_i                            ,
+      .rst_ni                           ,
+      .push_i    ( push_en_queue[i]    ),
+      .element_i ( queue_rsp[i]        ),
+      .pop_i     ( en_queue_pop_i[i]   ),
+      .element_o ( en_queue_rsp_o[i]   ),
+      .empty_o   ( en_queue_empty_o[i] ),
+      .full_o    ( full_en_queue[i]    )
+    );
+  end
+
+  for (genvar i = 0; i < N_FIFOS; i++) begin: gen_ws_queue_fifos
+    fractal_sync_fifo #(
+      .FIFO_DEPTH ( FIFO_DEPTH          ),
+      .fifo_t     ( fsync_rsp_t         ),
+      .COMB_OUT   ( QUEUE_FIFO_COMB_OUT )
+    ) i_ws_queue_fifo (
+      .clk_i                            ,
+      .rst_ni                           ,
+      .push_i    ( push_ws_queue[i]    ),
+      .element_i ( queue_rsp[i]        ),
+      .pop_i     ( ws_queue_pop_i[i]   ),
+      .element_o ( ws_queue_rsp_o[i]   ),
+      .empty_o   ( ws_queue_empty_o[i] ),
+      .full_o    ( full_ws_queue[i]    )
     );
   end
 
