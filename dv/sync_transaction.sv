@@ -23,9 +23,12 @@ import fractal_dv_pkg::*;
 
 class sync_transaction;
   
+  typedef enum bit {SYNC_BARRIER, SYNC_LOCK} sync_type_e;
+  
+  rand   sync_type_e  sync_type;
   rand   int unsigned sync_level;
   rand   bit[31:0]    sync_aggregate;
-  rand   int unsigned sync_barrier_id; 
+  rand   int unsigned sync_id; 
 
          int unsigned transaction_id;
   static int unsigned global_id = 0;
@@ -41,13 +44,15 @@ class sync_transaction;
   endfunction: set_uid
 
   function automatic void scp(sync_transaction src);
+    this.sync_type       = src.sync_type;
     this.sync_level      = src.sync_level;
     this.sync_aggregate  = src.sync_aggregate;
-    this.sync_barrier_id = src.sync_barrier_id;
+    this.sync_id         = src.sync_id;
     this.transaction_id  = src.transaction_id;
   endfunction: scp
 
-  function automatic void set(int unsigned lvl, bit[31:0] aggr, int unsigned id);
+  function automatic void set(sync_type_e tp, int unsigned lvl, bit[31:0] aggr, int unsigned id);
+    this.sync_type       = tp;
     this.sync_level      = lvl;
     this.sync_aggregate  = aggr;
     this.sync_barrier_id = id;
@@ -58,6 +63,7 @@ class sync_transaction;
     $display("FractalSync transaction:");
     $display("TIME: %0t (Transaction time %0t)", $time, transaction_time);
     $display("ID: %0d (Global ID: %0d)", this.transaction_id, sync_transaction::global_id);
+    $display("TYPE: %s", this.sync_type == SYNC_BARRIER ? "Barrier" : "Lock")
     $display("LEVEL: %0d", this.sync_level);
     $display("AGGREGATE: 0b%0b", this.sync_aggregate);
     $display("AGGR. Field: 0b%0b", 1'b1 << this.sync_level-1 | this.sync_aggregate);

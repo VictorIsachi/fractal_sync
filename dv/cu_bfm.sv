@@ -22,29 +22,27 @@
 import fractal_dv_pkg::*;
 
 class cu_bfm #(
-  parameter int unsigned FSYNC_TREE_AGGR_WIDTH  = 0,
-  parameter int unsigned FSYNC_TREE_LVL_WIDTH   = 0,
-  parameter int unsigned FSYNC_TREE_ID_WIDTH    = 0,
-  parameter int unsigned FSYNC_NBR_AGGR_WIDTH = 0,
-  parameter int unsigned FSYNC_NBR_LVL_WIDTH  = 0,
-  parameter int unsigned FSYNC_NBR_ID_WIDTH   = 0
+  parameter int unsigned FSYNC_TREE_AGGR_WIDTH = 0,
+  parameter int unsigned FSYNC_TREE_ID_WIDTH   = 0,
+  parameter int unsigned FSYNC_NBR_AGGR_WIDTH  = 0,
+  parameter int unsigned FSYNC_NBR_ID_WIDTH    = 0
 );
 
   string instance_name;
   
-  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .LVL_WIDTH(FSYNC_TREE_LVL_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_h_tree;
-  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .LVL_WIDTH(FSYNC_TREE_LVL_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_v_tree;
-  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .LVL_WIDTH(FSYNC_NBR_LVL_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_h_nbr;
-  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .LVL_WIDTH(FSYNC_NBR_LVL_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_v_nbr;
+  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_h_tree;
+  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_v_tree;
+  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_h_nbr;
+  virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_v_nbr;
 
   int unsigned detected_errors;
   time         transaction_times[$];
 
   function new(string instance_name, 
-               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .LVL_WIDTH(FSYNC_TREE_LVL_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_h_tree,
-               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .LVL_WIDTH(FSYNC_TREE_LVL_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_v_tree,
-               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .LVL_WIDTH(FSYNC_NBR_LVL_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_h_nbr,
-               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .LVL_WIDTH(FSYNC_NBR_LVL_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_v_nbr);
+               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_h_tree,
+               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_TREE_AGGR_WIDTH), .ID_WIDTH(FSYNC_TREE_ID_WIDTH)) vif_master_v_tree,
+               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_h_nbr,
+               virtual fractal_sync_if.mst_port #(.AGGR_WIDTH(FSYNC_NBR_AGGR_WIDTH),  .ID_WIDTH(FSYNC_NBR_ID_WIDTH))  vif_master_v_nbr);
     this.instance_name    = instance_name;
     this.vif_master_h_tree = vif_master_h_tree;
     this.vif_master_v_tree = vif_master_v_tree;
@@ -55,91 +53,204 @@ class cu_bfm #(
   task automatic init();
     detected_errors   = 0;
     transaction_times = {};
-    vif_master_h_tree.sync   = 1'b0;
-    vif_master_h_tree.aggr   = '0;
-    vif_master_h_tree.id_req = '0;
-    vif_master_v_tree.sync   = 1'b0;
-    vif_master_v_tree.aggr   = '0;
-    vif_master_v_tree.id_req = '0;
-    vif_master_h_nbr.sync    = 1'b0;
-    vif_master_h_nbr.aggr    = '0;
-    vif_master_h_nbr.id_req  = '0;
-    vif_master_v_nbr.sync    = 1'b0;
-    vif_master_v_nbr.aggr    = '0;
-    vif_master_v_nbr.id_req  = '0;
+    vif_master_h_tree.sync     = 1'b0;
+    vif_master_h_tree.lock     = 1'b0;
+    vif_master_h_tree.grant    = 1'b0;
+    vif_master_h_tree.aggr_req = '0;
+    vif_master_h_tree.id_req   = '0;
+    vif_master_v_tree.sync     = 1'b0;
+    vif_master_v_tree.lock     = 1'b0;
+    vif_master_v_tree.free     = 1'b0;
+    vif_master_v_tree.aggr_req = '0;
+    vif_master_v_tree.id_req   = '0;
+    vif_master_h_nbr.sync      = 1'b0;
+    vif_master_h_nbr.lock      = 1'b0;
+    vif_master_h_nbr.free      = 1'b0;
+    vif_master_h_nbr.aggr_req  = '0;
+    vif_master_h_nbr.id_req    = '0;
+    vif_master_v_nbr.sync      = 1'b0;
+    vif_master_v_nbr.lock      = 1'b0;
+    vif_master_v_nbr.free      = 1'b0;
+    vif_master_v_nbr.aggr_req  = '0;
+    vif_master_v_nbr.id_req    = '0;
   endtask: init
   
   task automatic sync_req(sync_transaction fsync, int unsigned comp_cycles, int unsigned max_rand_cycles, const ref logic clk);
     int unsigned rand_cycles = $urandom_range(0, max_rand_cycles);
-    repeat (comp_cycles + rand_cycles) @(negedge clk);
-    @(negedge clk);
-    if (fsync.sync_level == 1) begin
-      case (fsync.sync_barrier_id)
-        2'b00: begin
-          vif_master_h_tree.aggr   = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
-          vif_master_h_tree.id_req = fsync.sync_barrier_id;
-          vif_master_h_tree.sync   = 1'b1;
+    if (fsync.sync_type == SYNC_BARRIER) begin
+      repeat (comp_cycles + rand_cycles) @(negedge clk);
+      @(negedge clk);
+      if (fsync.sync_level == 1) begin
+        case (fsync.sync_id)
+          2'b00: begin
+            vif_master_h_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_h_tree.id_req   = fsync.sync_id;
+            vif_master_h_tree.sync     = 1'b1;
+          end
+          2'b01: begin
+            vif_master_v_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_v_tree.id_req   = fsync.sync_id;
+            vif_master_v_tree.sync     = 1'b1;
+          end
+          2'b10: begin
+            vif_master_h_nbr.aggr_req  = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_h_nbr.id_req    = fsync.sync_id;
+            vif_master_h_nbr.sync      = 1'b1;
+          end
+          2'b11: begin
+            vif_master_v_nbr.aggr_req  = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_v_nbr.id_req    = fsync.sync_id;
+            vif_master_v_nbr.sync      = 1'b1;
+          end
+          default: $fatal("Detected synchronization request at level 1 with invalid barrier ID!!!");
+        endcase
+      end else if (fsync.sync_level > 1) begin
+        if (fsync.sync_id[0] == 1'b0) begin
+          vif_master_h_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+          vif_master_h_tree.id_req   = fsync.sync_id;
+          vif_master_h_tree.sync     = 1'b1;
+        end else begin
+          vif_master_v_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+          vif_master_v_tree.id_req   = fsync.sync_id;
+          vif_master_v_tree.sync     = 1'b1;
         end
-        2'b01: begin
-          vif_master_v_tree.aggr   = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
-          vif_master_v_tree.id_req = fsync.sync_barrier_id;
-          vif_master_v_tree.sync   = 1'b1;
+      end else $fatal("Detected synchronization request at level 0!!!");
+      @(posedge clk);
+      fsync.transaction_time = $time;
+      @(negedge clk);
+      vif_master_h_tree.sync = 1'b0;
+      vif_master_v_tree.sync = 1'b0;
+      vif_master_h_nbr.sync  = 1'b0;
+      vif_master_v_nbr.sync  = 1'b0;
+    end else begin
+      @(negedge clk);
+      if (fsync.sync_level == 1) begin
+        case (fsync.sync_id)
+          2'b00: begin
+            vif_master_h_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_h_tree.id_req   = fsync.sync_id;
+            vif_master_h_tree.lock     = 1'b1;
+          end
+          2'b01: begin
+            vif_master_v_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_v_tree.id_req   = fsync.sync_id;
+            vif_master_v_tree.lock     = 1'b1;
+          end
+          2'b10: begin
+            vif_master_h_nbr.aggr_req  = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_h_nbr.id_req    = fsync.sync_id;
+            vif_master_h_nbr.lock      = 1'b1;
+          end
+          2'b11: begin
+            vif_master_v_nbr.aggr_req  = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_v_nbr.id_req    = fsync.sync_id;
+            vif_master_v_nbr.lock      = 1'b1;
+          end
+          default: $fatal("Detected synchronization request at level 1 with invalid lock ID!!!");
+        endcase
+      end else if (fsync.sync_level > 1) begin
+        if (fsync.sync_id[0] == 1'b0) begin
+          vif_master_h_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+          vif_master_h_tree.id_req   = fsync.sync_id;
+          vif_master_h_tree.lock     = 1'b1;
+        end else begin
+          vif_master_v_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+          vif_master_v_tree.id_req   = fsync.sync_id;
+          vif_master_v_tree.lock     = 1'b1;
         end
-        2'b10: begin
-          vif_master_h_nbr.aggr   = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
-          vif_master_h_nbr.id_req = fsync.sync_barrier_id;
-          vif_master_h_nbr.sync   = 1'b1;
+      end else $fatal("Detected synchronization request at level 0!!!");
+      @(posedge clk);
+      fsync.transaction_time = $time;
+      @(negedge clk);
+      vif_master_h_tree.lock = 1'b0;
+      vif_master_v_tree.lock = 1'b0;
+      vif_master_h_nbr.lock  = 1'b0;
+      vif_master_v_nbr.lock  = 1'b0;
+      repeat (comp_cycles + rand_cycles) @(negedge clk);
+      @(negedge clk);
+      if (fsync.sync_level == 1) begin
+        case (fsync.sync_id)
+          2'b00: begin
+            vif_master_h_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_h_tree.id_req   = fsync.sync_id;
+            vif_master_h_tree.free     = 1'b1;
+          end
+          2'b01: begin
+            vif_master_v_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_v_tree.id_req   = fsync.sync_id;
+            vif_master_v_tree.free     = 1'b1;
+          end
+          2'b10: begin
+            vif_master_h_nbr.aggr_req  = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_h_nbr.id_req    = fsync.sync_id;
+            vif_master_h_nbr.free      = 1'b1;
+          end
+          2'b11: begin
+            vif_master_v_nbr.aggr_req  = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+            vif_master_v_nbr.id_req    = fsync.sync_id;
+            vif_master_v_nbr.free      = 1'b1;
+          end
+          default: $fatal("Detected synchronization request at level 1 with invalid free ID!!!");
+        endcase
+      end else if (fsync.sync_level > 1) begin
+        if (fsync.sync_id[0] == 1'b0) begin
+          vif_master_h_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+          vif_master_h_tree.id_req   = fsync.sync_id;
+          vif_master_h_tree.free     = 1'b1;
+        end else begin
+          vif_master_v_tree.aggr_req = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
+          vif_master_v_tree.id_req   = fsync.sync_id;
+          vif_master_v_tree.free     = 1'b1;
         end
-        2'b11: begin
-          vif_master_v_nbr.aggr   = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
-          vif_master_v_nbr.id_req = fsync.sync_barrier_id;
-          vif_master_v_nbr.sync   = 1'b1;
-        end
-        default: $fatal("Detected synchronization request at level 1 with invalid barrier ID!!!");
-      endcase
-    end else if (fsync.sync_level > 1) begin
-      if (fsync.sync_barrier_id[0] == 1'b0) begin
-        vif_master_h_tree.aggr   = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
-        vif_master_h_tree.id_req = fsync.sync_barrier_id;
-        vif_master_h_tree.sync   = 1'b1;
-      end else begin
-        vif_master_v_tree.aggr   = (1'b1 << (fsync.sync_level-1)) | fsync.sync_aggregate;
-        vif_master_v_tree.id_req = fsync.sync_barrier_id;
-        vif_master_v_tree.sync   = 1'b1;
-      end
-    end else $fatal("Detected synchronization request at level 0!!!");
-    @(posedge clk);
-    fsync.transaction_time = $time;
-    @(negedge clk);
-    vif_master_h_tree.sync = 1'b0;
-    vif_master_v_tree.sync = 1'b0;
-    vif_master_h_nbr.sync = 1'b0;
-    vif_master_v_nbr.sync = 1'b0;
+      end else $fatal("Detected synchronization request at level 0!!!");
+      @(negedge clk);
+      vif_master_h_tree.free = 1'b0;
+      vif_master_v_tree.free = 1'b0;
+      vif_master_h_nbr.free  = 1'b0;
+      vif_master_v_nbr.free  = 1'b0;
+    end
   endtask: sync_req
 
   task automatic sync_rsp(ref sync_transaction fsync_rsp, const ref logic clk);
-    bit detected_single_wake = 0;
+    bit detected_single_rsp = 0;
     do
       @(posedge clk);
-    while (!vif_master_h_tree.wake && !vif_master_v_tree.wake && !vif_master_h_nbr.wake && !vif_master_v_nbr.wake);
+    while (!vif_master_h_tree.wake  && !vif_master_v_tree.wake  && !vif_master_h_nbr.wake  && !vif_master_v_nbr.wake &&
+           !vif_master_h_tree.grant && !vif_master_v_tree.grant && !vif_master_h_nbr.grant && !vif_master_v_nbr.grant);
     fsync_rsp.transaction_time = $time;
     if (vif_master_h_tree.wake) begin
-      if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_h_tree.lvl+1, 0, vif_master_h_tree.id_rsp);
+      fsync_rsp.set(SYNC_BARRIER, vif_master_h_tree.aggr_rsp+1, 0, vif_master_h_tree.id_rsp);
     end else if (vif_master_v_tree.wake) begin
-      if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_v_tree.lvl+1, 0, vif_master_v_tree.id_rsp);
+      fsync_rsp.set(SYNC_BARRIER, vif_master_v_tree.aggr_rsp+1, 0, vif_master_v_tree.id_rsp);
     end else if (vif_master_h_nbr.wake) begin
-      if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_h_nbr.lvl, 0, vif_master_h_nbr.id_rsp);
+      fsync_rsp.set(SYNC_BARRIER, vif_master_h_nbr.aggr_rsp, 0, vif_master_h_nbr.id_rsp);
     end else if (vif_master_v_nbr.wake) begin
-      if (detected_single_wake == 1'b0) detected_single_wake = 1'b1;
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
       else $fatal("Detected synchronization wakes from multiple interfaces!!!");
-      fsync_rsp.set(vif_master_v_nbr.lvl, 0, vif_master_v_nbr.id_rsp);
-    end else $fatal("Detected synchronization wake at unidentified interface!!!");
+      fsync_rsp.set(SYNC_BARRIER, vif_master_v_nbr.aggr_rsp, 0, vif_master_v_nbr.id_rsp);
+    end else if (vif_master_h_tree.grant) begin
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
+      else $fatal("Detected synchronization grants from multiple interfaces!!!");
+      fsync_rsp.set(SYNC_LOCK, vif_master_h_tree.aggr_rsp+1, 0, vif_master_h_tree.id_rsp);
+    end else if (vif_master_v_tree.grant) begin
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
+      else $fatal("Detected synchronization grants from multiple interfaces!!!");
+      fsync_rsp.set(SYNC_LOCK, vif_master_v_tree.aggr_rsp+1, 0, vif_master_v_tree.id_rsp);
+    end else if (vif_master_h_nbr.grant) begin
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
+      else $fatal("Detected synchronization grants from multiple interfaces!!!");
+      fsync_rsp.set(SYNC_LOCK, vif_master_h_nbr.aggr_rsp, 0, vif_master_h_nbr.id_rsp);
+    end else if (vif_master_v_nbr.grant) begin
+      if (detected_single_rsp == 1'b0) detected_single_rsp = 1'b1;
+      else $fatal("Detected synchronization grants from multiple interfaces!!!");
+      fsync_rsp.set(SYNC_LOCK, vif_master_v_nbr.aggr_rsp, 0, vif_master_v_nbr.id_rsp);
+    end else $fatal("Detected synchronization response at unidentified interface!!!");
   endtask: sync_rsp
 
   task automatic sync(input sync_transaction fsync_req, ref sync_transaction fsync_rsp, input int unsigned comp_cycles, input int unsigned max_rand_cycles, const ref logic clk);
