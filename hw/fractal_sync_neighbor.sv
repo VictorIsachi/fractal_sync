@@ -57,9 +57,17 @@ module fractal_sync_neighbor
 /*******************************************************/
 
   logic[N_PORTS-1:0]  sync_req;
-  logic               clear_sync_req;
+  logic[N_PORTS-1:0]  lock_req;
+  logic[N_PORTS-1:0]  free_req;
+  logic[N_PORTS-1:0]  sample_id;
   logic[N_PORTS-1:0]  sync_present_d, sync_present_q;
+  logic[N_PORTS-1:0]  lock_present_d, lock_present_q;
+  logic               clear_sync_present;
+  logic               clear_lock_present;
+  logic               clear_id;
   logic               wake;
+  logic               single_grant;
+  logic[N_PORTS-1:0]  grant;
   logic[NBR_ID_W-1:0] id_d[N_PORTS];
   logic[NBR_ID_W-1:0] id_q[N_PORTS];
   logic[NBR_ID_W-1:0] id[N_PORTS];
@@ -72,32 +80,48 @@ module fractal_sync_neighbor
 /*******************************************************/
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_sync_req_rsp
-    assign sync_req[i]      = req_i[i].sync;
-    assign id_d[i]          = sync_req[i] ? req_i[i].sig.id : '0;
-    assign rsp_o[i].wake    = wake;
-    assign rsp_o[i].sig.lvl = 1'b1;
-    assign rsp_o[i].sig.id  = (wake & same_id) ? id[0] : '0;
-    assign rsp_o[i].error   = (wake & same_id) ? 1'b0  : 1'b1;
+    assign sync_req[i]       = req_i[i].sync;
+    assign lock_req[i]       = req_i[i].lock;
+    assign free_req[i]       = req_i[i].free;
+    assign id_d[i]           = sample_id[i] ? req_i[i].sig.id : '0;
+    assign rsp_o[i].wake     = wake;
+    assign rsp_o[i].grant    = grant[i];
+    assign rsp_o[i].sig.aggr = 1'b1;
+    assign rsp_o[i].sig.id   = ((wake | grant[i]) & same_id) ? id[0] : '0;
+    assign rsp_o[i].error    = ((wake | grant[i]) & same_id) ? 1'b0  : 1'b1;
   end
 
-  assign clear_sync_req = &sync_present_q;
+  assign sample_id = sync_req | lock_req | free_req;
+  
+  assign clear_sync_present = &sync_present_q;
+
+  assign clear_lock_present = &(~lock_present_q);
+
+  assign clear_id = clear_sync_present & clear_lock_present;
 
   assign sync_present_d = sync_present_q | sync_req;
 
-  always_ff @(posedge clk_i, negedge rst_ni) begin: presence_tracker
-    if (!rst_ni)          sync_present_q <= '0;
+  assign lock_present_d = lock_present_q | lock_req & ~free_req;
+
+  always_ff @(posedge clk_i, negedge rst_ni) begin: sync_presence_tracker
+    if (!rst_ni)              sync_present_q <= '0;
     else begin
-      if (clear_sync_req) sync_present_q <= '0;
-      else                sync_present_q <= sync_present_d;
+      if (clear_sync_present) sync_present_q <= '0;
+      else                    sync_present_q <= sync_present_d;
     end
+  end
+
+  always_ff @(posedge clk_i, negedge rst_ni) begin: lock_presence_tracker
+    if (!rst_ni) lock_present_q <= '0;
+    else         lock_present_q <= lock_present_d;
   end
 
   for (genvar i = 0; i < N_PORTS; i++) begin: gen_id_tracker
     always_ff @(posedge clk_i, negedge rst_ni) begin
-      if (!rst_ni)          id_q[i] <= '0;
+      if (!rst_ni)    id_q[i] <= '0;
       else begin
-        if (clear_sync_req) id_q[i] <= '0;
-        else                id_q[i] <= id_d[i];
+        if (clear_id) id_q[i] <= '0;
+        else          id_q[i] <= id_d[i];
       end
     end
   end
@@ -118,9 +142,17 @@ module fractal_sync_neighbor
   end
 
   if (COMB) begin: gen_comb_wake
-    assign wake  = &sync_present_d;
+    assign wake = &sync_present_d;
   end else begin: gen_seq_wake
-    assign wake  = &sync_present_q;
+    assign wake = &sync_present_q;
+  end
+
+  if (COMB) begin: gen_comb_grant
+    assign single_grant = (sync_present_d != 0) && ((sync_present_d & (sync_present_d-1)) == 0);
+    assign grant        = sync_present_d & single_grant;
+  end else begin: gen_seq_grant
+    assign single_grant = (sync_present_q != 0) && ((sync_present_q & (sync_present_q-1)) == 0);
+    assign grant        = sync_present_q & single_grant;
   end
 
 /*******************************************************/
