@@ -52,8 +52,10 @@ module fractal_sync_arbiter_fa
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_ARBITER_IN_PORTS: assert (IN_PORTS > 0) else $fatal("IN_PORTS must be > 0");
   initial FRACTAL_SYNC_ARBITER_OUT_PORTS: assert (OUT_PORTS > 0) else $fatal("OUT_PORTS must be > 0");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -205,8 +207,10 @@ module fractal_sync_arbiter
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_ARBITER_IN_PORTS: assert (IN_PORTS > 0) else $fatal("IN_PORTS must be > 0");
   initial FRACTAL_SYNC_ARBITER_OUT_PORTS: assert (OUT_PORTS > 0) else $fatal("OUT_PORTS must be > 0");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -304,7 +308,10 @@ module fractal_sync_arbiter
         assign gen_port_arbiters[OUT_PORTS-1 - (i%OUT_PORTS)].element_in[PORT_IDX] = element_i[i];
       end
     end
-  end else $fatal("Unsupported Arbiter Type");
+  end
+`ifndef SYNTHESIS
+  else $fatal("Unsupported Arbiter Type");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                    Arbiter End                    **/

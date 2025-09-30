@@ -144,7 +144,9 @@ module fractal_sync_mp_cam
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_MP_CAM: assert (N_LINES >= N_PORTS/2) else $fatal("N_LINES must be >= N_PORTS/2");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -289,7 +291,9 @@ module fractal_sync_mp_cam_br
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_MP_CAM: assert (N_LINES >= N_PORTS/2) else $fatal("N_LINES must be >= N_PORTS/2");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/

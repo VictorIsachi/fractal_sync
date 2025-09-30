@@ -68,7 +68,9 @@ module fractal_sync_1d_remote_rf
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_1D_REMOTE_RF_SIG_ENC_MAX_LVL: assert (MAX_LVL_WIDTH >= LEVEL_WIDTH) else $fatal("Unsupported (exceeds maximum of 4 - 16 levels) level width for signature generation: update Sig. Gen.");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -234,7 +236,10 @@ module fractal_sync_1d_remote_rf
       .present_o   ( present_o ),
       .sd_o        ( sd_o      )
     );
-  end else $fatal("Unsupported Remote Register File Type");
+  end
+`ifndef SYNTHESIS
+  else $fatal("Unsupported Remote Register File Type");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**              Remote Register File End             **/
@@ -322,7 +327,9 @@ module fractal_sync_2d_remote_rf #(
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_2D_REMOTE_RF_CAM_LINES: assert (N_CAM_LINES%2 == 0) else $fatal("N_CAM_LINES must be even");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/

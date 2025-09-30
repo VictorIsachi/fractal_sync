@@ -51,7 +51,9 @@ module fractal_sync_mp_rf #(
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_MP_RF: assert (2**IDX_WIDTH >= N_REGS) else $fatal("IDX_WIDTH must be able to index all N_REGS registers");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -196,7 +198,9 @@ module fractal_sync_mp_rf_br #(
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_MP_RF: assert (2**IDX_WIDTH >= N_REGS) else $fatal("IDX_WIDTH must be able to index all N_REGS registers");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
