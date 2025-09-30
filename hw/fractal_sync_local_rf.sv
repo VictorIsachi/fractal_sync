@@ -55,9 +55,11 @@ module fractal_sync_1d_local_rf
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_1D_LOCAL_RF_REGS: assert (N_REGS > 0) else $fatal("N_REGS must be > 0");
   initial FRACTAL_SYNC_1D_LOCAL_RF_ID_W: assert (ID_WIDTH > 0) else $fatal("ID_WIDTH must be > 0");
   initial FRACTAL_SYNC_1D_LOCAL_RF_PORTS: assert (N_PORTS >= 2) else $fatal("N_PORTS must be > 1");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -222,7 +224,9 @@ module fractal_sync_2d_local_rf #(
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_2D_LOCAL_RF_REGS: assert (N_REGS%2 == 0) else $fatal("N_REGS must be even");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/

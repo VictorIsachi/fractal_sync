@@ -53,7 +53,9 @@ module fractal_sync_pipeline
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_PIPELINE_PORTS: assert (N_PORTS > 0) else $fatal("N_PORTS must be > 0");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/

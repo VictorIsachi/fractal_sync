@@ -176,6 +176,7 @@ module fractal_sync_2x2_core
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_2x2_TOP_NODE_TYPE: assert (TOP_NODE_TYPE == fractal_sync_pkg::HV_NODE || TOP_NODE_TYPE == fractal_sync_pkg::RT_NODE) else $fatal("TOP_NODE_TYPE must be in {HV_NODE, RT_NODE}");
   initial FRACTAL_SYNC_2x2_IN_LINKS: assert (N_LINKS_IN > 0) else $fatal("N_LINKS_IN must be > 0");
   initial FRACTAL_SYNC_2x2_ITL_LINKS: assert (N_LINKS_ITL > 0) else $fatal("N_LINKS_ITL must be > 0");
@@ -189,6 +190,7 @@ module fractal_sync_2x2_core
   initial FRACTAL_SYNC_2x2_SYNC_AGGR: assert ($bits(h_1d_fsync_req_i[0][0].sig.aggr) == AGGREGATE_WIDTH) else $fatal("AGGREGATE_WIDTH must be coherent with fsync_req type");
   initial FRACTAL_SYNC_2x2_SYNC_ID: assert ($bits(h_1d_fsync_req_i[0][0].sig.id) == ID_WIDTH) else $fatal("ID_WIDTH must be coherent with fsync_req type");
   initial FRACTAL_SYNC_2x2_SYNC_REQ_RSP_ID: assert ($bits(h_1d_fsync_req_i[0][0].sig.id) == $bits(h_1d_fsync_rsp_o[0][0].sig.id)) else $fatal("Request id width must be coherent with request id width");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/

@@ -120,6 +120,7 @@ module fractal_sync_cc
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_CC_LOCAL_REGS: assert (N_LOCAL_REGS > 0) else $fatal("N_LOCAL_REGS must be > 0");
   initial FRACTAL_SYNC_CC_REMOTE_LINES: assert (RF_TYPE == fractal_sync_pkg::CAM_RF -> N_REMOTE_LINES > 0) else $fatal("N_REMOTE_LINES must be > 0 for CAM Remote Register File");
   initial FRACTAL_SYNC_CC_AGGR_W: assert (AGGREGATE_WIDTH > 0) else $fatal("AGGREGATE_WIDTH must be > 0");
@@ -128,6 +129,7 @@ module fractal_sync_cc
   initial FRACTAL_SYNC_CC_RX_PORTS: assert (N_RX_PORTS > 0) else $fatal("N_RX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_TX_PORTS: assert (N_TX_PORTS > 0) else $fatal("N_TX_PORTS must be > 0");
   initial FRACTAL_SYNC_CC_FIFO_DEPTH: assert (FIFO_DEPTH > 0) else $fatal("FIFO_DEPTH must be > 0");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
@@ -581,7 +583,10 @@ module fractal_sync_cc
       end
             
     end
-  end else $fatal("Unsupported Register File Dimension");
+  end
+`ifndef SYNTHESIS
+  else $fatal("Unsupported Register File Dimension");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                  Control FSMs End                 **/
@@ -664,7 +669,10 @@ module fractal_sync_cc
       .v_ignore_local_o   (                  ),
       .v_ignore_remote_o  (                  )
     );
-  end else $fatal("Unsupported Register File Dimension");
+  end
+`ifndef SYNTHESIS
+  else $fatal("Unsupported Register File Dimension");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                 Register File End                 **/

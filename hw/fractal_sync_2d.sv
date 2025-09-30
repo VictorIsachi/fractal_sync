@@ -89,7 +89,9 @@ module fractal_sync_2d
 /**                Assertions Beginning               **/
 /*******************************************************/
 
+`ifndef SYNTHESIS
   initial FRACTAL_SYNC_2D_NODE_TYPE: assert (NODE_TYPE == fractal_sync_pkg::HV_NODE || NODE_TYPE == fractal_sync_pkg::RT_NODE) else $fatal("NODE_TYPE must be in {HV_NODE, RT_NODE}");
+`endif /* SYNTHESIS */
 
 /*******************************************************/
 /**                   Assertions End                  **/
