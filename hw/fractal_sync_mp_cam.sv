@@ -389,10 +389,10 @@ module fractal_sync_mp_cam_br
 
   for (genvar i = 0; i < N_LINES; i++) begin: gen_sd_regs
     always_ff @(posedge clk_i, negedge rst_ni) begin
-      if (!rst_ni)        sd_reg_q[i] <= '0;         
+      if (!rst_ni)                         sd_reg_q[i] <= '0;         
       else
-        if (free_line[i]) sd_reg_q[i] <= '0;
-        else              sd_reg_q[i] <= sd_reg_d[i];
+        if (free_line[i] & ~write_line[i]) sd_reg_q[i] <= '0;
+        else                               sd_reg_q[i] <= sd_reg_d[i];
     end
   end
 
